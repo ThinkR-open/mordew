@@ -648,6 +648,22 @@ Shiny projects.
    promise-based handler to mcptools.
 10. **Default architecture for HTTP**: replicas (A), worker pool (B), or
     both by default.
+11. **Should a generated package depend on mordew at runtime?** Two
+    options:
+    - *Runtime dependency* (as golem apps depend on golem): the package
+      imports mordew for `run_mcp_server()`, serialisation, validation
+      and the async front. Generated code stays small and benefits from
+      mordew's fixes, but mordew must be on CRAN before any package built
+      with it can be, and every user installs mordew's dependencies.
+    - *Design-time only*: mordew lives in `Suggests` and generates
+      self-contained code that only imports mcptools. Dependencies are
+      lighter and the path to CRAN is easier, but generated code grows,
+      and fixes require regenerating the code.
+
+    Either way, a mordew package should pass `R CMD check --as-cran`:
+    evals and `dev/` in `.Rbuildignore`, round-trip tests through a
+    subprocess skipped on CRAN, examples that never start a blocking
+    server, small example data.
 
 ---
 
