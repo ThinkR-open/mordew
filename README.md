@@ -419,35 +419,59 @@ Two consequences for mordew:
 
 mordew ships no chat, but it gives a quick way to talk to the package's
 tools while developing them, the way `golem::run_dev()` runs a Shiny app
-under development:
+under development. Two clients are planned:
 
 ```r
+# any model provider, through ellmer (needs an API key)
 mordew::run_dev(
+  client = "ellmer",
   chat = ellmer::chat_anthropic(),
   ui = "console"
 )
+
+# the `claude` CLI found on the PATH (uses the Claude subscription)
+mordew::run_dev(
+  client = "claude"
+)
 ```
 
-Under the hood, `run_dev()`:
+In both cases, `run_dev()` first writes a temporary MCP configuration
+whose stdio server starts the development version of the package
+(`Rscript -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`). Then:
 
-1. writes a temporary MCP configuration whose stdio server starts the
-   development version of the package
-   (`Rscript -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`);
-2. turns that server into ellmer tools with `mcptools::mcp_tools()` and
-   gives them to the chat with `chat$set_tools()`;
-3. opens `ellmer::live_console()`, or `ellmer::live_browser()` with
-   `ui = "browser"`, ellmer's own development UI.
+| | `client = "ellmer"` | `client = "claude"` |
+| --- | --- | --- |
+| Connects to the server with | `mcptools::mcp_tools()`, then `chat$set_tools()` | `--mcp-config` pointing to the temporary configuration |
+| Opens | `ellmer::live_console()`, or `ellmer::live_browser()` with `ui = "browser"` | a Claude Code session in the IDE terminal (RStudio, Positron), or prints the command to paste |
+| Model and billing | any ellmer provider or a local model; API key in the environment, billed per token | the user's Claude Code login, for example a Claude subscription |
+| Other tools available | none: ellmer only sends the server's tools | none: the session is [restricted to the server](#a-claude-code-session-restricted-to-the-server) |
 
-The tools go through MCP, exactly as they will for Claude Code or any
-other client: same schema, same validation, same serialisation. Each
-tool call is printed with its arguments, so it shows at once whether the
-model picks the right tool.
+With `client = "claude"`, the command `run_dev()` runs is:
+
+```bash
+claude --tools "" --strict-mcp-config \
+  --mcp-config /tmp/runlog-mcp.json \
+  --allowedTools "mcp__runlog__*"
+```
+
+Claude Code is a full-screen terminal interface, so it cannot run inside
+the R console itself. For a one-off question from R,
+`claude -p "question" --output-format json`, with the same flags, returns
+the answer and the tool calls, which can also feed quick evals.
+
+ellmer itself has no provider that drives the `claude` CLI: its Anthropic
+provider calls the API. Third-party packages that reuse a Claude
+subscription's OAuth tokens outside Claude Code are not an option for
+mordew: they are fragile, and their use has to be checked against
+Anthropic's terms.
+
+The tools go through MCP, exactly as they will for any other client:
+same schema, same validation, same serialisation. Each tool call is
+shown with its arguments, so it is clear at once whether the model picks
+the right tool.
 
 Things to keep in mind:
 
-- `chat` takes any ellmer chat object, so any provider or a local model
-  works. The matching API key must be in the environment, and every
-  question costs tokens.
 - The server runs in its own process: changing a tool means restarting
   `run_dev()`.
 - In stdio mode, nothing but protocol messages may reach stdout. Package
@@ -828,7 +852,8 @@ Shiny projects.
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
-- [ ] `run_dev()`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
+- [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
+- [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
 - [ ] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
 - [ ] `mcp_client_config()` for Claude Desktop, Claude Code, Codex CLI, Gemini CLI and VS Code: the most restricted configuration each client allows, with a warning when the restriction is partial
 - [ ] Re-check client restriction options before each release: they change quickly
