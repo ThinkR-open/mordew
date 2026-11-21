@@ -371,6 +371,30 @@ documentation](https://code.claude.com/docs/en/mcp).
 
 `mcp_client_config()` will generate this command too.
 
+### Restricting other MCP clients
+
+Claude Code is the only client found so far with a documented,
+all-or-nothing switch for built-in tools. Elsewhere, restriction goes
+through configuration, is partial, and is sometimes explicitly described
+as not being a security mechanism. Checked in November 2026:
+
+| Client | Remove built-in tools | Restrict MCP servers and tools | How far it goes |
+| --- | --- | --- | --- |
+| [Claude Code](https://code.claude.com/docs/en/cli-reference) | `--tools ""` removes every built-in tool | `--strict-mcp-config` + `--mcp-config`; `--disallowedTools` | Enforced: the tools are not in the session. |
+| [Codex CLI](https://github.com/openai/codex/issues/6049) | `features.shell_tool = false` (or `codex --disable shell_tool`). Other features (`multi_agent`, `view_image`, `web_search = "disabled"`…) can be turned off one by one. | `mcp_servers.<id>.enabled_tools` and `disabled_tools` | Partial: no official MCP-only mode (the request is still open). Three MCP resource tools (`list_mcp_resources`, `list_mcp_resource_templates`, `read_mcp_resource`) cannot be disabled; they only read MCP resources. |
+| [Gemini CLI](https://geminicli.com/docs/cli/configuration) | `coreTools` (allowlist) or `excludeTools`, tool by tool; no documented "none" option | `allowMCPServers` or `--allowed-mcp-server-names`; per-server `includeTools` and `excludeTools` | Partial: the documentation says these lists should not be used as an airtight security mechanism. |
+| [VS Code, Copilot](https://code.visualstudio.com/docs/agent-customization/tools) | Tool picker per request; a custom agent with its own tool list for a reusable selection | Same picker, per server and per tool; enterprise allowlist of MCP servers | Per session or per agent, configured in the editor. |
+
+Two consequences for mordew:
+
+1. **The server is the security boundary, not the client.** Whatever the
+   client, the closed tool list, argument validation, limits and
+   OS-level isolation described in the [security model](#security-model)
+   must hold on their own.
+2. **`mcp_client_config()` generates the most restricted configuration
+   each client allows**, and says plainly when that restriction is
+   partial.
+
 ---
 
 ## Testing strategy
@@ -711,7 +735,8 @@ Shiny projects.
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] `run_chat()`: multi-user shinychat app connected to the server
 - [ ] `run()`: server in the background, then the chat
-- [ ] `mcp_client_config()` for Claude Desktop, Claude Code and VS Code, including the restricted Claude Code command
+- [ ] `mcp_client_config()` for Claude Desktop, Claude Code, Codex CLI, Gemini CLI and VS Code: the most restricted configuration each client allows, with a warning when the restriction is partial
+- [ ] Re-check client restriction options before each release: they change quickly
 
 ### Phase 3: testing toolkit
 
