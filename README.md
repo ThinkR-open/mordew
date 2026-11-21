@@ -134,7 +134,7 @@ already do that well. It focuses on **industrialisation**.
 | --- | --- | --- |
 | **Package convention**: `create_mcp()`, `add_tool()`, `dev/` scripts | An MCP server is developed, versioned, reviewed and installed like any package. | No |
 | **Three-level testing**: the function, the MCP contract, the model's behaviour | Proves that the tool computes correctly, is exposed correctly, and is called correctly. | Level 1 only |
-| **Production without Posit Connect**: Dockerfile, Kubernetes, auth, multi-user | Production R often runs in containers, outside Posit Connect. | No, it has to be done by hand |
+| **Production without Posit Connect**: Dockerfile, Kubernetes, auth, multi-user, asynchronous execution | Production R often runs in containers, outside Posit Connect, and must serve several users at once. | No, it has to be done by hand |
 | **Audit log** of every tool call | Traceability is required in regulated environments. | No |
 | **Return conventions**: data frame → table, plot → image, errors the model can act on | Keeps the model's context small and answers usable. | No |
 | **Closed embedded chat** | The model only sees the package's tools, with no other connectors around. | Partly (shinychat) |
@@ -255,13 +255,15 @@ mordew will ship a guide on writing them.
 - **Transports.** With stdio, each desktop client spawns its own R
   process: one user, no auth. With HTTP, one shared server serves many
   users, so it needs authentication and a concurrency strategy.
-- **Concurrency.** R is single-threaded. Tool calls must stay short, run
-  with timeouts, and scale through mirai daemons or several replicas
-  behind a load balancer.
-- **State.** Stateless tools are preferred. When a multi-step analysis
-  (load, filter, model) needs state, the plan is a session-scoped object
-  store with handles (`"dataset_1"`) and a time-to-live, isolated per
-  session.
+- **Concurrency.** R is single-threaded, and `mcptools::mcp_server()`
+  runs one tool call at a time (see below). **Asynchronous execution is a
+  hard requirement for production**: a server that blocks on every call
+  cannot serve several users. See [Scaling an HTTP
+  deployment](#scaling-an-http-deployment).
+- **State.** Tools must be stateless by default, so that any process can
+  answer any call. When a multi-step analysis (load, filter, model) needs
+  state, it lives outside the R process (database, Redis, files), behind
+  handles (`"dataset_1"`) with a time-to-live, isolated per session.
 - **Multi-user chat.** `shinychat::chat_app()` is meant for a single user.
   The embedded chat must use `chat_ui()` and `chat_server()`, with one
   ellmer client per Shiny session.
@@ -269,6 +271,46 @@ mordew will ship a guide on writing them.
   and name, transport, port, limits, audit log location, system prompt.
 - **Observability.** OpenTelemetry tracing of each tool call, building on
   the instrumentation already present in ellmer and mcplite.
+
+### What mcptools does today
+
+Checked in the mcptools source (development version 1.0.3.9000), because
+mordew's runtime design depends on it:
+
+- **Tool execution is synchronous.** Over HTTP, `mcp_server(type = "http")`
+  starts an httpuv server and runs `httpuv::service(Inf)`. The request
+  handler calls the tool directly (`do.call(data$tool, args)`) and returns
+  the response; it never returns a promise. A tool that takes 30 seconds
+  blocks every other request, from every client, for 30 seconds.
+- **stdio reads asynchronously but processes sequentially.** Reading stdin
+  uses `nanonext::recv_aio()`, but calls are handled one after the other.
+  That is fine: a stdio process serves a single client.
+- **The HTTP server is stateless.** It never issues an `Mcp-Session-Id`,
+  and the protocol version travels with each message. Any process can
+  answer any request, so no sticky sessions are needed.
+- **No streaming.** GET and SSE are refused (HTTP 405); only POST is
+  handled. The `ping` method is not implemented.
+- **`mcp_session()` has no queue of its own.** It keeps one pending
+  `recv_aio()` wrapped in a promise. The callback runs through the `later`
+  event loop, that is only when the interactive session is idle, then
+  executes the tool synchronously. On the other side, the server forwards
+  one request at a time and blocks until the answer comes back or a
+  timeout expires (120 seconds by default, set with the
+  `mcptools.session_response_timeout_seconds` option or the
+  `MCPTOOLS_SESSION_RESPONSE_TIMEOUT_SECONDS` variable). `mcp_session()` is
+  a development tool, not a deployment target.
+- **Access checks are minimal.** An optional shared secret
+  (`Plumber-Shared-Secret` header), an optional list of trusted hosts
+  (`MCPTOOLS_HTTP_TRUSTED_HOSTS`), and an `Origin` check that only lets
+  localhost through unless `MCPTOOLS_HTTP_ALLOWED_ORIGINS` is set. Real
+  authentication belongs in front of the server.
+
+The MCP specification goes the same way: in its [2026-07-28
+revision](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports),
+Streamable HTTP sends each message as a POST to a single endpoint, and
+every request carries its protocol version and client capabilities. With
+no handshake and no session, any instance can serve any request, which is
+what horizontal scaling needs.
 
 ### Connecting external clients
 
@@ -416,6 +458,84 @@ results is optional because it is a privacy trade-off.
 | Posit Connect | HTTP | mcptools' `_server.yml` with `engine: mcptools`, through `add_connect()` |
 | Embedded chat | Shiny | deployed like any golem app |
 
+### When a single process is enough
+
+- **stdio**: never needs scaling. Each client spawns its own R process.
+- **HTTP for one user, or with fast tools and little traffic**: one
+  process is enough, as long as calls stay well under the timeouts.
+
+Everything else, meaning several users at the same time or tools that
+take seconds, needs asynchronous execution.
+
+### Scaling an HTTP deployment
+
+Because one `mcp_server()` process runs one call at a time, there are two
+ways to serve concurrent calls. mordew must support both.
+
+**A. Replicas behind a load balancer.** N identical R processes or
+containers, behind nginx, Traefik or a Kubernetes Service. It needs no
+change to the server, since the HTTP transport is stateless. The cost is
+memory: each replica loads its own copy of the data.
+
+```mermaid
+flowchart LR
+  C["MCP clients"] --> LB["Load balancer<br/>TLS, auth, least connections"]
+  LB --> R1["R process 1<br/>mcp_server()"]
+  LB --> R2["R process 2<br/>mcp_server()"]
+  LB --> R3["R process N<br/>mcp_server()"]
+```
+
+**B. One asynchronous front, a pool of workers.** A single HTTP process
+whose handler returns a promise instead of blocking, while tools run in a
+pool of mirai daemons. The front keeps accepting requests while tools
+compute; data can be loaded once per worker; there is a single container
+to deploy. mcptools cannot do this today because `execute_tool_call()` is
+synchronous, so mordew has to wrap it, or contribute the change upstream.
+
+```mermaid
+flowchart LR
+  C["MCP clients"] --> P["Reverse proxy<br/>TLS, auth"]
+  P --> F["Async HTTP front<br/>httpuv handler returns a promise"]
+  F --> W1["mirai worker 1"]
+  F --> W2["mirai worker 2"]
+  F --> W3["mirai worker N"]
+```
+
+**A + B.** Several replicas, each with its own worker pool, for large
+deployments.
+
+### Asynchronous execution: production requirements
+
+- Non-blocking handler: the HTTP front never runs a tool itself.
+- A configurable worker pool (size, memory, data loaded at start-up).
+- A timeout per call, after which the worker is stopped and recycled, and
+  the client receives an error result instead of a hanging request.
+- Back-pressure: a bounded queue, and a clear "busy, retry later" error
+  when it is full, rather than unbounded waiting.
+- Cancellation: when a client gives up, the call stops, if the
+  specification revision in use allows it.
+- Progress feedback for long calls, if the specification revision in use
+  allows it, so that users are not left in front of a frozen chat.
+- Every call stays in the audit log with its queue time, run time and
+  status.
+
+### Load balancer checklist
+
+- **Algorithm**: least connections rather than round-robin, because call
+  durations vary widely and each process (or worker) runs one call at a
+  time.
+- **Health check**: mcptools answers GET with HTTP 405 and does not
+  implement `ping`. Either accept 405, use a TCP check, or POST a
+  `tools/list` request. mordew should add a dedicated health endpoint.
+- **Timeouts**: align the proxy timeouts with the longest tool. nginx's
+  `proxy_read_timeout` defaults to 60 seconds; a longer tool ends in a 504.
+- **Host and Origin**: if `MCPTOOLS_HTTP_TRUSTED_HOSTS` is set, the proxy
+  must forward the original `Host` header. Clients that send a non-local
+  `Origin` get a 403 unless `MCPTOOLS_HTTP_ALLOWED_ORIGINS` lists it.
+- **Authentication and TLS**: at the proxy (OAuth or OIDC). The optional
+  shared secret of mcptools is not user authentication.
+- **No sticky sessions**, as long as tools keep no state in memory.
+
 ---
 
 ## Relationship with golem
@@ -459,6 +579,7 @@ Shiny projects.
 - [ ] Argument validation generated from the schema
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
+- [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] `run_chat()`: multi-user shinychat app connected to the server
 - [ ] `run()`: server in the background, then the chat
 - [ ] `mcp_client_config()` for Claude Desktop, Claude Code and VS Code
@@ -475,10 +596,18 @@ Shiny projects.
 
 ### Phase 4: production
 
+- [ ] Asynchronous execution: non-blocking HTTP front and a mirai worker pool (architecture B)
+- [ ] Worker pool configuration: size, memory, data loaded at start-up
+- [ ] Per-call timeouts with worker recycling, and resource limits
+- [ ] Back-pressure: bounded queue and a "busy, retry later" error
+- [ ] Cancellation and progress feedback, depending on the specification revision
+- [ ] Dedicated health endpoint for load balancers and Kubernetes probes
+- [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
+- [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
+- [ ] Check that tools keep no in-memory state (a contract test)
 - [ ] `add_dockerfile()` with dockerfiler
 - [ ] Authentication for the HTTP transport
-- [ ] Audit log
-- [ ] Per-call timeouts and resource limits
+- [ ] Audit log, with queue time and run time
 - [ ] Session-scoped object store, if the prototype shows it is needed
 - [ ] OpenTelemetry tracing
 - [ ] Kubernetes manifests example
@@ -514,6 +643,11 @@ Shiny projects.
    package.
 7. **Licence**.
 8. **Bridges with golem**.
+9. **Asynchronous execution: in mordew or upstream?** Wrap mcptools'
+   synchronous `execute_tool_call()` inside mordew, or propose a
+   promise-based handler to mcptools.
+10. **Default architecture for HTTP**: replicas (A), worker pool (B), or
+    both by default.
 
 ---
 
@@ -526,7 +660,7 @@ Shiny projects.
 | Maintenance cost | Open source means issues, support and upgrades. | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early. |
 | Unclear adoption | Real use cases still have to be collected. | Build the prototype on real use cases before the first release. |
 | Flaky, costly evals | Models are not deterministic, and every eval run costs tokens. | Thresholds, several runs per case, a separate CI job. |
-| R does not scale vertically | One R process handles one call at a time. | Short tool calls, mirai daemons, replicas. |
+| A blocking server in production | One `mcp_server()` process runs one call at a time; one slow call blocks every user. | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure. |
 
 ---
 
