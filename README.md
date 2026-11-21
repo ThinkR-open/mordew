@@ -339,6 +339,38 @@ Claude Desktop (`claude_desktop_config.json`):
 mordew will generate these snippets with a helper such as
 `mcp_client_config()`.
 
+### A Claude Code session restricted to the server
+
+Claude Code has no `--mcp-only` flag, but four flags give the same result,
+and this time it is enforced, not just requested:
+
+```bash
+claude \
+  --tools "" \
+  --strict-mcp-config \
+  --mcp-config ./runlog.json \
+  --allowedTools "mcp__runlog__*"
+```
+
+where `runlog.json` holds the Claude Desktop snippet above.
+
+| Flag | Effect |
+| --- | --- |
+| `--tools ""` | Removes every built-in tool (Bash, Read, Edit, web access…). MCP tools are not affected. |
+| `--strict-mcp-config` | Loads only the servers passed with `--mcp-config`, ignoring `.mcp.json`, user configuration and other MCP sources. |
+| `--mcp-config ./runlog.json` | Loads the mordew server. |
+| `--allowedTools "mcp__runlog__*"` | Approves the server's tools without prompting. It only changes permissions: it removes nothing. |
+
+`--disable-slash-commands` also turns off skills and slash commands. In
+such a session, the model cannot run shell commands or read files: those
+tools simply do not exist. One caveat: when an organisation deploys a
+managed `managed-mcp.json`, Claude Code exits at startup if
+`--strict-mcp-config` is passed. See the [CLI
+reference](https://code.claude.com/docs/en/cli-reference) and the [MCP
+documentation](https://code.claude.com/docs/en/mcp).
+
+`mcp_client_config()` will generate this command too.
+
 ---
 
 ## Testing strategy
@@ -418,10 +450,12 @@ Planned helpers: `expect_tool_schema()`, `call_tool()`,
    provider reads every result, unless the model is self-hosted.
 4. **Instructions are not enforcement.** Telling a client "only use this
    MCP server" is a preference the model usually follows, not a guarantee.
-   Only the tools actually available to it are enforced. In Claude
-   Desktop or Claude Code, a mordew server sits next to other connectors
-   that we do not control. The embedded chat is the only place where we
-   control the full tool list.
+   Only the tools actually available to it are enforced. In a default
+   Claude Desktop or Claude Code setup, a mordew server sits next to
+   other connectors and built-in tools that we do not control. Two setups
+   control the full tool list: the embedded chat, and a [Claude Code
+   session restricted to the
+   server](#a-claude-code-session-restricted-to-the-server).
 
 [Posit warns](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) that
 mixing MCP servers can create the "lethal trifecta": access to private
@@ -677,7 +711,7 @@ Shiny projects.
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] `run_chat()`: multi-user shinychat app connected to the server
 - [ ] `run()`: server in the background, then the chat
-- [ ] `mcp_client_config()` for Claude Desktop, Claude Code and VS Code
+- [ ] `mcp_client_config()` for Claude Desktop, Claude Code and VS Code, including the restricted Claude Code command
 
 ### Phase 3: testing toolkit
 
