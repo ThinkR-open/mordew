@@ -86,7 +86,7 @@ mordew **is**:
 
 - an opinionated framework where one MCP server is one R package
 - scaffolding: `create_mcp()`, `add_tool()`, `add_resource()`, `add_prompt()`, `dev/` scripts
-- support for the three MCP primitives: tools, resources and prompts
+- support for the whole MCP specification: tools, resources and prompts, plus structured output, elicitation, completion, progress, cancellation and the tasks extension
 - a roxygen roclet that turns documentation into a tool registry
 - a testing toolkit covering three levels: unit, contract, behaviour
 - runtime helpers: MCP server, asynchronous execution, audit log, limits
@@ -94,8 +94,10 @@ mordew **is**:
 
 mordew **is not**:
 
-- a new implementation of the MCP protocol: that is delegated to
-  [mcptools](https://posit-dev.github.io/mcptools/)
+- a new implementation of the MCP protocol: mordew builds on
+  [mcptools](https://posit-dev.github.io/mcptools/) and contributes what
+  is missing upstream where possible (see [MCP specification
+  coverage](#mcp-specification-coverage))
 - an LLM client: mordew never calls a model itself, except in behavioural
   evals, which rely on [ellmer](https://ellmer.tidyverse.org/) and vitals
 - a chat: a chat is a separate product, an MCP client like any other
@@ -209,9 +211,13 @@ This has three consequences for mordew:
 - **Arguments are untrusted input.** The server cannot know where a
   request comes from, or whether the model was manipulated.
 
-Older revisions of the specification let a server ask the client for a
-model completion ("sampling"). In the 2026-07-28 revision, servers no
-longer send requests to clients. mordew does not need it either way.
+A server can still ask for something in the middle of a call, but only
+through the client: in the 2026-07-28 revision, it answers with an
+`InputRequiredResult`, and the client retries the request with the
+answer (Multi Round-Trip Requests). This is how elicitation works (see
+[Elicitation](#elicitation)). "Sampling", where a server asks the client
+for a model completion, is deprecated in that revision, and mordew does
+not implement it.
 
 ### From package to server
 
@@ -307,6 +313,10 @@ Draft tag specification:
 | `@mcp_resource <uri>` | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template. |
 | `@mcp_mime <type>` | MIME type of a resource, e.g. `text/csv` or `application/json`. |
 | `@mcp_prompt [name]` | Exposes the function as a prompt; its `@param` become the prompt arguments. |
+| `@mcp_output <object>` | Output schema of a tool, an `ellmer::type_object()`; the tool then returns structured content. |
+| `@mcp_complete <param> <function>` | Function that suggests values for a prompt or resource-template argument. Enums are completed automatically. |
+| `@mcp_task` | Runs the tool as a task: the call returns a handle at once, and the client polls for the result. |
+| `@mcp_app` | The tool returns an interactive UI (an htmlwidget), shown inline by clients that support MCP Apps. |
 
 The title and description become the tool description, and each `@param`
 becomes a parameter description. **These texts are prompts**: they should
@@ -385,6 +395,105 @@ Two caveats:
 | condition (error) | an `isError` result with a message the model can act on |
 | very large outputs | to explore: an MCP resource instead of inline content |
 
+When a tool declares an output schema (`@mcp_output`), mordew also sends
+the value as `structuredContent`, validated against that schema, next to
+the text version.
+
+### MCP specification coverage
+
+mordew targets the **2026-07-28 revision** of the specification, and
+stays compatible with clients that still speak 2025-11-25. "Production
+ready" means covering everything a server can offer, not only tools.
+
+| Feature | What it is | In mordew |
+| --- | --- | --- |
+| Tools | Functions the model calls | Core: one R function per tool |
+| Resources and resource templates | Data the client can read | `add_resource()`, `@mcp_resource` |
+| Prompts | Templates the user picks | `add_prompt()`, `@mcp_prompt` |
+| Tool title and annotations | Display name, read-only, destructive, idempotent hints | roxygen title and annotation tags |
+| Structured output | `outputSchema` and `structuredContent` | `@mcp_output` |
+| Error reporting | Tool errors as `isError` results, protocol errors with standard codes | Built in |
+| Elicitation | The server asks the user for input during a call, through the client | `mordew::elicit()` |
+| Completion | Suggested values for prompt and resource-template arguments | Automatic for enums, `@mcp_complete` |
+| Progress | Progress notifications during a long call | `mordew::report_progress()` |
+| Cancellation | The client stops a call | Stops the worker running it |
+| Change notifications | `subscriptions/listen`: lists changed, resource updated | Later: the registry is static |
+| `server/discover` | Required: versions, capabilities, identity | Built in, identity from the package |
+| Cacheable results | Required `ttlMs` and `cacheScope` on lists and resource reads | Built in, set per item |
+| Request headers | `Mcp-Method` and `Mcp-Name` on every HTTP request | Validated; lets a gateway authorise per tool |
+| Trace context | OpenTelemetry `traceparent` in `_meta` | Server spans join the client's trace |
+| Tasks (extension) | Long-running calls with polling and durable handles | `@mcp_task`, see [Tasks](#tasks-long-running-calls) |
+| MCP Apps (extension) | Interactive UI rendered inline in the conversation | `@mcp_app`, later |
+| Skills over MCP (extension) | Structured instructions for agent workflows | `inst/mordew/skills/`, later |
+| Sampling, Roots, Logging | Deprecated in 2026-07-28 | Not implemented: logs go to stderr and OpenTelemetry |
+
+Other requirements of the 2026-07-28 revision that mordew handles: a
+`resultType` on every result, `serverInfo` in each result's `_meta`,
+tools listed in a deterministic order, and per-request log levels.
+
+#### Elicitation
+
+A tool can ask the user for missing information or a confirmation:
+
+```r
+delete_run <- function(
+  run_id
+) {
+  confirmed <- mordew::elicit(
+    message = paste(
+      "Delete run",
+      run_id,
+      "? This cannot be undone."
+    ),
+    schema = ellmer::type_boolean()
+  )
+  if (!isTRUE(confirmed)) {
+    return("Deletion cancelled.")
+  }
+  # delete the run
+}
+```
+
+Under Multi Round-Trip Requests, the first call stops at `elicit()`, and
+the server answers with an `InputRequiredResult`. The client asks the
+user, then retries the same request with the answer. **The tool then runs
+again from the start**, and `elicit()` returns the answer. So everything
+before `elicit()` must be free of side effects, since it runs twice. Data
+that must survive between the two runs goes into the request state, not
+into memory. Elicitation must never ask for passwords, tokens or other
+secrets.
+
+#### Completion
+
+Enum parameters are completed automatically. For dynamic values, a
+function returns suggestions from what the user has typed so far:
+
+```r
+#' @mcp_complete year complete_years
+complete_years <- function(
+  value
+) {
+  # years present in the data that start with `value`
+}
+```
+
+#### Progress and cancellation
+
+```r
+for (i in seq_len(n)) {
+  mordew::report_progress(
+    done = i,
+    total = n,
+    message = "Fitting models"
+  )
+  # one step of the computation
+}
+```
+
+Progress is only sent when the client asked for it, on the response
+stream of the request it belongs to. When the client cancels, mordew
+stops the worker running the call, then recycles it.
+
 ### Runtime and process model
 
 - **The server owns its process.** `mcptools::mcp_server()` blocks the R
@@ -406,7 +515,9 @@ Two caveats:
   port, worker pool, limits, audit log location. The model and the
   system prompt belong to the client, not to the server.
 - **Observability.** OpenTelemetry tracing of each tool call, building on
-  the instrumentation already present in ellmer and mcplite.
+  the instrumentation already present in ellmer and mcplite, and joining
+  the client's trace through the `traceparent` field of `_meta`. MCP's
+  own logging is deprecated: logs go to stderr and OpenTelemetry.
 
 ### What mcptools does today
 
@@ -435,6 +546,10 @@ mordew's runtime design depends on it:
   `mcptools.session_response_timeout_seconds` option or the
   `MCPTOOLS_SESSION_RESPONSE_TIMEOUT_SECONDS` variable). `mcp_session()` is
   a development tool, not a deployment target.
+- **It speaks protocol revisions 2024-11-05 to 2025-11-25.** Nothing from
+  2026-07-28 yet: no `server/discover`, no `resultType`, no cacheable
+  results, no `Mcp-Method` and `Mcp-Name` headers. It does send tool
+  titles and annotations, taken from ellmer tool annotations.
 - **Only tools are implemented.** The server advertises the `prompts` and
   `resources` capabilities, but only handles `tools/list` and
   `tools/call`; any other method gets a "Method not found" error
@@ -665,9 +780,21 @@ templates reject invalid parameters, MIME types and sizes are as
 declared, prompt arguments match their documentation, and rendered
 prompts are snapshotted.
 
+**The other features** get contract tests too: structured content
+validated against its output schema, elicitation flows (an
+`InputRequiredResult`, then a retry with the answer), completion
+suggestions, progress notifications, cancellation, and task life cycles
+(handle, polling, update, result, expiry).
+
+**Specification conformance** is tested for both 2026-07-28 and
+2025-11-25 clients: `server/discover`, `resultType`, cacheable results,
+request headers, error codes.
+
 Planned helpers: `expect_tool_schema()`, `call_tool()`,
-`expect_tool_error()`, `read_resource()`, `expect_resource()`,
-`get_prompt()`, `expect_prompt()`, `use_evals()`, `check_tools()`.
+`expect_tool_error()`, `expect_structured_output()`, `read_resource()`,
+`expect_resource()`, `get_prompt()`, `expect_prompt()`,
+`simulate_elicitation()`, `expect_task()`, `expect_conformance()`,
+`use_evals()`, `check_tools()`.
 
 ---
 
@@ -712,6 +839,9 @@ kept away.
 | No traceability | Audit log of every call (below). |
 | Secrets exposed to the model | Secrets come from environment variables or config, never from tool arguments or results. |
 | Resources exposing too much | Resources are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths. |
+| Secrets requested from users | Elicitation never asks for passwords, tokens or other secrets. |
+| Access to someone else's task | Task handles are unguessable and checked against the caller on every `tasks/get` and `tasks/update`. |
+| Interactive UIs (MCP Apps) | Self-contained HTML, no remote resources, so that a widget cannot leak data. |
 
 ### Clients we build ourselves
 
@@ -820,12 +950,52 @@ deployments.
   the client receives an error result instead of a hanging request.
 - Back-pressure: a bounded queue, and a clear "busy, retry later" error
   when it is full, rather than unbounded waiting.
-- Cancellation: when a client gives up, the call stops, if the
-  specification revision in use allows it.
-- Progress feedback for long calls, if the specification revision in use
-  allows it, so that users are not left in front of a frozen client.
+- Cancellation: when the client cancels, the worker running the call is
+  stopped and recycled.
+- Progress notifications for long calls, so that users are not left in
+  front of a frozen client.
+- Tasks for calls that can outlast a request (below).
+- Idempotent tools where possible: since 2026-07-28, a broken response
+  stream loses the in-flight request, and the client re-issues it as a
+  new request.
 - Every call stays in the audit log with its queue time, run time and
   status.
+
+### Tasks: long-running calls
+
+Some R computations take minutes: fitting a model on a season of runs,
+rendering a report. Holding an HTTP request open that long breaks on
+proxy timeouts and lost connections. The tasks extension of the
+specification solves this: the call returns a **task handle** at once,
+the computation runs in a worker, and the client polls `tasks/get` for
+status, progress and result. `tasks/update` lets the client send input
+while the task runs.
+
+```r
+#' Fit a training-load model for one season
+#'
+#' @param year Four-digit year.
+#'
+#' @mcp_tool
+#' @mcp_task
+fit_season_model <- function(
+  year
+) {
+  # long computation, run in a mirai worker
+}
+```
+
+Production requirements for tasks:
+
+- **A shared task store.** With replicas, `tasks/get` can land on any
+  instance, so task state and results live outside the R process
+  (database, Redis, files), not in memory.
+- **Unguessable handles, checked against the caller.** A user can only
+  read or update their own tasks.
+- **Time-to-live and clean-up** of finished tasks and their results.
+- **Cancellation** of a running task stops its worker.
+- **The audit log** records the task's whole life: creation, updates,
+  result or failure.
 
 ### Load balancer checklist
 
@@ -843,6 +1013,10 @@ deployments.
 - **Authentication and TLS**: at the proxy (OAuth or OIDC). The optional
   shared secret of mcptools is not user authentication.
 - **No sticky sessions**, as long as tools keep no state in memory.
+- **Per-tool rules at the gateway**: since 2026-07-28, every HTTP request
+  carries `Mcp-Method` and `Mcp-Name` headers, so a gateway can route,
+  rate-limit or authorise per tool without reading the body.
+- **Long calls**: prefer tasks to long proxy timeouts.
 
 ### Containers
 
@@ -995,6 +1169,7 @@ Shiny projects.
 - [ ] `expect_tool_schema()`: schema snapshot
 - [ ] `expect_tool_error()`: errors come back as `isError`
 - [ ] `read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`
+- [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a real MCP client over stdio
 - [ ] `use_evals()`: vitals scaffolding and a separate CI workflow
 - [ ] `check_tools()`: static analysis of tool code
@@ -1006,7 +1181,9 @@ Shiny projects.
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
 - [ ] Per-call timeouts with worker recycling, and resource limits
 - [ ] Back-pressure: bounded queue and a "busy, retry later" error
-- [ ] Cancellation and progress feedback, depending on the specification revision
+- [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
+- [ ] Tasks extension: `@mcp_task`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
+- [ ] `mordew::elicit()` under Multi Round-Trip Requests, with request state
 - [ ] Dedicated health endpoint for load balancers and Kubernetes probes
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
@@ -1022,7 +1199,25 @@ Shiny projects.
 - [ ] `add_connect()` for Posit Connect
 - [ ] Redaction hook and output policies
 
-### Phase 5: documentation and launch
+### Phase 5: specification coverage and conformance
+
+- [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels
+- [ ] Cacheable results: `ttlMs` and `cacheScope` on lists and resource reads
+- [ ] `Mcp-Method` and `Mcp-Name` headers, with `HeaderMismatchError`
+- [ ] Compatibility with 2025-11-25 clients
+- [ ] Structured output: `@mcp_output`, `structuredContent` validated against the schema
+- [ ] Completion: automatic for enums, `@mcp_complete` for dynamic values
+- [ ] OpenTelemetry trace context propagation from `_meta`
+- [ ] Conformance test suite for both revisions
+- [ ] Contribute these changes to mcptools where its maintainers agree
+
+### Phase 6: extensions
+
+- [ ] MCP Apps: `@mcp_app`, htmlwidgets rendered inline, self-contained HTML
+- [ ] Skills over MCP: skills shipped in `inst/mordew/skills/`
+- [ ] Change notifications through `subscriptions/listen`, if dynamic registries or updated resources need them
+
+### Phase 7: documentation and launch
 
 - [ ] Vignettes: getting started, writing tool descriptions, testing, security, deployment
 - [ ] pkgdown site
@@ -1075,6 +1270,15 @@ Shiny projects.
 12. **Resources and prompts: in mordew or upstream?** mcptools advertises
     them but does not implement them. Implement the handlers in mordew,
     or contribute them to mcptools.
+13. **How far behind the specification can mcptools be?** It stops at
+    2025-11-25. If upstream support for 2026-07-28 does not come in time,
+    mordew needs its own protocol layer, which goes against "build on
+    mcptools".
+14. **Elicitation API under Multi Round-Trip Requests**: re-run the whole
+    tool on retry (simple, but side effects must come after `elicit()`),
+    or resume from saved request state.
+15. **Task store**: which back-ends to support (files, database, Redis),
+    and what the default is.
 
 ---
 
@@ -1086,6 +1290,7 @@ Shiny projects.
 | The MCP specification changes fast | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework. | Delegate the protocol to mcptools; mordew stays one layer above. |
 | Maintenance cost | Open source means issues, support and upgrades. | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early. |
 | Unclear adoption | Real use cases still have to be collected. | Build the prototype on real use cases before the first release. |
+| mcptools lags behind the specification | It supports revisions up to 2025-11-25, while production clients move to 2026-07-28. | Contribute upstream first; keep a thin protocol layer of our own as a fallback. |
 | Flaky, costly evals | Models are not deterministic, and every eval run costs tokens. | Thresholds, several runs per case, a separate CI job. |
 | A blocking server in production | One `mcp_server()` process runs one call at a time; one slow call blocks every user. | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure. |
 
@@ -1114,3 +1319,5 @@ name sounds like *mordieu*, an old oath meaning "by God's death".
 - [Agents in Production](https://www.r-bloggers.com/2026/11/agents-in-production-build-an-ai-chat-app-with-shiny-and-shinychat/), Jumping Rivers
 - [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Specification, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) and [its changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [Announcement of the 2026-07-28 specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
