@@ -1,0 +1,555 @@
+# mordew
+
+> Build, test and ship MCP servers as R packages.
+
+**Status: design phase.** Nothing is implemented yet. For now, this README
+is the design document: it records the rationale, the target architecture,
+the known pitfalls, the open questions and the full task list. Once the
+package exists, it will be cut down to a user-facing README and the design
+material will move to `dev/design/`.
+
+---
+
+## The idea in one paragraph
+
+mordew does for MCP servers what golem does for Shiny apps: **an MCP server
+is an R package**. Each tool is an exported R function, documented with
+roxygen and tested with testthat. mordew scaffolds the package, turns the
+roxygen documentation into an MCP tool registry, serves that registry to
+any MCP client (Claude Desktop, Claude Code, Copilot…), ships an embedded
+chat that can only use those tools, and provides the testing, security and
+deployment conventions needed to run all this in production.
+
+Throughout this README, the examples use `runlog`, a toy package that
+answers questions about a (fake) running log: distances, elevation gain,
+paces, surfaces.
+
+```r
+# dev/01_start.R
+mordew::create_mcp(
+  path = "runlog"
+)
+
+# dev/02_dev.R: creates R/tool_summarise_runs.R and its test file
+mordew::add_tool(
+  name = "summarise_runs"
+)
+
+# run the MCP server and open the embedded chat
+runlog::run(
+  chat = TRUE
+)
+```
+
+---
+
+## Why
+
+### MCP is now the standard plug
+
+The Model Context Protocol (MCP) is the standard way to give an AI
+assistant access to tools and data. Claude, ChatGPT and Copilot all
+speak it.
+
+### Validated functions instead of generated code
+
+For data teams, the question is no longer "do we need a chat?" but "what
+can the model do with our data?". Letting a model write and run arbitrary
+code is powerful, but it is hard to control, to reproduce and to audit.
+
+The alternative is to expose a **closed set of validated R functions**. The
+model chooses which function to call and with which arguments; R does the
+computation. Results are reproducible, tested and traceable, which is what
+regulated organisations (pharma, public research) need.
+
+This pattern is already emerging. In November 2026, Jumping Rivers
+published [an agent that answers questions on clinical-trial safety
+data](https://www.r-bloggers.com/2026/11/agents-in-production-build-an-ai-chat-app-with-shiny-and-shinychat/)
+with four tools, where R does the counting.
+
+### Why a framework, given that the pieces exist
+
+Every building block already exists in R (see [Prior art](#prior-art)).
+What is missing is the assembly: a convention to structure, test, secure
+and deploy an MCP server as a production artefact. That is the gap golem
+filled for Shiny: Shiny, testthat, roxygen and Docker all existed before
+golem, and golem's contribution was "an app is a package", plus the
+conventions and the path to production.
+
+---
+
+## What mordew is, and what it is not
+
+mordew **is**:
+
+- an opinionated framework where one MCP server is one R package
+- scaffolding: `create_mcp()`, `add_tool()`, `dev/` scripts
+- a roxygen roclet that turns documentation into a tool registry
+- a testing toolkit covering three levels: unit, contract, behaviour
+- runtime helpers: MCP server, embedded chat, audit log, limits
+- deployment helpers: Docker, Kubernetes, Posit Connect
+
+mordew **is not**:
+
+- a new implementation of the MCP protocol: that is delegated to
+  [mcptools](https://posit-dev.github.io/mcptools/)
+- a new LLM client: that is delegated to [ellmer](https://ellmer.tidyverse.org/)
+- a new chat UI: that is delegated to
+  [shinychat](https://posit-dev.github.io/shinychat/r/)
+- a sandbox: OS-level isolation is documented and scaffolded, not reinvented
+
+---
+
+## Prior art
+
+| Project | What it does | Gap mordew addresses |
+| --- | --- | --- |
+| [mcptools](https://posit-dev.github.io/mcptools/) (Posit) | MCP server from arbitrary R functions (ellmer tools), stdio or HTTP. MCP client for ellmer chats. Turnkey deployment documented for Posit Connect. | No project structure, no testing conventions, no deployment path outside Connect. |
+| [mcpr](https://github.com/devOpifex/mcpr) (devOpifex) | Roxygen roclet: `@mcp` and `@type` tags generate `inst/mcp_server.R`. Tools, resources and prompts. | Generates a file, not a project framework. |
+| [mcpr](https://chi2labs.github.io/mcpr/index.html) (chi2labs) | Decorator-based MCP server, following plumber's patterns. | No package structure. |
+| [plumber2mcp](https://cdn.jsdelivr.net/gh/armish/plumber2mcp@main/README.md) | Turns a plumber API into an MCP server. | Starts from an API, not from a domain package. |
+| [mcplite](https://stat.ethz.ch/CRAN/web/packages/mcplite/mcplite.pdf) | Lightweight stdio MCP server, with OpenTelemetry spans. | stdio only, no production framework. |
+| [shinychat](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/) + ellmer (Posit) | Shiny chat UI wired to a model, with tool-call display. | UI only. |
+| [btw](https://posit-dev.github.io/btw/) (Posit) | Ready-made tools that give models context about R sessions and packages. | Aimed at coding assistants, not at domain tools. |
+| [FastMCP](https://gofastmcp.com/docs) (Python) | The reference framework in Python: schema, validation, authentication, deployment. | No R equivalent. |
+
+The Python side carries two lessons:
+
+1. **The framework layer has value even when the SDK exists.** According
+   to [its README](https://raw.githubusercontent.com/jlowin/fastmcp/HEAD/README.md),
+   some version of FastMCP powers 70% of MCP servers, all languages
+   combined.
+2. **Frameworks get absorbed.** FastMCP 1.0 was merged into the official
+   MCP Python SDK in 2024. Posit could do the same in R, so mordew must
+   build *on top of* mcptools, not against it.
+
+---
+
+## What makes mordew different
+
+mordew does not try to be an MCP client: Claude, ChatGPT and Copilot
+already do that well. It focuses on **industrialisation**.
+
+| mordew brings | Why it matters | Covered elsewhere in R? |
+| --- | --- | --- |
+| **Package convention**: `create_mcp()`, `add_tool()`, `dev/` scripts | An MCP server is developed, versioned, reviewed and installed like any package. | No |
+| **Three-level testing**: the function, the MCP contract, the model's behaviour | Proves that the tool computes correctly, is exposed correctly, and is called correctly. | Level 1 only |
+| **Production without Posit Connect**: Dockerfile, Kubernetes, auth, multi-user | Production R often runs in containers, outside Posit Connect. | No, it has to be done by hand |
+| **Audit log** of every tool call | Traceability is required in regulated environments. | No |
+| **Return conventions**: data frame → table, plot → image, errors the model can act on | Keeps the model's context small and answers usable. | No |
+| **Closed embedded chat** | The model only sees the package's tools, with no other connectors around. | Partly (shinychat) |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph pkg["Your R package"]
+    F["R/: one function per tool"]
+    X["roxygen: descriptions + types"]
+    T["tests/: unit, contract, evals"]
+  end
+  pkg -- "roclet" --> REG["Tool registry<br/>ellmer::tool() objects"]
+  REG --> SRV["MCP server<br/>mcptools, stdio or HTTP"]
+  SRV --> EXT["External MCP clients<br/>Claude Desktop, Claude Code, Copilot"]
+  SRV --> CHAT["Embedded chat<br/>shinychat + ellmer"]
+  SRV --> LOG[("Audit log")]
+```
+
+The **tool registry** is the centre of the design. It is generated once
+from roxygen and served through a single MCP server, both to external
+clients and to the embedded chat. `run()` starts the server in the
+background, then opens the chat, which connects to it like any other MCP
+client.
+
+### Anatomy of a mordew package
+
+```
+runlog/
+├── DESCRIPTION
+├── NAMESPACE
+├── data/
+│   └── runs.rda                 # fake running log used by the tools
+├── R/
+│   ├── tool_summarise_runs.R    # one file per tool
+│   ├── run.R                    # run(), run_mcp_server(), run_chat()
+│   └── mordew_registry.R        # generated by the roclet, do not edit
+├── inst/
+│   └── mordew/
+│       ├── config.yml           # model, transport, limits, audit log
+│       └── system_prompt.md     # prompt for the embedded chat
+├── tests/
+│   └── testthat/
+│       ├── test-tool_summarise_runs.R
+│       └── test-contract.R      # schema snapshots, round-trips
+├── evals/                       # behavioural evals, not run on CRAN
+├── dev/
+│   ├── 01_start.R
+│   ├── 02_dev.R
+│   └── 03_deploy.R
+└── Dockerfile
+```
+
+### Writing a tool
+
+A tool is a regular exported function. Its roxygen block is both the R
+documentation and the MCP definition.
+
+```r
+#' Summarise runs by surface
+#'
+#' Returns the number of runs, total distance (km), total elevation gain (m)
+#' and average pace (min/km) for one surface and one year.
+#' Use it when the user asks about training volume or progress over a year.
+#' Do not use it for questions about a single run.
+#'
+#' @param surface Running surface: "road", "trail" or "track".
+#' @param year Four-digit year.
+#'
+#' @mcp_tool
+#' @mcp_type surface enum road,trail,track
+#' @mcp_type year integer min=2015
+#' @mcp_returns table
+#' @mcp_read_only
+#' @export
+summarise_runs <- function(
+  surface,
+  year
+) {
+  # validated computation on the runs dataset lives here
+}
+```
+
+Draft tag specification:
+
+| Tag | Role |
+| --- | --- |
+| `@mcp_tool [name]` | Exposes the function as a tool, optionally under another name. |
+| `@mcp_type <param> <type> [constraints]` | JSON Schema type of a parameter: `string`, `integer`, `number`, `boolean`, `array`, `object`, `enum`, with constraints (`min`, `max`, `pattern`, values). |
+| `@mcp_returns <kind>` | `text`, `table`, `image` or `json`; drives serialisation. |
+| `@mcp_read_only`, `@mcp_destructive`, `@mcp_idempotent` | Map to MCP tool annotations (hints for clients). |
+| `@mcp_limit <what> <n>` | Per-tool limits: rows returned, seconds of execution. |
+
+The title and description become the tool description, and each `@param`
+becomes a parameter description. **These texts are prompts**: they should
+say when to use the tool, when not to, and give units and formats.
+mordew will ship a guide on writing them.
+
+### Return conventions
+
+| R value | Sent to the model as |
+| --- | --- |
+| `character` | text content |
+| `data.frame` | markdown table, truncated to `max_rows`, with dimensions and a short summary |
+| `ggplot` or recorded plot | PNG image content |
+| `list` | JSON |
+| condition (error) | an `isError` result with a message the model can act on |
+| very large outputs | to explore: an MCP resource instead of inline content |
+
+### Runtime and process model
+
+- **One function, two processes.** `mcptools::mcp_server()` blocks the R
+  process that calls it, so `run()` starts the server in the background
+  (callr, processx or mirai) and runs the chat in the foreground.
+- **Transports.** With stdio, each desktop client spawns its own R
+  process: one user, no auth. With HTTP, one shared server serves many
+  users, so it needs authentication and a concurrency strategy.
+- **Concurrency.** R is single-threaded. Tool calls must stay short, run
+  with timeouts, and scale through mirai daemons or several replicas
+  behind a load balancer.
+- **State.** Stateless tools are preferred. When a multi-step analysis
+  (load, filter, model) needs state, the plan is a session-scoped object
+  store with handles (`"dataset_1"`) and a time-to-live, isolated per
+  session.
+- **Multi-user chat.** `shinychat::chat_app()` is meant for a single user.
+  The embedded chat must use `chat_ui()` and `chat_server()`, with one
+  ellmer client per Shiny session.
+- **Configuration.** golem-style `inst/mordew/config.yml`: model provider
+  and name, transport, port, limits, audit log location, system prompt.
+- **Observability.** OpenTelemetry tracing of each tool call, building on
+  the instrumentation already present in ellmer and mcplite.
+
+### Connecting external clients
+
+Claude Code:
+
+```bash
+claude mcp add runlog -- Rscript -e "runlog::run_mcp_server()"
+```
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "runlog": {
+      "command": "Rscript",
+      "args": ["-e", "runlog::run_mcp_server()"]
+    }
+  }
+}
+```
+
+mordew will generate these snippets with a helper such as
+`mcp_client_config()`.
+
+---
+
+## Testing strategy
+
+Testing is at the core of mordew. There are three levels, plus
+security tests.
+
+| Level | Question answered | Tooling | Where it runs |
+| --- | --- | --- | --- |
+| 1. Unit | Does the function compute the right result? | testthat | `R CMD check`, CI |
+| 2. Contract | Is the tool exposed correctly over MCP? | mordew helpers + testthat snapshots | `R CMD check`, CI |
+| 3. Behaviour | Does the model pick the right tool with the right arguments? | evals with vitals | separate CI job, before releases |
+| Security | Does the tool resist hostile arguments? | mordew helpers | `R CMD check`, CI |
+
+**Level 2, the contract**, is the one nobody covers today. It checks that:
+
+- every parameter is documented and typed, and every typed parameter exists
+- the generated JSON schema matches a snapshot, so that any change to a
+  tool's interface shows up in review as a breaking change
+- return values serialise to valid MCP content
+- errors come back as `isError` results, not as crashes
+- a full round-trip works through a real MCP client over stdio
+
+```r
+test_that(
+  "summarise_runs is exposed with a stable schema",
+  {
+    expect_tool_schema(
+      tool = "summarise_runs"
+    )
+  }
+)
+
+test_that(
+  "summarise_runs answers through a real MCP client",
+  {
+    res <- call_tool(
+      tool = "summarise_runs",
+      args = list(
+        surface = "trail",
+        year = 2025
+      ),
+      transport = "stdio"
+    )
+    expect_false(
+      res$isError
+    )
+  }
+)
+```
+
+**Level 3, behaviour**, uses evals: each case is a user prompt with the
+expected tool and arguments, scored over several runs. Evals need an API
+key, cost money and are not deterministic, so they run in a separate CI
+job with pass thresholds, before releases and whenever a tool description,
+the system prompt or the model changes.
+
+**Security tests** feed hostile arguments to each tool: injection strings,
+huge values, wrong types, paths outside the allowed scope.
+
+Planned helpers: `expect_tool_schema()`, `call_tool()`,
+`expect_tool_error()`, `use_evals()`, `check_tools()`.
+
+---
+
+## Security model
+
+### Principles
+
+1. **The tool list is the security boundary, not R.** The model can only
+   call what the server exposes, but anything a tool can do, the model
+   can trigger.
+2. **Arguments are untrusted input.** The model generates them, and the
+   content it reads (data, documents, web pages) can steer it through
+   prompt injection.
+3. **Everything a tool returns leaves your infrastructure.** The model
+   provider reads every result, unless the model is self-hosted.
+4. **Instructions are not enforcement.** Telling a client "only use this
+   MCP server" is a preference the model usually follows, not a guarantee.
+   Only the tools actually available to it are enforced. In Claude
+   Desktop or Claude Code, a mordew server sits next to other connectors
+   that we do not control. The embedded chat is the only place where we
+   control the full tool list.
+
+[Posit warns](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) that
+mixing MCP servers can create the "lethal trifecta": access to private
+data, exposure to untrusted content, and a way to send data out. A
+mordew server holds the first one by design, so the other two must be
+kept away.
+
+### Controls
+
+| Risk | Control |
+| --- | --- |
+| Arbitrary code execution | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar calls in tool code. |
+| Malformed or hostile arguments | Validation generated from the schema, before the function runs. |
+| R can still reach the system | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
+| Runaway calls | Per-call timeouts and resource limits. |
+| Data leakage to the model provider | Aggregated outputs by default, `max_rows`, a redaction hook, and the option of a self-hosted model through ellmer's providers. |
+| Unauthorised access to an HTTP server | Authentication following the MCP authorization specification (OAuth 2.1), or a reverse proxy in front of the server. |
+| No traceability | Audit log of every call (below). |
+| Secrets exposed to the model | Secrets come from environment variables or config, never from tool arguments or results. |
+
+### Audit log
+
+One JSON line per tool call, append-only: timestamp, session ID, user
+(when authenticated), client, tool, arguments, result size and hash,
+duration, status, and the model (in the embedded chat). Storing full
+results is optional because it is a privacy trade-off.
+
+---
+
+## Deployment
+
+| Target | Transport | How |
+| --- | --- | --- |
+| Local, desktop client | stdio | `Rscript -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()` |
+| Docker | HTTP | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
+| Kubernetes | HTTP | example manifests: probes, replicas, secrets |
+| Posit Connect | HTTP | mcptools' `_server.yml` with `engine: mcptools`, through `add_connect()` |
+| Embedded chat | Shiny | deployed like any golem app |
+
+---
+
+## Relationship with golem
+
+- Same philosophy: a package, `dev/` scripts, conventions over configuration.
+- Same tooling where possible: dockerfiler, attachment, config.
+- Possible bridges, to explore: a golem app embedding a mordew chat, or a
+  `golem::add_mcp()` exposing an app's business logic as an MCP server.
+
+---
+
+## Roadmap and task list
+
+The plan is to **build for real use cases first, then extract the
+framework** from what repeats, the same way golem came out of real-world
+Shiny projects.
+
+### Phase 0: frame and validate
+
+- [ ] Collect two or three real use cases (which functions, which data) to drive the design
+- [ ] Check the name: `available::available("mordew")` (CRAN, Bioconductor, GitHub, meanings)
+- [ ] Choose the licence
+- [ ] Read the mcptools internals: registry format, HTTP server, session tools, client side
+- [ ] Compare mcptools and mcplite as the protocol layer
+- [ ] Get in touch with the mcptools maintainers to align and avoid duplicated work
+
+### Phase 1: prototype without the framework
+
+- [ ] Build one real-world MCP server by hand with mcptools, ellmer and shinychat
+- [ ] Write down every repetition and every point of friction
+- [ ] Measure tool-call accuracy, latency and token usage
+- [ ] Collect security and compliance requirements from regulated users
+
+### Phase 2: core framework (MVP)
+
+- [ ] Set up the mordew package: DESCRIPTION, testthat 3rd edition, lintr, GitHub Actions `R-CMD-check`, pkgdown
+- [ ] `create_mcp()`: package template, `dev/` scripts, `inst/mordew/config.yml`, system prompt
+- [ ] `add_tool()`: tool file and test file from templates
+- [ ] Specify the roxygen tags (`@mcp_tool`, `@mcp_type`, `@mcp_returns`, annotations, limits)
+- [ ] Write the roclet that generates `R/mordew_registry.R`
+- [ ] Argument validation generated from the schema
+- [ ] Return-value serialisation (text, table, image, JSON, errors)
+- [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
+- [ ] `run_chat()`: multi-user shinychat app connected to the server
+- [ ] `run()`: server in the background, then the chat
+- [ ] `mcp_client_config()` for Claude Desktop, Claude Code and VS Code
+
+### Phase 3: testing toolkit
+
+- [ ] `call_tool()`: call a tool with JSON arguments, the way a client does
+- [ ] `expect_tool_schema()`: schema snapshot
+- [ ] `expect_tool_error()`: errors come back as `isError`
+- [ ] Round-trip helper through a real MCP client over stdio
+- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow
+- [ ] `check_tools()`: static analysis of tool code
+- [ ] Hostile-argument test generator
+
+### Phase 4: production
+
+- [ ] `add_dockerfile()` with dockerfiler
+- [ ] Authentication for the HTTP transport
+- [ ] Audit log
+- [ ] Per-call timeouts and resource limits
+- [ ] Session-scoped object store, if the prototype shows it is needed
+- [ ] OpenTelemetry tracing
+- [ ] Kubernetes manifests example
+- [ ] `add_connect()` for Posit Connect
+- [ ] Redaction hook and output policies
+
+### Phase 5: documentation and launch
+
+- [ ] Vignettes: getting started, writing tool descriptions, testing, security, deployment
+- [ ] pkgdown site
+- [ ] `runlog`, a demo package built with mordew on a fake running log (distance, elevation gain, pace, surface)
+- [ ] Hex sticker
+- [ ] Blog post and conference talk
+
+---
+
+## Open questions
+
+1. **Generated code or runtime introspection?** Generating
+   `R/mordew_registry.R` (as mcpr does) is inspectable and reviewable.
+   Building the registry at runtime from the Rd files is simpler but less
+   visible.
+2. **Explicit type tags or inference?** Tags are explicit but verbose.
+   Types could also be inferred from defaults or from assertions
+   (checkmate, rlang).
+3. **Should the embedded chat go through MCP or call tools directly?**
+   Going through MCP exercises the production path; calling directly is
+   faster and simpler.
+4. **Which protocol layer?** mcptools (maintained by Posit, HTTP, Connect)
+   or mcplite (lightweight, OpenTelemetry).
+5. **State model**: stateless only, or handles with a session object store.
+6. **Package split**: one package, or `mordew` plus a separate testing
+   package.
+7. **Licence**.
+8. **Bridges with golem**.
+
+---
+
+## Risks
+
+| Risk | Why it is serious | Mitigation |
+| --- | --- | --- |
+| Overlap with Posit's tooling | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK. | Build on mcptools for the protocol and coordinate with its maintainers; focus on what it does not cover (project structure, testing, production outside Connect). |
+| The MCP specification changes fast | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework. | Delegate the protocol to mcptools; mordew stays one layer above. |
+| Maintenance cost | Open source means issues, support and upgrades. | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early. |
+| Unclear adoption | Real use cases still have to be collected. | Build the prototype on real use cases before the first release. |
+| Flaky, costly evals | Models are not deterministic, and every eval run costs tokens. | Thresholds, several runs per case, a separate CI job. |
+| R does not scale vertically | One R process handles one call at a time. | Short tool calls, mirai daemons, replicas. |
+
+---
+
+## About the name
+
+Mordew is the city in Alex Pheby's novel of the same name, where God is
+dead and his corpse lies in the catacombs beneath the streets, while the
+Living Mud spawns half-formed, short-lived creatures. A golem is clay
+brought to life by words; Mordew is mud that spawns life. In French, the
+name sounds like *mordieu*, an old oath meaning "by God's death".
+
+---
+
+## References
+
+- [mcptools](https://posit-dev.github.io/mcptools/) and [`mcp_server()` reference](https://posit-dev.github.io/mcptools/reference/server.html)
+- [R and the Model Context Protocol](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/), tidyverse blog
+- [mcpr (devOpifex)](https://github.com/devOpifex/mcpr)
+- [mcpr (chi2labs)](https://chi2labs.github.io/mcpr/index.html)
+- [plumber2mcp](https://cdn.jsdelivr.net/gh/armish/plumber2mcp@main/README.md)
+- [mcplite](https://stat.ethz.ch/CRAN/web/packages/mcplite/mcplite.pdf)
+- [shinychat: tool calling UI](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/)
+- [FastMCP documentation](https://gofastmcp.com/docs) and [README](https://raw.githubusercontent.com/jlowin/fastmcp/HEAD/README.md)
+- [Agents in Production](https://www.r-bloggers.com/2026/11/agents-in-production-build-an-ai-chat-app-with-shiny-and-shinychat/), Jumping Rivers
+- [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
