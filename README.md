@@ -128,7 +128,10 @@ The Python side carries two lessons:
 ## What makes mordew different
 
 mordew does not try to be an MCP client: Claude, ChatGPT and Copilot
-already do that well. It focuses on **industrialisation**.
+already do that well. It focuses on **industrialisation**: the model only
+ever reaches R functions that are documented, typed and tested like any
+package code, and the same package carries everything needed to deploy
+them.
 
 | mordew brings | Why it matters | Covered elsewhere in R? |
 | --- | --- | --- |
@@ -536,6 +539,98 @@ deployments.
   shared secret of mcptools is not user authentication.
 - **No sticky sessions**, as long as tools keep no state in memory.
 
+### Containers
+
+`add_dockerfile()` builds on
+[dockerfiler](https://github.com/ThinkR-open/dockerfiler)
+(`dock_from_desc()`, `dock_from_renv()`), the same way golem does. The
+generated Dockerfile:
+
+- starts from `rocker/r-ver`, pinned to the R version of `renv.lock`
+- installs the system dependencies computed from the package dependencies
+- restores the R dependencies with renv, then installs the package
+- runs as a non-root user
+- exposes the port and starts the server on `0.0.0.0`
+
+Sketch of what it could generate for `runlog`:
+
+```dockerfile
+# R version taken from renv.lock
+ARG R_VERSION
+FROM rocker/r-ver:${R_VERSION}
+
+# system dependencies computed from the package dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl libcurl4-openssl-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# reproducible R dependencies
+COPY renv.lock /tmp/renv.lock
+RUN R -e "install.packages('renv'); renv::restore(lockfile = '/tmp/renv.lock')"
+
+# the package itself
+COPY runlog_*.tar.gz /tmp/
+RUN R CMD INSTALL /tmp/runlog_*.tar.gz
+
+# never run as root
+RUN useradd --create-home mordew
+USER mordew
+
+EXPOSE 8080
+# dedicated health endpoint, planned in mordew
+HEALTHCHECK CMD curl -fsS http://127.0.0.1:8080/health || exit 1
+CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0', port = 8080)"]
+```
+
+**Image variants.** The function arguments below are a planned API.
+
+| Image | Transport | Starts | For |
+| --- | --- | --- | --- |
+| MCP server, replica | HTTP | `run_mcp_server(transport = "http", host = "0.0.0.0")` | architecture A, behind a load balancer |
+| MCP server, worker pool | HTTP | `run_mcp_server(transport = "http", host = "0.0.0.0", workers = 4)` | architecture B, one container |
+| Embedded chat | Shiny | `run_chat(host = "0.0.0.0")` | users in a browser, deployed like a golem app |
+| stdio | stdio | `run_mcp_server()` | desktop clients, through `docker run -i --rm` |
+
+**stdio in Docker.** An MCP client can start a container instead of a
+local R process. This ships an R-based MCP server to people who do not
+have R installed:
+
+```json
+{
+  "mcpServers": {
+    "runlog": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "runlog"]
+    }
+  }
+}
+```
+
+**docker-compose.** A generated `docker-compose.yml` runs the MCP server,
+the embedded chat and a reverse proxy together, to test the whole
+architecture locally before deploying it.
+
+### Container checklist
+
+- **Bind to `0.0.0.0`.** `mcptools::mcp_server()` listens on `127.0.0.1`
+  by default, which makes the server unreachable from outside the
+  container.
+- **Non-root user**, read-only root file system, only temporary
+  directories writable.
+- **Health check** on a dedicated endpoint (see the load balancer
+  checklist).
+- **Secrets and model API keys** come from environment variables or a
+  secret store, never baked into the image.
+- **Configuration** through environment variables that override
+  `inst/mordew/config.yml`.
+- **stdout is reserved for the protocol in stdio mode.** Any `cat()`,
+  `print()` or message written to stdout by a tool corrupts the JSON-RPC
+  stream; logs go to stderr or to a file.
+- **Pinned versions**: R version, `renv.lock`, base image digest.
+- **Resource limits** (CPU, memory) per container, sized to the worker
+  pool.
+- **Restricted network egress**, as described in the security model.
+
 ---
 
 ## Relationship with golem
@@ -605,7 +700,9 @@ Shiny projects.
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
 - [ ] Check that tools keep no in-memory state (a contract test)
-- [ ] `add_dockerfile()` with dockerfiler
+- [ ] `add_dockerfile()` with dockerfiler: HTTP replica, worker pool, embedded chat and stdio variants
+- [ ] Generated `docker-compose.yml`: MCP server, embedded chat and reverse proxy
+- [ ] Container defaults: `0.0.0.0` binding, non-root user, health check, configuration through environment variables
 - [ ] Authentication for the HTTP transport
 - [ ] Audit log, with queue time and run time
 - [ ] Session-scoped object store, if the prototype shows it is needed
