@@ -36,6 +36,9 @@ mordew::add_tool(
   name = "summarise_runs"
 )
 
+# try the tools with a model, from the R console
+mordew::run_dev()
+
 # run the MCP server (stdio by default)
 runlog::run_mcp_server()
 ```
@@ -107,9 +110,12 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 (shiny, shinychat, ellmer) would weigh on every package built with
 mordew. So mordew stops at the MCP server.
 
-- **To try tools during development**: call them from the R console with
-  `call_tool()`, connect an MCP inspector, or open a [Claude Code session
-  restricted to the server](#a-claude-code-session-restricted-to-the-server).
+- **To try tools during development**: `mordew::run_dev()` opens an
+  ellmer chat in the R console, connected to the package's MCP server
+  (see [Development loop](#development-loop-run_dev)). Tools can also be
+  called without a model with `call_tool()`, or tried from an MCP
+  inspector or a [Claude Code session restricted to the
+  server](#a-claude-code-session-restricted-to-the-server).
 - **To give users a chat**: build it as its own application, for example
   a golem app using shinychat and ellmer, that connects to the mordew
   server through MCP. Everything the server enforces (validation, limits,
@@ -408,6 +414,46 @@ Two consequences for mordew:
 2. **`mcp_client_config()` generates the most restricted configuration
    each client allows**, and says plainly when that restriction is
    partial.
+
+### Development loop: `run_dev()`
+
+mordew ships no chat, but it gives a quick way to talk to the package's
+tools while developing them, the way `golem::run_dev()` runs a Shiny app
+under development:
+
+```r
+mordew::run_dev(
+  chat = ellmer::chat_anthropic(),
+  ui = "console"
+)
+```
+
+Under the hood, `run_dev()`:
+
+1. writes a temporary MCP configuration whose stdio server starts the
+   development version of the package
+   (`Rscript -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`);
+2. turns that server into ellmer tools with `mcptools::mcp_tools()` and
+   gives them to the chat with `chat$set_tools()`;
+3. opens `ellmer::live_console()`, or `ellmer::live_browser()` with
+   `ui = "browser"`, ellmer's own development UI.
+
+The tools go through MCP, exactly as they will for Claude Code or any
+other client: same schema, same validation, same serialisation. Each
+tool call is printed with its arguments, so it shows at once whether the
+model picks the right tool.
+
+Things to keep in mind:
+
+- `chat` takes any ellmer chat object, so any provider or a local model
+  works. The matching API key must be in the environment, and every
+  question costs tokens.
+- The server runs in its own process: changing a tool means restarting
+  `run_dev()`.
+- In stdio mode, nothing but protocol messages may reach stdout. Package
+  loading must stay quiet, and tools must not `cat()` or `print()`.
+- `run_dev()` is a manual version of the level 3 tests: evals automate
+  the same loop over a set of questions.
 
 ---
 
@@ -782,7 +828,8 @@ Shiny projects.
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio and HTTP, on top of mcptools
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
-- [ ] Development loop: document how to try tools with `call_tool()`, an MCP inspector and a restricted Claude Code session
+- [ ] `run_dev()`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
+- [ ] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
 - [ ] `mcp_client_config()` for Claude Desktop, Claude Code, Codex CLI, Gemini CLI and VS Code: the most restricted configuration each client allows, with a warning when the restriction is partial
 - [ ] Re-check client restriction options before each release: they change quickly
 
