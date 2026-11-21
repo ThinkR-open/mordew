@@ -172,6 +172,49 @@ them.
 
 ## Architecture
 
+### Who calls whom
+
+The MCP server never calls the model, and the model never calls the
+server either. A model only produces text: when it wants a tool, its
+answer contains a request ("call `summarise_runs` with
+`surface = "trail"` and `year = 2025`"). The **client** (Claude Code,
+ellmer, a chat app…) reads that request, calls the MCP server, and sends
+the result back to the model.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant C as MCP client
+  participant M as Model (API)
+  participant S as mordew server (R)
+  C->>S: tools/list
+  S-->>C: tool definitions
+  U->>C: question
+  C->>M: question + tool definitions
+  M-->>C: "call summarise_runs(trail, 2025)"
+  C->>S: tools/call summarise_runs
+  S-->>C: result of the R function
+  C->>M: tool result
+  M-->>C: final answer, or another tool call
+  C-->>U: answer
+```
+
+This has three consequences for mordew:
+
+- **The server never sees the model.** It has no API key, no prompt and
+  no conversation: only tool calls and their arguments. The model and the
+  system prompt belong to the client.
+- **The model has no network access to the server.** Everything goes
+  through the client, which is what lets a client restrict the tools.
+- **Arguments are untrusted input.** The server cannot know where a
+  request comes from, or whether the model was manipulated.
+
+Older revisions of the specification let a server ask the client for a
+model completion ("sampling"). In the 2026-07-28 revision, servers no
+longer send requests to clients. mordew does not need it either way.
+
+### From package to server
+
 ```mermaid
 flowchart LR
   subgraph pkg["Your R package"]
