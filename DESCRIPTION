@@ -1,9 +1,11 @@
 Package: mordew
 Title: Build, Test and Ship 'MCP' Servers as R Packages
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R: c(
     person("Colin", "Fay", , "contact@colinfay.me", role = c("cre", "aut"),
-           comment = c(ORCID = "0000-0001-7343-1846"))
+           comment = c(ORCID = "0000-0001-7343-1846")),
+    person("ThinkR", role = "cph")
+  )
 Description: An opinionated framework for building Model Context Protocol
     ('MCP') servers as R packages. Each tool is a documented and tested R
     function. The package provides scaffolding, a tool registry generated
