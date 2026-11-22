@@ -214,7 +214,8 @@ This has three consequences for `{mordew}`:
 A server can still ask for something in the middle of a call, but only
 through the client: in the 2026-07-28 revision, it answers with an
 `InputRequiredResult`, and the client retries the request with the
-answer (Multi Round-Trip Requests). This is how elicitation works (see
+answer and the server's opaque `requestState` (Multi Round-Trip
+Requests). This is how elicitation works (see
 [Elicitation](#elicitation)). "Sampling", where a server asks the client
 for a model completion, is deprecated in that revision, and `{mordew}` does
 not implement it.
@@ -478,7 +479,11 @@ delete_run <- function(
   answers the first request with an `InputRequiredResult`. The client
   asks the user and retries with the answer: on yes, the function runs,
   once; on no, it is never called and the model is told the call was
-  cancelled.
+  cancelled. What the retry needs (the validated arguments, the pending
+  confirmation) travels in `requestState`, the opaque string the server
+  puts in the `InputRequiredResult` and the client echoes back
+  unchanged: the server stores nothing between the two requests, so any
+  replica can serve the retry.
 - `@mcp_elicit <param>` asks the user for a parameter the model did not
   provide, instead of failing the call.
 
@@ -490,15 +495,19 @@ never requests passwords, tokens or other secrets.
 
 For questions that depend on a computation ("three runs match, which
 one?"), `mordew::elicit(message, schema)` can be called inside the tool.
-The first call then stops at `elicit()`, the server answers with an
-`InputRequiredResult`, and the client retries the same request with the
-user's answer. **The tool runs again from the start**, and `elicit()`
-returns the answer. So everything before `elicit()` must be free of side
-effects, since it runs twice; data that must survive between the two
-runs goes into the request state, not into memory. R has no way to
-resume a function at the point it stopped, so the re-run is the honest
-semantics: `elicit()` is the advanced path, and `check_tools()` flags
-side-effect-looking calls placed before it.
+The first call then stops at `elicit()`, and the server answers with an
+`InputRequiredResult`. The client asks the user and retries — an
+independent request with a new JSON-RPC `id`, carrying the answer and
+the echoed `requestState`. The specification only asks the server to
+reconstitute its state from `requestState`; running **the tool again
+from the start**, with `elicit()` now returning the answer, is
+`{mordew}`'s implementation of that, the simplest one. So everything
+before `elicit()` must be free of side effects, since it runs twice;
+data that must survive between the two runs goes into `requestState`,
+not into memory. R has no way to resume a function at the point it
+stopped, so the re-run is the honest semantics: `elicit()` is the
+advanced path, and `check_tools()` flags side-effect-looking calls
+placed before it.
 
 When a client does not support elicitation, a tool with `@mcp_confirm`
 fails closed: an explicit error result, never an unconfirmed execution.
@@ -917,6 +926,7 @@ kept away.
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
 | Resources exposing too much           | Resources are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
 | Secrets requested from users          | Elicitation never asks for passwords, tokens or other secrets; declared messages are linted by `check_tools()`.                                                                                                                              |
+| Replayed or tampered `requestState`   | `requestState` transits through the client, which can replay or alter it. `{mordew}` binds it to the validated arguments (hash) and authenticates it (HMAC); a retry whose state does not verify is rejected.                                 |
 | Access to someone else's task         | Task handles are unguessable and checked against the caller on every `tasks/get` and `tasks/update`.                                                                                                                                         |
 | Interactive UIs (MCP Apps)            | Self-contained HTML, no remote resources, so that a widget cannot leak data.                                                                                                                                                                 |
 
