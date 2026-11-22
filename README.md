@@ -8,11 +8,12 @@
 
 > Build, test and ship MCP servers as R packages.
 
-**Status: design phase.** Nothing is implemented yet. For now, this README
-is the design document: it records the rationale, the target architecture,
-the known pitfalls, the open questions and the full task list. Once the
-package exists, it will be cut down to a user-facing README and the design
-material will move to `dev/design/`.
+**Status: early development**, phase 1 of the
+[roadmap](#roadmap-and-task-list). For now, this README is the design
+document: it records the rationale, the target architecture, the known
+pitfalls, the open questions and the full task list. Once the MVP ships,
+it will be cut down to a user-facing README and the design material will
+move to `dev/design/`.
 
 ---
 
@@ -115,10 +116,10 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 (shiny, shinychat, ellmer) would weigh on every package built with
 `{mordew}`. So `{mordew}` stops at the MCP server.
 
-- **To try tools during development**: `mordew::run_dev()`opens an
+- **To try tools during development**: `mordew::run_dev()` opens an
   ellmer chat in the R console, connected to the package's MCP server
   (see [Development loop](#development-loop-run_dev)). Tools can also be
-  called without a model with`call_tool()`, or tried from an MCP
+  called without a model with `call_tool()`, or tried from an MCP
   inspector or a [Claude Code session restricted to the
   server](#a-claude-code-session-restricted-to-the-server).
 - **To give users a chat**: build it as its own application, for example
@@ -890,31 +891,25 @@ security tests.
 - a full round-trip works through a real MCP client over stdio
 
 ```r
-test_that(
-  "summarise_runs is exposed with a stable schema",
-  {
-    expect_tool_schema(
-      tool = "summarise_runs"
-    )
-  }
-)
+test_that("summarise_runs is exposed with a stable schema", {
+  expect_tool_schema(
+    tool = "summarise_runs"
+  )
+})
 
-test_that(
-  "summarise_runs answers through a real MCP client",
-  {
-    res <- call_tool(
-      tool = "summarise_runs",
-      args = list(
-        surface = "trail",
-        year = 2025
-      ),
-      transport = "stdio"
-    )
-    expect_false(
-      res$isError
-    )
-  }
-)
+test_that("summarise_runs answers through a real MCP client", {
+  res <- call_tool(
+    tool = "summarise_runs",
+    args = list(
+      surface = "trail",
+      year = 2025
+    ),
+    transport = "stdio"
+  )
+  expect_false(
+    res$isError
+  )
+})
 ```
 
 **Level 3, behaviour**, uses evals: each case is a user prompt with the
@@ -1364,7 +1359,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 ### Phase 6: documentation and launch
 
 - [ ] Vignettes: getting started, writing tool descriptions, testing, security, deployment
-- [ ] pkgdown site
+- [ ] Publish the pkgdown site
 - [ ] `runlog`, a demo package built with `{mordew}` on a fake running log (distance, elevation gain, pace, surface)
 - [ ] Hex sticker
 - [ ] Blog post and conference talk
@@ -1389,8 +1384,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
    set aside on the strength of the [prior art](#prior-art) table (stdio
    only).
 5. **State model**: stateless only, or handles with a session object store.
-6. **One package.** Runtime `Imports` stay minimal — what `serve()`
-   executes; the development and testing tooling (testthat, vitals)
+6. **One package.** Runtime `Imports` stay minimal — what
+   `run_mcp_server()` executes; the development and testing tooling (testthat, vitals)
    lives in `Suggests`, installed on a development machine with
    `mordew::install_dev_deps()`, the golem pattern. Split only if a
    future helper would drag a heavy dependency into `Imports`.
