@@ -308,22 +308,22 @@ summarise_runs <- function(
 
 Draft tag specification:
 
-| Tag                                                     | Role                                                                                                                                                      |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@mcp_tool [name]`                                      | Exposes the function as a tool, optionally under another name.                                                                                            |
+| Tag                                                     | Role                                                                                                                                                                                                                      |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@mcp_tool [name]`                                      | Exposes the function as a tool, optionally under another name.                                                                                                                                                            |
 | `@mcp_type <param> <expression>`                        | The parameter's type as an R expression evaluated by the roclet: ellmer-style constructors with constraints, e.g. `type_enum(c("road", "trail", "track"))`, `type_integer(min = 2015)`, recursive for arrays and objects. |
-| `@mcp_returns <kind>`                                   | `text`, `table`, `image` or `json`; drives serialisation.                                                                                                 |
-| `@mcp_read_only`, `@mcp_destructive`, `@mcp_idempotent` | Map to MCP tool annotations (hints for clients).                                                                                                          |
-| `@mcp_limit <what> <n>`                                 | Per-tool limits: rows returned, seconds of execution.                                                                                                     |
-| `@mcp_confirm <message>`                                | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments. |
-| `@mcp_elicit <param>`                                   | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                     |
-| `@mcp_resource <uri>`                                   | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                               |
-| `@mcp_mime <type>`                                      | MIME type of a resource, e.g. `text/csv` or `application/json`.                                                                                           |
-| `@mcp_prompt [name]`                                    | Exposes the function as a prompt; its `@param` become the prompt arguments.                                                                               |
-| `@mcp_output <object>`                                  | Output schema of a tool, an `ellmer::type_object()`; the tool then returns structured content.                                                            |
-| `@mcp_complete <param> <function>`                      | Function that suggests values for a prompt or resource-template argument. Enums are completed automatically.                                              |
-| `@mcp_task`                                             | Runs the tool as a task: the call returns a handle at once, and the client polls for the result.                                                          |
-| `@mcp_app`                                              | The tool returns an interactive UI (an htmlwidget), shown inline by clients that support MCP Apps.                                                        |
+| `@mcp_returns <kind>`                                   | `text`, `table`, `image` or `json`; drives serialisation.                                                                                                                                                                 |
+| `@mcp_read_only`, `@mcp_destructive`, `@mcp_idempotent` | Map to MCP tool annotations (hints for clients).                                                                                                                                                                          |
+| `@mcp_limit <what> <n>`                                 | Per-tool limits: rows returned, seconds of execution.                                                                                                                                                                     |
+| `@mcp_confirm <message>`                                | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments.                                                |
+| `@mcp_elicit <param>`                                   | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                                                                                     |
+| `@mcp_resource <uri>`                                   | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                                                                                               |
+| `@mcp_mime <type>`                                      | MIME type of a resource, e.g. `text/csv` or `application/json`.                                                                                                                                                           |
+| `@mcp_prompt [name]`                                    | Exposes the function as a prompt; its `@param` become the prompt arguments.                                                                                                                                               |
+| `@mcp_output <object>`                                  | Output schema of a tool, an `ellmer::type_object()`; the tool then returns structured content.                                                                                                                            |
+| `@mcp_complete <param> <function>`                      | Function that suggests values for a prompt or resource-template argument. Enums are completed automatically.                                                                                                              |
+| `@mcp_task`                                             | Runs the tool as a task: the call returns a handle at once, and the client polls for the result.                                                                                                                          |
+| `@mcp_app`                                              | The tool returns an interactive UI (an htmlwidget), shown inline by clients that support MCP Apps.                                                                                                                        |
 
 A tag whose content is structured takes an R expression, never a grammar
 of its own: the roclet parses and evaluates it in a prepared environment
@@ -428,27 +428,27 @@ That coverage is the 1.0 target, not the first release: the MVP ships
 tools over stdio only, and the [roadmap](#roadmap-and-task-list) gives
 each feature its phase.
 
-| Feature                          | What it is                                                            | In `{mordew}`                                        |
-| -------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
-| Tools                            | Functions the model calls                                             | Core: one R function per tool                        |
-| Resources and resource templates | Data the client can read                                              | `add_resource()`, `@mcp_resource`                    |
-| Prompts                          | Templates the user picks                                              | `add_prompt()`, `@mcp_prompt`                        |
-| Tool title and annotations       | Display name, read-only, destructive, idempotent hints                | roxygen title and annotation tags                    |
-| Structured output                | `outputSchema` and `structuredContent`                                | `@mcp_output`                                        |
-| Error reporting                  | Tool errors as `isError` results, protocol errors with standard codes | Built in                                             |
+| Feature                          | What it is                                                            | In `{mordew}`                                               |
+| -------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Tools                            | Functions the model calls                                             | Core: one R function per tool                               |
+| Resources and resource templates | Data the client can read                                              | `add_resource()`, `@mcp_resource`                           |
+| Prompts                          | Templates the user picks                                              | `add_prompt()`, `@mcp_prompt`                               |
+| Tool title and annotations       | Display name, read-only, destructive, idempotent hints                | roxygen title and annotation tags                           |
+| Structured output                | `outputSchema` and `structuredContent`                                | `@mcp_output`                                               |
+| Error reporting                  | Tool errors as `isError` results, protocol errors with standard codes | Built in                                                    |
 | Elicitation                      | The server asks the user for input during a call, through the client  | `@mcp_confirm`, `@mcp_elicit`; `elicit()` for dynamic cases |
-| Completion                       | Suggested values for prompt and resource-template arguments           | Automatic for enums, `@mcp_complete`                 |
-| Progress                         | Progress notifications during a long call                             | `mordew::report_progress()`                          |
-| Cancellation                     | The client stops a call                                               | Stops the worker running it                          |
-| Change notifications             | `subscriptions/listen`: lists changed, resource updated               | Later: the registry is static                        |
-| `server/discover`                | Required: versions, capabilities, identity                            | Built in, identity from the package                  |
-| Cacheable results                | Required `ttlMs` and `cacheScope` on lists and resource reads         | Built in, set per item                               |
-| Request headers                  | `Mcp-Method` and `Mcp-Name` on every HTTP request                     | Validated; lets a gateway authorise per tool         |
-| Trace context                    | OpenTelemetry `traceparent` in `_meta`                                | Server spans join the client's trace                 |
-| Tasks (extension)                | Long-running calls with polling and durable handles                   | `@mcp_task`, see [Tasks](#tasks-long-running-calls)  |
-| MCP Apps (extension)             | Interactive UI rendered inline in the conversation                    | `@mcp_app`, later                                    |
-| Skills over MCP (extension)      | Structured instructions for agent workflows                           | `inst/`{mordew}`/skills/`, later                     |
-| Sampling, Roots, Logging         | Deprecated in 2026-07-28                                              | Not implemented: logs go to stderr and OpenTelemetry |
+| Completion                       | Suggested values for prompt and resource-template arguments           | Automatic for enums, `@mcp_complete`                        |
+| Progress                         | Progress notifications during a long call                             | `mordew::report_progress()`                                 |
+| Cancellation                     | The client stops a call                                               | Stops the worker running it                                 |
+| Change notifications             | `subscriptions/listen`: lists changed, resource updated               | Later: the registry is static                               |
+| `server/discover`                | Required: versions, capabilities, identity                            | Built in, identity from the package                         |
+| Cacheable results                | Required `ttlMs` and `cacheScope` on lists and resource reads         | Built in, set per item                                      |
+| Request headers                  | `Mcp-Method` and `Mcp-Name` on every HTTP request                     | Validated; lets a gateway authorise per tool                |
+| Trace context                    | OpenTelemetry `traceparent` in `_meta`                                | Server spans join the client's trace                        |
+| Tasks (extension)                | Long-running calls with polling and durable handles                   | `@mcp_task`, see [Tasks](#tasks-long-running-calls)         |
+| MCP Apps (extension)             | Interactive UI rendered inline in the conversation                    | `@mcp_app`, later                                           |
+| Skills over MCP (extension)      | Structured instructions for agent workflows                           | `inst/`{mordew}`/skills/`, later                            |
+| Sampling, Roots, Logging         | Deprecated in 2026-07-28                                              | Not implemented: logs go to stderr and OpenTelemetry        |
 
 Other requirements of the 2026-07-28 revision that `{mordew}` handles: a
 `resultType` on every result, `serverInfo` in each result's `_meta`,
@@ -926,7 +926,7 @@ kept away.
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
 | Resources exposing too much           | Resources are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
 | Secrets requested from users          | Elicitation never asks for passwords, tokens or other secrets; declared messages are linted by `check_tools()`.                                                                                                                              |
-| Replayed or tampered `requestState`   | `requestState` transits through the client, which can replay or alter it. `{mordew}` binds it to the validated arguments (hash) and authenticates it (HMAC); a retry whose state does not verify is rejected.                                 |
+| Replayed or tampered `requestState`   | `requestState` transits through the client, which can replay or alter it. `{mordew}` binds it to the validated arguments (hash) and authenticates it (HMAC); a retry whose state does not verify is rejected.                                |
 | Access to someone else's task         | Task handles are unguessable and checked against the caller on every `tasks/get` and `tasks/update`.                                                                                                                                         |
 | Interactive UIs (MCP Apps)            | Self-contained HTML, no remote resources, so that a widget cannot leak data.                                                                                                                                                                 |
 
@@ -1217,8 +1217,8 @@ to add one.
 
 ### Phase 0: frame
 
-- [ ] Check the name: `available::available("`{mordew}`")` (CRAN, Bioconductor, GitHub, meanings)
-- [ ] Choose the licence
+- [x] Check the name: `available::available("`{mordew}`")` (CRAN, Bioconductor, GitHub, meanings)
+- [x] Choose the licence
 - [ ] Read the mcptools internals: registry format, HTTP server, session tools, client side
 - [ ] Compare mcptools and mcplite as the protocol layer
 - [x] Spike: a minimal stdio MCP server in base R, verified against Claude Code (`dev/spike_stdio/`)
@@ -1248,6 +1248,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop
+
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a real MCP client over stdio
 - [ ] `use_evals()`: vitals scaffolding and a separate CI workflow
@@ -1373,15 +1374,15 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 ## Risks
 
-| Risk                                   | Why it is serious                                                                                                                  | Mitigation                                                                                                                                                        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overlap with Posit's tooling           | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK. | Build on mcptools for the protocol and coordinate with its maintainers; focus on what it does not cover (project structure, testing, production outside Connect). |
-| The MCP specification changes fast     | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework.              | Delegate the protocol to mcptools; `{mordew}` stays one layer above.                                                                                              |
-| Maintenance cost                       | Open source means issues, support and upgrades.                                                                                    | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early.                                                         |
-| Unclear adoption                       | Real use cases still have to be collected.                                                                                         | Build the prototype on real use cases before the first release.                                                                                                   |
-| mcptools lags behind the specification | It supports revisions up to 2025-11-25, while production clients move to 2026-07-28.                                               | Contribute upstream first; keep a thin protocol layer of our own as a fallback (its stdio half is priced by the [spike](#spike-a-stdio-server-without-mcptools): small).                                                                                   |
-| Flaky, costly evals                    | Models are not deterministic, and every eval run costs tokens.                                                                     | Thresholds, several runs per case, a separate CI job.                                                                                                             |
-| A blocking server in production        | One `mcp_server()` process runs one call at a time; one slow call blocks every user.                                               | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure.                       |
+| Risk                                   | Why it is serious                                                                                                                  | Mitigation                                                                                                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Overlap with Posit's tooling           | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK. | Build on mcptools for the protocol and coordinate with its maintainers; focus on what it does not cover (project structure, testing, production outside Connect).        |
+| The MCP specification changes fast     | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework.              | Delegate the protocol to mcptools; `{mordew}` stays one layer above.                                                                                                     |
+| Maintenance cost                       | Open source means issues, support and upgrades.                                                                                    | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early.                                                                |
+| Unclear adoption                       | Real use cases still have to be collected.                                                                                         | Build the prototype on real use cases before the first release.                                                                                                          |
+| mcptools lags behind the specification | It supports revisions up to 2025-11-25, while production clients move to 2026-07-28.                                               | Contribute upstream first; keep a thin protocol layer of our own as a fallback (its stdio half is priced by the [spike](#spike-a-stdio-server-without-mcptools): small). |
+| Flaky, costly evals                    | Models are not deterministic, and every eval run costs tokens.                                                                     | Thresholds, several runs per case, a separate CI job.                                                                                                                    |
+| A blocking server in production        | One `mcp_server()` process runs one call at a time; one slow call blocks every user.                                               | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure.                              |
 
 ---
 
