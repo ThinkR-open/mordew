@@ -568,7 +568,7 @@ stops the worker running the call, then recycles it.
 
 Read in the mcptools source (development version 1.0.3.9000, commit
 714803b) to decide whether `{mordew}` builds on it: it does not (see
-[decision 4](#decisions-and-open-questions)). What mcptools does today,
+[Why not build on mcptools](#why-not-build-on-mcptools)). What mcptools does today,
 and what `{mordew}`'s own layer must do differently:
 
 - **The registry is a list of `ellmer::tool()` objects**, served in the
@@ -669,10 +669,46 @@ model](#runtime-and-process-model)).
 Conclusion: the stdio half of a protocol layer of our own is cheap. The
 expensive parts — asynchronous execution, tasks, elicitation state, HTTP
 with 2025-11-25 and 2026-07-28 compatibility — are in `{mordew}`'s scope
-whichever backend runs the transport. Together with the [mcptools
-reading](#what-mcptools-does-today), this settled [decision
-4](#decisions-and-open-questions): `{mordew}` ships its own protocol
-layer.
+whichever backend runs the transport.
+
+### Why not build on mcptools
+
+mcptools is the obvious base: maintained by Posit, stdio and HTTP,
+deployable on Posit Connect. `{mordew}` still ships its own protocol
+layer, for three reasons drawn from the [mcptools
+reading](#what-mcptools-does-today) and the spike above.
+
+1. **What `{mordew}` would reuse is the cheap part**: the stdio loop and
+   the `tools/list` and `tools/call` dispatch, about 130 lines in the
+   spike.
+2. **What `{mordew}` needs, mcptools does differently or not at all.**
+   `mcp_server()` only takes `tools`, `type`, `host`, `port` and
+   `session_tools`; everything else is internal code, so each point
+   means wrapping or replacing it:
+   - the server identity is fixed, where `{mordew}` takes it from the
+     package;
+   - arguments are not validated, R errors become JSON-RPC errors
+     instead of `isError` results, and data frames go through `paste()`,
+     where `{mordew}` has its own validation and return conventions;
+   - the schema comes from an ellmer internal and cannot carry `min`,
+     `max` or `pattern`;
+   - nothing from 2026-07-28, the revision `{mordew}` targets;
+   - HTTP is synchronous, where architecture B needs a front that
+     returns promises.
+3. **The dependency would reach every deployed server.** A generated
+   package depends on `{mordew}` at runtime (decision 10), so mcptools'
+   eleven direct imports (httpuv, httr2, nanonext, processx…) would come
+   with it, against minimal runtime `Imports` (decision 6).
+
+The client side follows. Contract tests need the raw JSON-RPC response,
+which `mcp_tools()` turns into ellmer objects; over stdio it also waits
+4 seconds at most and does not check response ids. A minimal stdio
+client of our own serves both `call_tool()` and `run_dev()`.
+
+The cost: following the specification becomes `{mordew}`'s work (see
+[Risks](#risks)), and `add_connect()` loses mcptools' `engine: mcptools`.
+Contributing to mcptools stays a goal: what `{mordew}` builds and
+mcptools lacks can be proposed upstream.
 
 ### Connecting external clients
 
@@ -1341,21 +1377,11 @@ resources or prompts yet: nothing in this cut has to break to add them.
    later as sugar, without breaking anything.
 3. **`{mordew}` ships no chat.** A chat is a separate product and talks
    to a `{mordew}` server through MCP, like any client.
-4. **`{mordew}` ships its own protocol layer**, neither mcptools nor
-   mcplite. From mcptools, `{mordew}` would reuse the stdio loop and the
-   `tools/list` and `tools/call` dispatch, the part the
-   [spike](#spike-a-stdio-server-without-mcptools) wrote in about 130
-   lines, and would have to work around the rest (see [What mcptools does
-   today](#what-mcptools-does-today)): a fixed server identity, no
-   argument validation, R errors sent as JSON-RPC errors, a schema that
-   cannot carry constraints, nothing from 2026-07-28, synchronous HTTP,
-   session tools on by default. Depending on it would also add its eleven
-   direct imports to every package built with `{mordew}` (decision 6). On
-   the client side, contract tests need the raw JSON-RPC response, which
-   `mcp_tools()` never shows, so a minimal stdio client of our own serves
-   both `call_tool()` and `run_dev()`. Contributing to mcptools stays a
-   goal, not a dependency. mcplite was not read: it is set aside on the
-   strength of the [prior art](#prior-art) table (stdio only).
+4. **`{mordew}` ships its own protocol layer**, server and stdio client,
+   neither mcptools nor mcplite (see [Why not build on
+   mcptools](#why-not-build-on-mcptools)). mcplite was not read: it is
+   set aside on the strength of the [prior art](#prior-art) table (stdio
+   only).
 5. **State model**: stateless only, or handles with a session object store.
 6. **One package.** Runtime `Imports` stay minimal — what `serve()`
    executes; the development and testing tooling (testthat, vitals)
