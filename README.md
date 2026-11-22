@@ -1286,7 +1286,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `create_mordew()`: package template, `dev/` scripts
 - [x] `add_tool()`: tool file and test file from templates
 - [x] `install_dev_deps()`: install the `Suggests` tooling, called from `dev/01_start.R` (the golem pattern)
-- [ ] Server identity from the package: name and version from `DESCRIPTION`, instructions from `inst/mordew/instructions.md`
+- [x] Server identity from the package: name and version from `DESCRIPTION`, instructions from `inst/mordew/instructions.md`
 - [ ] Specify the tool tags (`@mcp_tool`, `@mcp_type` with R-expression content, `@mcp_returns`, annotations, limits)
 - [ ] Write the roclet that generates `R/mordew_registry.R`
 - [ ] Argument validation generated from the schema
