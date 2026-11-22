@@ -1383,6 +1383,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels
 - [ ] Cacheable results: `ttlMs` and `cacheScope` on lists and resource reads
 - [ ] `Mcp-Method` and `Mcp-Name` headers, with `HeaderMismatchError`
+- [ ] `x-mcp-header` on tool parameters: mirrors a parameter into an HTTP header
+- [ ] Tool icons (`icons`)
 - [ ] Compatibility with 2025-11-25 clients
 - [ ] Structured output: `@mcp_output`, `structuredContent` validated against the schema
 - [ ] Completion: automatic for enums, `@mcp_complete` for dynamic values
