@@ -312,7 +312,8 @@ summarise_runs <- function(
 ```
 
 Tag specification. The tags down to `@mcp_limit` make the phase 1 set;
-the others come with later phases.
+the others come with later phases. Tool names, annotations and the JSON
+Schema 2020-12 default are the same in 2025-11-25 and 2026-07-28.
 
 | Tag                                | Role                                                                                                                                                                       |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -701,9 +702,9 @@ whose four flags work as documented):
 - The whole exchange with Claude Code is `initialize` →
   `notifications/initialized` → `tools/list` → `tools/call`. No ping, no
   session, no SSE: the protocol surface of a stdio server is tiny.
-- Claude Code 2.1.251 opens with `initialize` and
-  `protocolVersion: 2025-11-25`, not with the `server/discover` of
-  2026-07-28.
+- Claude Code 2.1.251 and 2.1.330 (the latest release on 2026-11-22)
+  open with `initialize` and `protocolVersion: 2025-11-25`, not with the
+  `server/discover` of 2026-07-28.
 - End to end, the model's answer carried the numbers computed by the R
   function; the full round trip took about 3 seconds.
 - A user `.Rprofile` that prints to stdout corrupts the JSON-RPC stream
@@ -1460,6 +1461,11 @@ resources or prompts yet: nothing in this cut has to break to add them.
     the re-run (see [Elicitation](#elicitation)).
 11. **Task store**: which back-ends to support (files, database, Redis),
     and what the default is.
+12. **The MVP speaks MCP 2025-11-25.** It is what clients send today:
+    Claude Code 2.1.251 and 2.1.330 both open with `initialize` and
+    `protocolVersion: 2025-11-25` (checked with the
+    [spike](#spike-a-stdio-server-without-mcptools) on 2026-11-22).
+    2026-07-28 support comes in phase 4, served side by side.
 
 ---
 

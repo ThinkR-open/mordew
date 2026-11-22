@@ -8,3 +8,8 @@
 21:54:45 protocolVersion: 2025-11-25 
 21:54:45 notification: notifications/initialized 
 21:54:45 request: tools/list 
+22:02:27 server started, pid 78095 
+22:02:27 request: initialize 
+22:02:27 protocolVersion: 2025-11-25 
+22:02:27 notification: notifications/initialized 
+22:02:27 request: tools/list 

@@ -42,6 +42,12 @@ goes into this package. Code the developer cannot explain does not go in.
   `Rscript --no-init-file dev/example.R`: inst/runlog/ shows what
   `create_mordew()` generates. Never edit inst/runlog/ by hand.
 
+## MCP revision
+
+- Phase 1 implements MCP 2025-11-25, the revision clients send today
+  (README, decision 12). Check protocol code against the 2025-11-25
+  specification; 2026-07-28 comes in phase 4.
+
 ## Code style
 
 - Line break after every opening parenthesis. Empty calls stay on one
