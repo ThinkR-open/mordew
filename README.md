@@ -233,7 +233,7 @@ flowchart LR
     X["roxygen: descriptions + types"]
     T["tests/: unit, contract, evals"]
   end
-  pkg -- "roclet" --> REG["Tool registry<br/>ellmer::tool() objects"]
+  pkg -- "roclet" --> REG["Tool registry<br/>declarative R lists"]
   REG --> SRV["MCP server<br/>mordew, stdio or HTTP"]
   SRV --> EXT["MCP clients<br/>Claude Code, Claude Desktop, Codex, Copilot"]
   SRV --> CHAT["A separate chat app<br/>an MCP client, outside mordew"]
@@ -301,6 +301,7 @@ documentation and the MCP definition.
 #' @mcp_type year type_integer(min = 2015)
 #' @mcp_returns table
 #' @mcp_read_only
+#' @mcp_closed_world
 #' @export
 summarise_runs <- function(
   surface,
@@ -310,40 +311,74 @@ summarise_runs <- function(
 }
 ```
 
-Draft tag specification:
+Tag specification. The tags down to `@mcp_limit` make the phase 1 set;
+the others come with later phases.
 
-| Tag                                                     | Role                                                                                                                                                                                                                      |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@mcp_tool [name]`                                      | Exposes the function as a tool, optionally under another name.                                                                                                                                                            |
-| `@mcp_type <param> <expression>`                        | The parameter's type as an R expression evaluated by the roclet: ellmer-style constructors with constraints, e.g. `type_enum(c("road", "trail", "track"))`, `type_integer(min = 2015)`, recursive for arrays and objects. |
-| `@mcp_returns <kind>`                                   | `text`, `table`, `image` or `json`; drives serialisation.                                                                                                                                                                 |
-| `@mcp_read_only`, `@mcp_destructive`, `@mcp_idempotent` | Map to MCP tool annotations (hints for clients).                                                                                                                                                                          |
-| `@mcp_limit <what> <n>`                                 | Per-tool limits: rows returned, seconds of execution.                                                                                                                                                                     |
-| `@mcp_confirm <message>`                                | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments.                                                |
-| `@mcp_elicit <param>`                                   | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                                                                                     |
-| `@mcp_resource <uri>`                                   | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                                                                                               |
-| `@mcp_mime <type>`                                      | MIME type of a resource, e.g. `text/csv` or `application/json`.                                                                                                                                                           |
-| `@mcp_prompt [name]`                                    | Exposes the function as a prompt; its `@param` become the prompt arguments.                                                                                                                                               |
-| `@mcp_output <object>`                                  | Output schema of a tool, an `ellmer::type_object()`; the tool then returns structured content.                                                                                                                            |
-| `@mcp_complete <param> <function>`                      | Function that suggests values for a prompt or resource-template argument. Enums are completed automatically.                                                                                                              |
-| `@mcp_task`                                             | Runs the tool as a task: the call returns a handle at once, and the client polls for the result.                                                                                                                          |
-| `@mcp_app`                                              | The tool returns an interactive UI (an htmlwidget), shown inline by clients that support MCP Apps.                                                                                                                        |
+| Tag                                | Role                                                                                                                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@mcp_tool [name]`                 | Exposes the function as a tool. The name defaults to the function's; it must be 1 to 128 characters among `A-Z a-z 0-9 _ - .`.                                             |
+| `@mcp_type <param> <expression>`   | The parameter's type, as an R expression (see below). Required for every parameter; naming a parameter the function does not have is an error.                             |
+| `@mcp_returns <kind>`              | Required: `text`, `table`, `image` or `json`; drives serialisation.                                                                                                        |
+| `@mcp_read_only`                   | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
+| `@mcp_non_destructive`             | `destructiveHint: false`. An error next to `@mcp_read_only`, where it means nothing.                                                                                       |
+| `@mcp_idempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. An error next to `@mcp_read_only`.                                                    |
+| `@mcp_closed_world`                | `openWorldHint: false`: the tool does not reach external entities.                                                                                                         |
+| `@mcp_limit rows <n>`              | Maximum number of rows a `table` returns; the default is set with serialisation. A `seconds` limit comes with the timeouts (phase 3).                                      |
+| `@mcp_confirm <message>`           | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments. |
+| `@mcp_elicit <param>`              | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                                      |
+| `@mcp_resource <uri>`              | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                                                |
+| `@mcp_mime <type>`                 | MIME type of a resource, e.g. `text/csv` or `application/json`.                                                                                                            |
+| `@mcp_prompt [name]`               | Exposes the function as a prompt; its `@param` become the prompt arguments.                                                                                                |
+| `@mcp_output <object>`             | Output schema of a tool, a `type_object()`; the tool then returns structured content.                                                                                      |
+| `@mcp_complete <param> <function>` | Function that suggests values for a prompt or resource-template argument. Enums are completed automatically.                                                               |
+| `@mcp_task`                        | Runs the tool as a task: the call returns a handle at once, and the client polls for the result.                                                                           |
+| `@mcp_app`                         | The tool returns an interactive UI (an htmlwidget), shown inline by clients that support MCP Apps.                                                                         |
+
+**Annotations err on the side of caution.** A tool without annotation
+tags sends no annotations, and clients apply the MCP defaults: it may
+modify and destroy, is not safe to call twice, and reaches the outside
+world. The tags only declare what is safe, so a forgotten tag makes a
+client ask for confirmation more often, never less.
 
 A tag whose content is structured takes an R expression, never a grammar
 of its own: the roclet parses and evaluates it in a prepared environment
-where the type constructors are attached (no `ellmer::` prefix needed).
-`@mcp_output` and `@mcp_complete` already follow this convention, and an
-expression stays recursive where JSON Schema is (arrays of objects, where
-a flat grammar breaks down). One point to settle upstream: ellmer types
-today carry a description but no constraints (to re-check against the
-current release), so `{mordew}` ships matching constructors that add
-`min`, `max` and `pattern` and lower to JSON Schema — and proposes them
-to ellmer. Single-word
-tags (`@mcp_returns table`, `@mcp_read_only`) stay words: one word from
-a closed set is not a language.
+where `{mordew}`'s type constructors are attached. They exist only there:
+`{mordew}` does not export them, and the registry holds plain R lists, so
+a deployed server does not depend on ellmer. `@mcp_output` and
+`@mcp_complete` follow the same convention, and an expression stays
+recursive where JSON Schema is (arrays of objects, where a flat grammar
+breaks down).
 
-The title and description become the tool description, and each `@param`
-becomes a parameter description. **These texts are prompts**: they should
+The constructors follow ellmer's API and add the constraints ellmer types
+lack (checked with ellmer 0.3.2: `description` and `required` only); they
+can be proposed to ellmer.
+
+| Constructor                            | JSON Schema 2020-12                     |
+| -------------------------------------- | --------------------------------------- |
+| `type_string(pattern = NULL)`          | `string`, with `pattern`                |
+| `type_integer(min = NULL, max = NULL)` | `integer`, with `minimum` and `maximum` |
+| `type_number(min = NULL, max = NULL)`  | `number`, with `minimum` and `maximum`  |
+| `type_boolean()`                       | `boolean`                               |
+| `type_enum(values)`                    | `string`, with `enum`                   |
+| `type_array(items)`                    | `array` of `items`                      |
+| `type_object(...)`                     | `object` with the named fields          |
+
+Every constructor also takes `required = TRUE` and `description = NULL`
+(`.required` and `.description` for `type_object()`, as in ellmer).
+`required = FALSE` matches a parameter that has a default value in the
+function's signature, and only that: the roclet fails on any mismatch. A
+parameter's description comes from its `@param`; `description` only
+describes nested types (array items, object fields). The tool's
+`inputSchema` is an object with one property per parameter, the required
+ones listed in `required`, and `additionalProperties: false`: arguments
+the function does not take are rejected.
+
+Single-word tags (`@mcp_returns table`, `@mcp_read_only`) stay words: one
+word from a closed set is not a language.
+
+The roxygen title becomes the tool's `title`, shown to users; the
+description becomes its `description`, read by the model; and each
+`@param` becomes a parameter description. **These texts are prompts**: they should
 say when to use the tool, when not to, and give units and formats.
 `{mordew}` will ship a guide on writing them.
 
@@ -436,7 +471,7 @@ each feature its phase.
 | Tools                            | Functions the model calls                                             | Core: one R function per tool                               |
 | Resources and resource templates | Data the client can read                                              | `add_resource()`, `@mcp_resource`                           |
 | Prompts                          | Templates the user picks                                              | `add_prompt()`, `@mcp_prompt`                               |
-| Tool title and annotations       | Display name, read-only, destructive, idempotent hints                | roxygen title and annotation tags                           |
+| Tool title and annotations       | Display name, read-only, destructive, idempotent, open-world hints    | roxygen title and annotation tags                           |
 | Structured output                | `outputSchema` and `structuredContent`                                | `@mcp_output`                                               |
 | Error reporting                  | Tool errors as `isError` results, protocol errors with standard codes | Built in                                                    |
 | Elicitation                      | The server asks the user for input during a call, through the client  | `@mcp_confirm`, `@mcp_elicit`; `elicit()` for dynamic cases |
@@ -469,8 +504,10 @@ handled by `{mordew}` **before the tool runs**:
 #' @param run_id Identifier of the run.
 #'
 #' @mcp_tool
-#' @mcp_destructive
+#' @mcp_type run_id type_string()
+#' @mcp_returns text
 #' @mcp_confirm Delete run {run_id}? This cannot be undone.
+#' @export
 delete_run <- function(
   run_id
 ) {
@@ -491,10 +528,10 @@ delete_run <- function(
   provide, instead of failing the call.
 
 Declaring these cases buys three things: the server enforces the
-confirmation (tool annotations such as `@mcp_destructive` are only hints
-for clients), the function body needs no purity discipline, and the
-messages are static text, so `check_tools()` can verify that elicitation
-never requests passwords, tokens or other secrets.
+confirmation (tool annotations are only hints for clients), the function
+body needs no purity discipline, and the messages are static text, so
+`check_tools()` can verify that elicitation never requests passwords,
+tokens or other secrets.
 
 For questions that depend on a computation ("three runs match, which
 one?"), `mordew::elicit(message, schema)` can be called inside the tool.
@@ -1123,7 +1160,10 @@ while the task runs.
 #' @param year Four-digit year.
 #'
 #' @mcp_tool
+#' @mcp_type year type_integer(min = 2015)
+#' @mcp_returns text
 #' @mcp_task
+#' @export
 fit_season_model <- function(
   year
 ) {
@@ -1287,7 +1327,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `add_tool()`: tool file and test file from templates
 - [x] `install_dev_deps()`: install the `Suggests` tooling, called from `dev/01_start.R` (the golem pattern)
 - [x] Server identity from the package: name and version from `DESCRIPTION`, instructions from `inst/mordew/instructions.md`
-- [ ] Specify the tool tags (`@mcp_tool`, `@mcp_type` with R-expression content, `@mcp_returns`, annotations, limits)
+- [x] Specify the tool tags (`@mcp_tool`, `@mcp_type` with R-expression content, `@mcp_returns`, annotations, limits)
 - [ ] Write the roclet that generates `R/mordew_registry.R`
 - [ ] Argument validation generated from the schema
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
@@ -1315,7 +1355,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
 - [ ] `inst/mordew/config.yml` in the package template: transport, port, workers, limits, audit log
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
-- [ ] Per-call timeouts with worker recycling, and resource limits
+- [ ] Per-call timeouts with worker recycling (`@mcp_limit seconds`), and resource limits
 - [ ] Back-pressure: bounded queue and a "busy, retry later" error
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcp_task`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
