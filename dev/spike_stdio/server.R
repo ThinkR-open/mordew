@@ -83,6 +83,7 @@ handle <- function(msg) {
     return(invisible(NULL)) # notifications get no response
   }
   if (method == "initialize") {
+    spike_log("protocolVersion: ", msg$params$protocolVersion)
     reply(
       id,
       list(

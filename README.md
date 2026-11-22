@@ -460,11 +460,13 @@ the text version.
 ### MCP specification coverage
 
 `{mordew}` targets the **2026-07-28 revision** of the specification, and
-stays compatible with clients that still speak 2025-11-25. "Production
-ready" means covering everything a server can offer, not only tools.
-That coverage is the 1.0 target, not the first release: the MVP ships
-tools over stdio only, and the [roadmap](#roadmap-and-task-list) gives
-each feature its phase.
+keeps serving clients that still speak 2025-11-25. The MVP speaks
+2025-11-25 only, because that is what clients send today (see the
+[spike](#spike-a-stdio-server-without-mcptools)); 2026-07-28 comes in
+phase 4. "Production ready" means covering everything a server can
+offer, not only tools. That coverage is the 1.0 target, not the first
+release: the MVP ships tools over stdio only, and the
+[roadmap](#roadmap-and-task-list) gives each feature its phase.
 
 | Feature                          | What it is                                                            | In `{mordew}`                                               |
 | -------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -699,6 +701,9 @@ whose four flags work as documented):
 - The whole exchange with Claude Code is `initialize` →
   `notifications/initialized` → `tools/list` → `tools/call`. No ping, no
   session, no SSE: the protocol surface of a stdio server is tiny.
+- Claude Code 2.1.251 opens with `initialize` and
+  `protocolVersion: 2025-11-25`, not with the `server/discover` of
+  2026-07-28.
 - End to end, the model's answer carried the numbers computed by the R
   function; the full round trip took about 3 seconds.
 - A user `.Rprofile` that prints to stdout corrupts the JSON-RPC stream
@@ -1331,7 +1336,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Write the roclet that generates `R/mordew_registry.R`
 - [ ] Argument validation generated from the schema
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
-- [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer
+- [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
 - [ ] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [ ] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
@@ -1385,7 +1390,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] `Mcp-Method` and `Mcp-Name` headers, with `HeaderMismatchError`
 - [ ] `x-mcp-header` on tool parameters: mirrors a parameter into an HTTP header
 - [ ] Tool icons (`icons`)
-- [ ] Compatibility with 2025-11-25 clients
+- [ ] Serve 2025-11-25 and 2026-07-28 clients side by side
 - [ ] Structured output: `@mcp_output`, `structuredContent` validated against the schema
 - [ ] Completion: automatic for enums, `@mcp_complete` for dynamic values
 - [ ] OpenTelemetry trace context propagation from `_meta`
