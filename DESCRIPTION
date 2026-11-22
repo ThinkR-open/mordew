@@ -11,6 +11,8 @@ Description: An opinionated framework for building Model Context Protocol
     function. The package provides scaffolding, a tool registry generated
     from 'roxygen2' documentation, testing helpers and deployment helpers.
 License: MIT + file LICENSE
+Imports:
+    utils
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 

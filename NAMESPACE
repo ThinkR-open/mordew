@@ -2,3 +2,4 @@
 
 export(add_tool)
 export(create_mordew)
+export(install_dev_deps)
