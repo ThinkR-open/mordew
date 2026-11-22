@@ -1274,7 +1274,6 @@ to add one.
 - [x] Choose the licence
 - [x] Read the mcptools internals: registry format, HTTP server, session tools, client side
 - [x] Spike: a minimal stdio MCP server in base R, verified against Claude Code (`dev/spike_stdio/`)
-- [ ] Get in touch with the mcptools maintainers to align and avoid duplicated work
 
 ### Phase 1: tools-only MVP
 
