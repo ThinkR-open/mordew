@@ -696,7 +696,7 @@ reading](#what-mcptools-does-today) and the spike above.
    - HTTP is synchronous, where architecture B needs a front that
      returns promises.
 3. **The dependency would reach every deployed server.** A generated
-   package depends on `{mordew}` at runtime (decision 10), so mcptools'
+   package depends on `{mordew}` at runtime (decision 9), so mcptools'
    eleven direct imports (httpuv, httr2, nanonext, processx…) would come
    with it, against minimal runtime `Imports` (decision 6).
 
@@ -1388,11 +1388,10 @@ resources or prompts yet: nothing in this cut has to break to add them.
    lives in `Suggests`, installed on a development machine with
    `mordew::install_dev_deps()`, the golem pattern. Split only if a
    future helper would drag a heavy dependency into `Imports`.
-7. **Licence**.
-8. **Bridges with golem**.
-9. **Default architecture for HTTP**: replicas (A), worker pool (B), or
+7. **Bridges with golem**.
+8. **Default architecture for HTTP**: replicas (A), worker pool (B), or
    both by default.
-10. **A generated package depends on `{mordew}` at runtime**, as golem
+9. **A generated package depends on `{mordew}` at runtime**, as golem
     apps depend on golem. The deciding argument is security: validation,
     limits and serialisation
     are load-bearing, and a fix to them must reach every deployed server
@@ -1408,10 +1407,10 @@ resources or prompts yet: nothing in this cut has to break to add them.
     subprocess skipped on CRAN, examples that never start a blocking
     server, small example data.
 
-11. **Elicitation: the common cases (`@mcp_confirm`, `@mcp_elicit`) are
+10. **Elicitation: the common cases (`@mcp_confirm`, `@mcp_elicit`) are
     handled before the tool runs**; the dynamic `elicit()` path assumes
     the re-run (see [Elicitation](#elicitation)).
-12. **Task store**: which back-ends to support (files, database, Redis),
+11. **Task store**: which back-ends to support (files, database, Redis),
     and what the default is.
 
 ---
