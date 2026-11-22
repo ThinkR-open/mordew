@@ -35,3 +35,9 @@ goes into this package. Code the developer cannot explain does not go in.
   readability — in that order.
 - Short functions, single responsibility, explicit names.
 - No duplication, no speculative code, no comments that paraphrase the code.
+
+## Code style
+
+- Line break after every opening parenthesis. Empty calls stay on one
+  line: `tempfile()`. Air has the last word: it keeps
+  `test_that("...", {` on one line.

@@ -9,8 +9,7 @@ Authors@R: c(
 Description: An opinionated framework for building Model Context Protocol
     ('MCP') servers as R packages. Each tool is a documented and tested R
     function. The package provides scaffolding, a tool registry generated
-    from 'roxygen2' documentation, testing helpers, an embedded chat and
-    deployment helpers.
+    from 'roxygen2' documentation, testing helpers and deployment helpers.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -18,3 +17,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Config/Needs/website: ThinkR-open/golemversetemplate
+RoxygenNote: 7.3.3
