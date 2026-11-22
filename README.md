@@ -89,15 +89,11 @@ conventions and the path to production.
 - support for the whole MCP specification: tools, resources and prompts, plus structured output, elicitation, completion, progress, cancellation and the tasks extension
 - a roxygen roclet that turns documentation into a tool registry
 - a testing toolkit covering three levels: unit, contract, behaviour
-- runtime helpers: MCP server, asynchronous execution, audit log, limits
+- runtime helpers: its own thin MCP protocol layer, asynchronous execution, audit log, limits
 - deployment helpers: Docker, Kubernetes, Posit Connect
 
 `{mordew}` **is not**:
 
-- a new implementation of the MCP protocol: `{mordew}` builds on
-  [mcptools](https://posit-dev.github.io/mcptools/) and contributes what
-  is missing upstream where possible (see [MCP specification
-  coverage](#mcp-specification-coverage))
 - an LLM client: `{mordew}` never calls a model itself, except in behavioural
   evals, which rely on [ellmer](https://ellmer.tidyverse.org/) and vitals
 - a chat: a chat is a separate product, an MCP client like any other
@@ -148,8 +144,9 @@ The Python side carries two lessons:
    some version of FastMCP powers 70% of MCP servers, all languages
    combined.
 2. **Frameworks get absorbed.** FastMCP 1.0 was merged into the official
-   MCP Python SDK in 2024. Posit could do the same in R, so `{mordew}` must
-   build _on top of_ mcptools, not against it.
+   MCP Python SDK in 2024. Posit could do the same in R, so `{mordew}`
+   keeps its protocol layer thin and coordinates with the mcptools
+   maintainers rather than working against them.
 
 ---
 
@@ -230,7 +227,7 @@ flowchart LR
     T["tests/: unit, contract, evals"]
   end
   pkg -- "roclet" --> REG["Tool registry<br/>ellmer::tool() objects"]
-  REG --> SRV["MCP server<br/>mcptools, stdio or HTTP"]
+  REG --> SRV["MCP server<br/>`{mordew}`, stdio or HTTP"]
   SRV --> EXT["MCP clients<br/>Claude Code, Claude Desktop, Codex, Copilot"]
   SRV --> CHAT["A separate chat app<br/>an MCP client, outside `{mordew}`"]
   SRV --> LOG[("Audit log")]
@@ -334,7 +331,7 @@ a flat grammar breaks down). One point to settle upstream: ellmer types
 today carry a description but no constraints (to re-check against the
 current release), so `{mordew}` ships matching constructors that add
 `min`, `max` and `pattern` and lower to JSON Schema — and proposes them
-to ellmer, the same upstream-first move as for mcptools. Single-word
+to ellmer. Single-word
 tags (`@mcp_returns table`, `@mcp_read_only`) stay words: one word from
 a closed set is not a language.
 
@@ -396,10 +393,9 @@ the way `add_tool()` does. Prompt texts live in
 
 Two caveats:
 
-- **mcptools does not implement them yet** (see [What mcptools does
-  today](#what-mcptools-does-today)): `{mordew}` has to handle
+- **They come after the MVP** (phase 4): the protocol layer then adds
   `resources/list`, `resources/read`, `resources/templates/list`,
-  `prompts/list` and `prompts/get`, or contribute them upstream.
+  `prompts/list` and `prompts/get`.
 - **Client support varies.** Every MCP client supports tools; resources
   and prompts are not supported everywhere, nor shown the same way.
   Anything essential must stay reachable through a tool.
@@ -545,14 +541,14 @@ stops the worker running the call, then recycles it.
 
 ### Runtime and process model
 
-- **The server owns its process.** `mcptools::mcp_server()` blocks the R
-  process that calls it, so `run_mcp_server()` is meant to be the main
-  loop of a dedicated process, never something run inside another app.
+- **The server owns its process.** `run_mcp_server()` blocks the R
+  process that calls it: it is meant to be the main loop of a dedicated
+  process, never something run inside another app.
 - **Transports.** With stdio, each desktop client spawns its own R
   process: one user, no auth. With HTTP, one shared server serves many
   users, so it needs authentication and a concurrency strategy.
-- **Concurrency.** R is single-threaded, and `mcptools::mcp_server()`
-  runs one tool call at a time (see below). **Asynchronous execution is a
+- **Concurrency.** R is single-threaded: a server that runs tools in its
+  own process runs one call at a time. **Asynchronous execution is a
   hard requirement for production**: a server that blocks on every call
   cannot serve several users. See [Scaling an HTTP
   deployment](#scaling-an-http-deployment).
@@ -570,9 +566,23 @@ stops the worker running the call, then recycles it.
 
 ### What mcptools does today
 
-Checked in the mcptools source (development version 1.0.3.9000), because
-`{mordew}`'s runtime design depends on it:
+Read in the mcptools source (development version 1.0.3.9000, commit
+714803b) to decide whether `{mordew}` builds on it: it does not (see
+[decision 4](#decisions-and-open-questions)). What mcptools does today,
+and what `{mordew}`'s own layer must do differently:
 
+- **The registry is a list of `ellmer::tool()` objects**, served in the
+  order given. The `inputSchema` comes from an internal ellmer function
+  (`as_json`), so it carries only what ellmer types emit: no `min`, `max`
+  or `pattern`.
+- **Arguments are not validated.** JSON arrays are flattened into
+  vectors, then the tool is called with `do.call()`.
+- **An R error becomes a JSON-RPC error** (-32603), not an `isError`
+  result. `isError` is set only when the tool returns
+  `ellmer::ContentToolResult(error = )`.
+- **Data frames are sent as `paste(df, collapse = "\n")`**: one deparsed
+  column per line, such as `c("road", "trail")`. Named lists become
+  `structuredContent`, from 2025-06-18 only.
 - **Tool execution is synchronous.** Over HTTP, `mcp_server(type = "http")`
   starts an httpuv server and runs `httpuv::service(Inf)`. The request
   handler calls the tool directly (`do.call(data$tool, args)`) and returns
@@ -586,6 +596,11 @@ Checked in the mcptools source (development version 1.0.3.9000), because
   answer any request, so no sticky sessions are needed.
 - **No streaming.** GET and SSE are refused (HTTP 405); only POST is
   handled. The `ping` method is not implemented.
+- **Session tools are on by default.** `list_r_sessions` and
+  `select_r_session` join the tool list, and calls run in a user's
+  `mcp_session()` when one shares the server's working directory or is
+  the only one running: the tool's function is serialised and executed
+  there.
 - **`mcp_session()` has no queue of its own.** It keeps one pending
   `recv_aio()` wrapped in a promise. The callback runs through the `later`
   event loop, that is only when the interactive session is idle, then
@@ -612,6 +627,13 @@ Checked in the mcptools source (development version 1.0.3.9000), because
   (`MCPTOOLS_HTTP_TRUSTED_HOSTS`), and an `Origin` check that only lets
   localhost through unless `MCPTOOLS_HTTP_ALLOWED_ORIGINS` is set. Real
   authentication belongs in front of the server.
+- **The client is built for chats, not for tests.** `mcp_tools()` returns
+  ellmer tools and turns each result into ellmer content, so the raw
+  JSON-RPC response is never visible. Over stdio, it waits at most 4
+  seconds (20 polls, 0.2 seconds apart) and takes the first line without
+  checking its `id`: a slower start-up or tool call returns `NULL`, and
+  the late response is read as the answer to the next request. Over HTTP,
+  it answers no server request other than `ping`.
 
 The MCP specification goes the same way: in its [2026-07-28
 revision](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports),
@@ -622,7 +644,7 @@ what horizontal scaling needs.
 
 ### Spike: a stdio server without mcptools
 
-To price the fallback of open question 13, `dev/spike_stdio/server.R`
+To price a protocol layer of our own, `dev/spike_stdio/server.R`
 implements a minimal MCP stdio server in base R plus jsonlite:
 `initialize`, `ping`, `tools/list`, `tools/call` and JSON-RPC errors
 (`isError` results, -32601, -32700), in about 130 lines. Verified on
@@ -647,9 +669,10 @@ model](#runtime-and-process-model)).
 Conclusion: the stdio half of a protocol layer of our own is cheap. The
 expensive parts — asynchronous execution, tasks, elicitation state, HTTP
 with 2025-11-25 and 2026-07-28 compatibility — are in `{mordew}`'s scope
-whichever backend runs the transport. "Build on mcptools" therefore stops
-being load-bearing and becomes opportunistic: use it where it serves,
-contribute upstream, and keep the thin layer as a credible fallback.
+whichever backend runs the transport. Together with the [mcptools
+reading](#what-mcptools-does-today), this settled [decision
+4](#decisions-and-open-questions): `{mordew}` ships its own protocol
+layer.
 
 ### Connecting external clients
 
@@ -761,7 +784,7 @@ whose stdio server starts the development version of the package
 
 |                             | `client = "ellmer"`                                                                | `client = "claude"`                                                                              |
 | --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Connects to the server with | `mcptools::mcp_tools()`, then `chat$set_tools()`                                   | `--mcp-config` pointing to the temporary configuration                                           |
+| Connects to the server with | `{mordew}`'s stdio client, whose tools become ellmer tools, then `chat$set_tools()` | `--mcp-config` pointing to the temporary configuration                                           |
 | Opens                       | `ellmer::live_console()`, or `ellmer::live_browser()` with `ui = "browser"`        | a Claude Code session in the IDE terminal (RStudio, Positron), or prints the command to paste    |
 | Model and billing           | any ellmer provider or a local model; API key in the environment, billed per token | the user's Claude Code login, for example a Claude subscription                                  |
 | Other tools available       | none: ellmer only sends the server's tools                                         | none: the session is [restricted to the server](#a-claude-code-session-restricted-to-the-server) |
@@ -981,7 +1004,7 @@ privacy trade-off.
 | Local, desktop client | stdio     | `Rscript -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()`                           |
 | Docker                | HTTP      | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
 | Kubernetes            | HTTP      | example manifests: probes, replicas, secrets                                                       |
-| Posit Connect         | HTTP      | mcptools' `_server.yml` with `engine: mcptools`, through `add_connect()`                           |
+| Posit Connect         | HTTP      | `add_connect()`; path to find, since mcptools' `engine: mcptools` no longer applies                |
 
 ### When a single process is enough
 
@@ -994,28 +1017,27 @@ take seconds, needs asynchronous execution.
 
 ### Scaling an HTTP deployment
 
-Because one `mcp_server()` process runs one call at a time, there are two
-ways to serve concurrent calls. `{mordew}` must support both.
+Because a process that runs tools itself runs one call at a time, there
+are two ways to serve concurrent calls. `{mordew}` must support both.
 
 **A. Replicas behind a load balancer.** N identical R processes or
-containers, behind nginx, Traefik or a Kubernetes Service. It needs no
-change to the server, since the HTTP transport is stateless. The cost is
-memory: each replica loads its own copy of the data.
+containers, behind nginx, Traefik or a Kubernetes Service. It works as
+long as the HTTP transport stays stateless. The cost is memory: each
+replica loads its own copy of the data.
 
 ```mermaid
 flowchart LR
   C["MCP clients"] --> LB["Load balancer<br/>TLS, auth, least connections"]
-  LB --> R1["R process 1<br/>mcp_server()"]
-  LB --> R2["R process 2<br/>mcp_server()"]
-  LB --> R3["R process N<br/>mcp_server()"]
+  LB --> R1["R process 1<br/>run_mcp_server()"]
+  LB --> R2["R process 2<br/>run_mcp_server()"]
+  LB --> R3["R process N<br/>run_mcp_server()"]
 ```
 
 **B. One asynchronous front, a pool of workers.** A single HTTP process
 whose handler returns a promise instead of blocking, while tools run in a
 pool of mirai daemons. The front keeps accepting requests while tools
 compute; data can be loaded once per worker; there is a single container
-to deploy. mcptools cannot do this today because `execute_tool_call()` is
-synchronous, so `{mordew}` has to wrap it, or contribute the change upstream.
+to deploy.
 
 ```mermaid
 flowchart LR
@@ -1089,16 +1111,12 @@ Production requirements for tasks:
 - **Algorithm**: least connections rather than round-robin, because call
   durations vary widely and each process (or worker) runs one call at a
   time.
-- **Health check**: mcptools answers GET with HTTP 405 and does not
-  implement `ping`. Either accept 405, use a TCP check, or POST a
-  `tools/list` request. `{mordew}` should add a dedicated health endpoint.
+- **Health check**: on `{mordew}`'s dedicated health endpoint.
 - **Timeouts**: align the proxy timeouts with the longest tool. nginx's
   `proxy_read_timeout` defaults to 60 seconds; a longer tool ends in a 504.
-- **Host and Origin**: if `MCPTOOLS_HTTP_TRUSTED_HOSTS` is set, the proxy
-  must forward the original `Host` header. Clients that send a non-local
-  `Origin` get a 403 unless `MCPTOOLS_HTTP_ALLOWED_ORIGINS` lists it.
-- **Authentication and TLS**: at the proxy (OAuth or OIDC). The optional
-  shared secret of mcptools is not user authentication.
+- **Host and Origin**: the proxy must forward the original `Host` and
+  `Origin` headers, so that the server can check them.
+- **Authentication and TLS**: at the proxy (OAuth or OIDC).
 - **No sticky sessions**, as long as tools keep no state in memory.
 - **Per-tool rules at the gateway**: since 2026-07-28, every HTTP request
   carries `Mcp-Method` and `Mcp-Name` headers, so a gateway can route,
@@ -1177,9 +1195,8 @@ architecture locally before deploying it.
 
 ### Container checklist
 
-- **Bind to `0.0.0.0`.** `mcptools::mcp_server()` listens on `127.0.0.1`
-  by default, which makes the server unreachable from outside the
-  container.
+- **Bind to `0.0.0.0`.** A server listening on `127.0.0.1` is
+  unreachable from outside the container.
 - **Non-root user**, read-only root file system, only temporary
   directories writable.
 - **Health check** on a dedicated endpoint (see the load balancer
@@ -1219,8 +1236,7 @@ to add one.
 
 - [x] Check the name: `available::available("`{mordew}`")` (CRAN, Bioconductor, GitHub, meanings)
 - [x] Choose the licence
-- [ ] Read the mcptools internals: registry format, HTTP server, session tools, client side
-- [ ] Compare mcptools and mcplite as the protocol layer
+- [x] Read the mcptools internals: registry format, HTTP server, session tools, client side
 - [x] Spike: a minimal stdio MCP server in base R, verified against Claude Code (`dev/spike_stdio/`)
 - [ ] Get in touch with the mcptools maintainers to align and avoid duplicated work
 
@@ -1239,7 +1255,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Write the roclet that generates `R/`{mordew}`_registry.R`
 - [ ] Argument validation generated from the schema
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
-- [ ] `run_mcp_server()` for stdio, on top of mcptools
+- [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer
+- [ ] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [ ] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [ ] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
@@ -1284,7 +1301,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 ### Phase 4: specification coverage and conformance
 
 - [ ] `add_resource()` and `add_prompt()`: resource and prompt files, prompt template in `inst/`{mordew}`/prompts/`, test files
-- [ ] Handlers for `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list` and `prompts/get`, on top of mcptools or contributed upstream
+- [ ] Handlers for `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list` and `prompts/get`
 - [ ] `read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`
 - [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels
 - [ ] Cacheable results: `ttlMs` and `cacheScope` on lists and resource reads
@@ -1324,8 +1341,21 @@ resources or prompts yet: nothing in this cut has to break to add them.
    later as sugar, without breaking anything.
 3. **`{mordew}` ships no chat.** A chat is a separate product and talks
    to a `{mordew}` server through MCP, like any client.
-4. **Which protocol layer?** mcptools (maintained by Posit, HTTP, Connect)
-   or mcplite (lightweight, OpenTelemetry).
+4. **`{mordew}` ships its own protocol layer**, neither mcptools nor
+   mcplite. From mcptools, `{mordew}` would reuse the stdio loop and the
+   `tools/list` and `tools/call` dispatch, the part the
+   [spike](#spike-a-stdio-server-without-mcptools) wrote in about 130
+   lines, and would have to work around the rest (see [What mcptools does
+   today](#what-mcptools-does-today)): a fixed server identity, no
+   argument validation, R errors sent as JSON-RPC errors, a schema that
+   cannot carry constraints, nothing from 2026-07-28, synchronous HTTP,
+   session tools on by default. Depending on it would also add its eleven
+   direct imports to every package built with `{mordew}` (decision 6). On
+   the client side, contract tests need the raw JSON-RPC response, which
+   `mcp_tools()` never shows, so a minimal stdio client of our own serves
+   both `call_tool()` and `run_dev()`. Contributing to mcptools stays a
+   goal, not a dependency. mcplite was not read: it is set aside on the
+   strength of the [prior art](#prior-art) table (stdio only).
 5. **State model**: stateless only, or handles with a session object store.
 6. **One package.** Runtime `Imports` stay minimal — what `serve()`
    executes; the development and testing tooling (testthat, vitals)
@@ -1334,12 +1364,9 @@ resources or prompts yet: nothing in this cut has to break to add them.
    future helper would drag a heavy dependency into `Imports`.
 7. **Licence**.
 8. **Bridges with golem**.
-9. **Asynchronous execution: in `{mordew}` or upstream?** Wrap mcptools'
-   synchronous `execute_tool_call()` inside `{mordew}`, or propose a
-   promise-based handler to mcptools.
-10. **Default architecture for HTTP**: replicas (A), worker pool (B), or
-    both by default.
-11. **A generated package depends on `{mordew}` at runtime**, as golem
+9. **Default architecture for HTTP**: replicas (A), worker pool (B), or
+   both by default.
+10. **A generated package depends on `{mordew}` at runtime**, as golem
     apps depend on golem. The deciding argument is security: validation,
     limits and serialisation
     are load-bearing, and a fix to them must reach every deployed server
@@ -1355,19 +1382,10 @@ resources or prompts yet: nothing in this cut has to break to add them.
     subprocess skipped on CRAN, examples that never start a blocking
     server, small example data.
 
-12. **Resources and prompts: in `{mordew}` or upstream?** mcptools advertises
-    them but does not implement them. Implement the handlers in `{mordew}`,
-    or contribute them to mcptools.
-13. **How far behind the specification can mcptools be?** It stops at
-    2025-11-25. If upstream support for 2026-07-28 does not come in time,
-    `{mordew}` needs its own protocol layer, which goes against "build on
-    mcptools". The stdio half of that layer is priced by the
-    [spike](#spike-a-stdio-server-without-mcptools): about 130 lines; the
-    open cost is HTTP and version compatibility.
-14. **Elicitation: the common cases (`@mcp_confirm`, `@mcp_elicit`) are
+11. **Elicitation: the common cases (`@mcp_confirm`, `@mcp_elicit`) are
     handled before the tool runs**; the dynamic `elicit()` path assumes
     the re-run (see [Elicitation](#elicitation)).
-15. **Task store**: which back-ends to support (files, database, Redis),
+12. **Task store**: which back-ends to support (files, database, Redis),
     and what the default is.
 
 ---
@@ -1376,13 +1394,12 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 | Risk                                   | Why it is serious                                                                                                                  | Mitigation                                                                                                                                                               |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Overlap with Posit's tooling           | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK. | Build on mcptools for the protocol and coordinate with its maintainers; focus on what it does not cover (project structure, testing, production outside Connect).        |
-| The MCP specification changes fast     | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework.              | Delegate the protocol to mcptools; `{mordew}` stays one layer above.                                                                                                     |
-| Maintenance cost                       | Open source means issues, support and upgrades.                                                                                    | Keep the scope small, delegate the moving parts to Posit-maintained packages, welcome contributors early.                                                                |
+| Overlap with Posit's tooling           | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK. | Coordinate with the mcptools maintainers and contribute upstream; focus on what mcptools does not cover (project structure, testing, production outside Connect).      |
+| The MCP specification changes fast     | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework, and following it is `{mordew}`'s own work (decision 4). | Keep the protocol layer thin (its stdio half is about 130 lines, see the [spike](#spike-a-stdio-server-without-mcptools)) and covered by a conformance test suite for each supported revision. |
+| Maintenance cost                       | Open source means issues, support and upgrades.                                                                                    | Keep the scope small and the protocol layer thin, welcome contributors early.                                                                                            |
 | Unclear adoption                       | Real use cases still have to be collected.                                                                                         | Build the prototype on real use cases before the first release.                                                                                                          |
-| mcptools lags behind the specification | It supports revisions up to 2025-11-25, while production clients move to 2026-07-28.                                               | Contribute upstream first; keep a thin protocol layer of our own as a fallback (its stdio half is priced by the [spike](#spike-a-stdio-server-without-mcptools): small). |
 | Flaky, costly evals                    | Models are not deterministic, and every eval run costs tokens.                                                                     | Thresholds, several runs per case, a separate CI job.                                                                                                                    |
-| A blocking server in production        | One `mcp_server()` process runs one call at a time; one slow call blocks every user.                                               | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure.                              |
+| A blocking server in production        | A process that runs tools itself runs one call at a time; one slow call blocks every user.                                         | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure.                              |
 
 ---
 
