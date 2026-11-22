@@ -5,3 +5,6 @@ Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "
 Description: What the server does (one paragraph).
 License: What license is it under?
 Encoding: UTF-8
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

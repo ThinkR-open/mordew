@@ -55,18 +55,17 @@ create_mordew <- function(
       ".Rbuildignore"
     )
   )
-  description <- file.path(
+  files <- list.files(
     path,
-    "DESCRIPTION"
+    recursive = TRUE,
+    full.names = TRUE
   )
-  writeLines(
-    gsub(
+  for (file in files) {
+    fill_template(
+      file,
+      file,
       "mordewexample",
-      package_name,
-      readLines(
-        description
-      )
-    ),
-    description
-  )
+      package_name
+    )
+  }
 }

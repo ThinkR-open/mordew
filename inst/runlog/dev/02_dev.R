@@ -1,3 +1,5 @@
 # Run during development.
 
-# TODO
+mordew::add_tool(
+  name = "name_of_tool"
+)
