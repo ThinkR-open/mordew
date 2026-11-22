@@ -36,6 +36,12 @@ goes into this package. Code the developer cannot explain does not go in.
 - Short functions, single responsibility, explicit names.
 - No duplication, no speculative code, no comments that paraphrase the code.
 
+## Example package
+
+- After every change to R/ or inst/mordewexample/, run
+  `Rscript --no-init-file dev/example.R`: inst/runlog/ shows what
+  `create_mordew()` generates. Never edit inst/runlog/ by hand.
+
 ## Code style
 
 - Line break after every opening parenthesis. Empty calls stay on one

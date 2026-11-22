@@ -1360,7 +1360,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 - [ ] Vignettes: getting started, writing tool descriptions, testing, security, deployment
 - [ ] Publish the pkgdown site
-- [ ] `runlog`, a demo package built with `{mordew}` on a fake running log (distance, elevation gain, pace, surface)
+- [ ] `runlog`, a demo package built with `{mordew}` on a fake running log (distance, elevation gain, pace, surface), in its own repository
 - [ ] Hex sticker
 - [ ] Blog post and conference talk
 
