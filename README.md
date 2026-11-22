@@ -1,5 +1,9 @@
 # `{mordew}`
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/ThinkR-open/mordew/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ThinkR-open/mordew/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 > Build, test and ship MCP servers as R packages.
 
 **Status: design phase.** Nothing is implemented yet. For now, this README
@@ -1281,7 +1285,7 @@ Tools over stdio, with the contract tests: the differentiator. No HTTP
 (it ships with asynchronous execution, in the production phase), no
 resources or prompts yet: nothing in this cut has to break to add them.
 
-- [ ] Set up the `{mordew}` package: DESCRIPTION, testthat 3rd edition, lintr, GitHub Actions `R-CMD-check`, pkgdown
+- [ ] Set up the `{mordew}` package: DESCRIPTION, testthat 3rd edition, air (formatting), GitHub Actions `R-CMD-check`, pkgdown
 - [ ] `create_mcp()`: package template, `dev/` scripts, `inst/`{mordew}`/config.yml`
 - [ ] `add_tool()`: tool file and test file from templates
 - [ ] `install_dev_deps()`: install the `Suggests` tooling, called from `dev/01_start.R` (the golem pattern)
