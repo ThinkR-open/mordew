@@ -24,7 +24,11 @@ reply <- function(id, result) {
 }
 
 reply_error <- function(id, code, message) {
-  send(list(jsonrpc = "2.0", id = id, error = list(code = code, message = message)))
+  send(list(
+    jsonrpc = "2.0",
+    id = id,
+    error = list(code = code, message = message)
+  ))
 }
 
 TOOLS <- list(
@@ -59,7 +63,12 @@ summarise_runs <- function(surface, year) {
   pace <- round(runif(1, 4.5, 6.5), 1)
   sprintf(
     "%d %s runs in %d: %d km, %d m of elevation gain, average pace %.1f min/km.",
-    n, surface, year, km, dplus, pace
+    n,
+    surface,
+    year,
+    km,
+    dplus,
+    pace
   )
 }
 
@@ -74,11 +83,14 @@ handle <- function(msg) {
     return(invisible(NULL)) # notifications get no response
   }
   if (method == "initialize") {
-    reply(id, list(
-      protocolVersion = msg$params$protocolVersion, # spike: echo, no negotiation
-      capabilities = list(tools = EMPTY_OBJ),
-      serverInfo = list(name = "runlog-spike", version = "0.0.1")
-    ))
+    reply(
+      id,
+      list(
+        protocolVersion = msg$params$protocolVersion, # spike: echo, no negotiation
+        capabilities = list(tools = EMPTY_OBJ),
+        serverInfo = list(name = "runlog-spike", version = "0.0.1")
+      )
+    )
   } else if (method == "ping") {
     reply(id, EMPTY_OBJ)
   } else if (method == "tools/list") {
@@ -112,8 +124,12 @@ stdin <- file("stdin", open = "r", blocking = TRUE)
 spike_log("server started, pid ", Sys.getpid())
 repeat {
   line <- readLines(stdin, n = 1, warn = FALSE)
-  if (length(line) == 0) break # EOF: client is gone
-  if (!nzchar(trimws(line))) next
+  if (length(line) == 0) {
+    break
+  } # EOF: client is gone
+  if (!nzchar(trimws(line))) {
+    next
+  }
   msg <- tryCatch(
     fromJSON(line, simplifyVector = FALSE),
     error = function(e) NULL
