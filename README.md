@@ -1343,7 +1343,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `install_dev_deps()`: install the `Suggests` tooling, called from `dev/01_start.R` (the golem pattern)
 - [x] Server identity from the package: name and version from `DESCRIPTION`, instructions from `inst/mordew/instructions.md`
 - [x] Specify the tool tags (`@mcpTool`, `@mcpType` with R-expression content, `@mcpReturns`, annotations, limits)
-- [ ] Write the roclet that generates `R/mordew_registry.R`
+- [x] Write the roclet that generates `R/mordew_registry.R`
 - [ ] Argument validation generated from the schema
 - [ ] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25

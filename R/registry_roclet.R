@@ -233,24 +233,60 @@ tool_input_schema <- function(
   block,
   fun
 ) {
+  params <- formals(
+    block$object$value
+  )
   types <- list()
   for (tag in roxygen2::block_get_tags(
     block,
     "mcpType"
   )) {
+    if (!tag$val$name %in% names(params)) {
+      stop(
+        "`",
+        fun,
+        "`: `@mcpType ",
+        tag$val$name,
+        "` names no parameter."
+      )
+    }
     types[[tag$val$name]] <- param_type(
       tag,
       block,
       fun
     )
   }
+  no_default <- vapply(
+    params,
+    identical,
+    logical(1),
+    quote(
+      expr =
+    )
+  )
+  for (param in names(params)) {
+    if (is.null(types[[param]])) {
+      stop(
+        "`",
+        fun,
+        "`: parameter `",
+        param,
+        "` has no `@mcpType`."
+      )
+    }
+    if (types[[param]]$required != no_default[[param]]) {
+      stop(
+        "`",
+        fun,
+        "`: parameter `",
+        param,
+        "` needs `required = FALSE` if and only if it has a default value."
+      )
+    }
+  }
   do.call(
     type_object,
-    types[names(
-      formals(
-        block$object$value
-      )
-    )]
+    types[names(params)]
   )$schema
 }
 

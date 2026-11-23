@@ -575,3 +575,101 @@ test_that("unnamed lists are written back as unnamed lists", {
     registry
   )
 })
+
+test_that("a parameter without @mcpType is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      summarise_runs <- function(year) NULL
+      "
+    ),
+    "`summarise_runs`: parameter `year` has no `@mcpType`."
+  )
+})
+
+test_that("an @mcpType naming no parameter is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType yaer type_integer()
+      summarise_runs <- function(year) NULL
+      "
+    ),
+    "`summarise_runs`: `@mcpType yaer` names no parameter."
+  )
+})
+
+test_that("required = FALSE without a default value is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType year type_integer(required = FALSE)
+      summarise_runs <- function(year) NULL
+      "
+    ),
+    "`summarise_runs`: parameter `year` needs `required = FALSE` if and only if it has a default value."
+  )
+})
+
+test_that("a default value without required = FALSE is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType year type_integer()
+      summarise_runs <- function(year = 2024) NULL
+      "
+    ),
+    "`summarise_runs`: parameter `year` needs `required = FALSE` if and only if it has a default value."
+  )
+})
+
+test_that("a parameter with a default value and required = FALSE is optional", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param surface Running surface.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType surface type_string()
+      #' @mcpType year type_integer(required = FALSE)
+      summarise_runs <- function(surface, year = 2024) NULL
+      "
+    )$summarise_runs$tool$inputSchema$required,
+    list(
+      "surface"
+    )
+  )
+})
