@@ -68,3 +68,37 @@ test_that("add_tool() refuses an existing tool", {
     "already exists"
   )
 })
+
+test_that("add_tool() adds a tool the registry roclet registers", {
+  path <- file.path(
+    tempfile(),
+    "runlog"
+  )
+  create_mordew(
+    path
+  )
+  add_tool(
+    "summarise_runs",
+    pkg = path
+  )
+  suppressMessages(
+    roxygen2::roxygenise(
+      path,
+      load_code = "source"
+    )
+  )
+  env <- new.env()
+  sys.source(
+    file.path(
+      path,
+      "R",
+      "mordew_registry.R"
+    ),
+    envir = env
+  )
+
+  expect_named(
+    env$mordew_registry,
+    "summarise_runs"
+  )
+})

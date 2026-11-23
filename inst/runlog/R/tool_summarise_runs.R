@@ -3,6 +3,8 @@
 #' What the tool does, when to use it and when not to, with units and
 #' formats.
 #'
+#' @mcpTool
+#' @mcpReturns text
 #' @export
 summarise_runs <- function() {
   # TODO

@@ -8,3 +8,6 @@ add_tool(
   "summarise_runs",
   pkg = "inst/runlog"
 )
+roxygen2::roxygenise(
+  "inst/runlog"
+)
