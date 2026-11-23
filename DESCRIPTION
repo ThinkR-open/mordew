@@ -17,6 +17,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
     testthat (>= 3.0.0),
+    roxygen2,
     withr
 Config/testthat/edition: 3
 Config/Needs/website: ThinkR-open/golemversetemplate
