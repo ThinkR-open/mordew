@@ -21,6 +21,15 @@ roxy_tag_parse.roxy_tag_mcpTool <- function(
   x
 }
 
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpReturns <- function(
+  x
+) {
+  roxygen2::tag_name(
+    x
+  )
+}
+
 #' @exportS3Method roxygen2::roclet_process
 roclet_process.roclet_registry <- function(
   x,
@@ -86,6 +95,27 @@ tool_entry <- function(
       "` has no description: the model reads it to choose the tool."
     )
   }
+  returns <- roxygen2::block_get_tag_value(
+    block,
+    "mcpReturns"
+  )
+  if (
+    !isTRUE(
+      returns %in%
+        c(
+          "text",
+          "table",
+          "image",
+          "json"
+        )
+    )
+  ) {
+    stop(
+      "`",
+      fun,
+      "` needs `@mcpReturns` text, table, image or json."
+    )
+  }
   list(
     fun = fun,
     tool = list(
@@ -95,6 +125,7 @@ tool_entry <- function(
         "title"
       )$raw,
       description = description
-    )
+    ),
+    returns = returns
   )
 }
