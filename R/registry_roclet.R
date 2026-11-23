@@ -59,6 +59,18 @@ roxy_tag_parse.roxy_tag_mcpLimit <- function(
   )
 }
 
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpType <- function(
+  x
+) {
+  roxygen2::tag_two_part(
+    x,
+    "a parameter",
+    "a type",
+    markdown = FALSE
+  )
+}
+
 #' @exportS3Method roxygen2::roclet_process
 roclet_process.roclet_registry <- function(
   x,
@@ -151,7 +163,11 @@ tool_entry <- function(
       block,
       "title"
     )$raw,
-    description = description
+    description = description,
+    inputSchema = tool_input_schema(
+      block,
+      fun
+    )
   )
   tool$annotations <- tool_annotations(
     block
@@ -210,6 +226,95 @@ tool_limit <- function(
     rows = as.integer(
       words[[2]]
     )
+  )
+}
+
+tool_input_schema <- function(
+  block,
+  fun
+) {
+  types <- list()
+  for (tag in roxygen2::block_get_tags(
+    block,
+    "mcpType"
+  )) {
+    types[[tag$val$name]] <- param_type(
+      tag,
+      block,
+      fun
+    )
+  }
+  do.call(
+    type_object,
+    types[names(
+      formals(
+        block$object$value
+      )
+    )]
+  )$schema
+}
+
+param_type <- function(
+  tag,
+  block,
+  fun
+) {
+  type <- eval(
+    str2lang(
+      tag$val$description
+    ),
+    topenv()
+  )
+  if (
+    !identical(
+      names(type),
+      c(
+        "schema",
+        "required"
+      )
+    )
+  ) {
+    stop(
+      "`",
+      fun,
+      "`: `@mcpType ",
+      tag$val$name,
+      "` is not a mordew type."
+    )
+  }
+  type$schema$description <- param_description(
+    block,
+    fun,
+    tag$val$name
+  )
+  type
+}
+
+param_description <- function(
+  block,
+  fun,
+  param
+) {
+  for (tag in roxygen2::block_get_tags(
+    block,
+    "param"
+  )) {
+    if (tag$val$name == param) {
+      return(
+        sub(
+          "^\\S+\\s+",
+          "",
+          tag$raw
+        )
+      )
+    }
+  }
+  stop(
+    "`",
+    fun,
+    "`: parameter `",
+    param,
+    "` has no `@param`."
   )
 }
 
@@ -291,10 +396,8 @@ as_code <- function(
     indent,
     "  "
   )
-  paste0(
-    "list(\n",
+  keys <- if (!is.null(names(x))) {
     paste0(
-      inner,
       vapply(
         lapply(
           names(x),
@@ -304,7 +407,14 @@ as_code <- function(
         "",
         backtick = TRUE
       ),
-      " = ",
+      " = "
+    )
+  }
+  paste0(
+    "list(\n",
+    paste0(
+      inner,
+      keys,
       vapply(
         x,
         as_code,

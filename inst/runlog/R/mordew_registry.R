@@ -6,7 +6,11 @@ mordew_registry <- list(
     tool = list(
       name = "summarise_runs",
       title = "Title of the tool",
-      description = "What the tool does, when to use it and when not to, with units and\nformats."
+      description = "What the tool does, when to use it and when not to, with units and\nformats.",
+      inputSchema = list(
+        type = "object",
+        additionalProperties = FALSE
+      )
     ),
     returns = "text"
   )

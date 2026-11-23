@@ -370,11 +370,13 @@ Every constructor also takes `required = TRUE` and `description = NULL`
 (`.required` and `.description` for `type_object()`, as in ellmer).
 `required = FALSE` matches a parameter that has a default value in the
 function's signature, and only that: the roclet fails on any mismatch. A
-parameter's description comes from its `@param`; `description` only
-describes nested types (array items, object fields). The tool's
-`inputSchema` is an object with one property per parameter, the required
-ones listed in `required`, and `additionalProperties: false`: arguments
-the function does not take are rejected.
+parameter's description comes from its `@param`, which the roclet
+requires; `description` only describes nested types (array items, object
+fields). The tool's `inputSchema` is a `type_object()` of the parameters,
+in the order of the signature: one property per parameter, the required
+ones listed in `required`. Every `type_object()` sets
+`additionalProperties: false`, so fields it does not describe are
+rejected, at every level.
 
 Single-word tags (`@mcpReturns table`, `@mcpReadOnly`) stay words: one
 word from a closed set is not a language.

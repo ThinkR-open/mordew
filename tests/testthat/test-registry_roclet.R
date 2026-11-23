@@ -17,7 +17,11 @@ test_that("a tagged function becomes a tool named after it", {
         tool = list(
           name = "summarise_runs",
           title = "Summarise runs",
-          description = "Number of runs per year."
+          description = "Number of runs per year.",
+          inputSchema = list(
+            type = "object",
+            additionalProperties = FALSE
+          )
         ),
         returns = "text"
       )
@@ -43,7 +47,11 @@ test_that("@mcpTool can rename the tool", {
       tool = list(
         name = "run_summary",
         title = "Summarise runs",
-        description = "Number of runs per year."
+        description = "Number of runs per year.",
+        inputSchema = list(
+          type = "object",
+          additionalProperties = FALSE
+        )
       ),
       returns = "text"
     )
@@ -462,5 +470,108 @@ test_that("a row limit on a tool that does not return a table is an error", {
       "
     ),
     "`summarise_runs` returns text: `@mcpLimit rows` needs `@mcpReturns table`."
+  )
+})
+
+test_that("@mcpType and @param build the inputSchema", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param surface Running surface.
+      #' @param year Four-digit `year`.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType year type_integer(min = 2015)
+      #' @mcpType surface type_enum(c(\"road\", \"trail\"))
+      #' @md
+      summarise_runs <- function(surface, year) NULL
+      "
+    )$summarise_runs$tool$inputSchema,
+    list(
+      type = "object",
+      properties = list(
+        surface = list(
+          type = "string",
+          enum = list(
+            "road",
+            "trail"
+          ),
+          description = "Running surface."
+        ),
+        year = list(
+          type = "integer",
+          minimum = 2015,
+          description = "Four-digit `year`."
+        )
+      ),
+      required = list(
+        "surface",
+        "year"
+      ),
+      additionalProperties = FALSE
+    )
+  )
+})
+
+test_that("an @mcpType expression that is not a type is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @param year Four-digit year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType year integer
+      summarise_runs <- function(year) NULL
+      "
+    ),
+    "`summarise_runs`: `@mcpType year` is not a mordew type."
+  )
+})
+
+test_that("a typed parameter without @param is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpType year type_integer()
+      summarise_runs <- function(year) NULL
+      "
+    ),
+    "`summarise_runs`: parameter `year` has no `@param`."
+  )
+})
+
+test_that("unnamed lists are written back as unnamed lists", {
+  registry <- list(
+    summarise_runs = list(
+      required = list(
+        "surface",
+        "year"
+      )
+    )
+  )
+  env <- new.env()
+  sys.source(
+    write_registry(
+      registry
+    ),
+    envir = env
+  )
+  expect_equal(
+    env$mordew_registry,
+    registry
   )
 })
