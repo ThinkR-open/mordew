@@ -93,3 +93,39 @@ test_that("validate_arguments() rejects a boolean argument of another type", {
     "Argument `trail` must be of type boolean."
   )
 })
+
+test_that("validate_arguments() rejects an object for an array", {
+  expect_error(
+    validate_arguments(
+      list(
+        surfaces = list(
+          first = "road"
+        )
+      ),
+      type_object(
+        surfaces = type_array(
+          type_string()
+        )
+      )$schema
+    ),
+    "Argument `surfaces` must be of type array."
+  )
+})
+
+test_that("validate_arguments() rejects an array for an object", {
+  expect_error(
+    validate_arguments(
+      list(
+        period = list(
+          2023
+        )
+      ),
+      type_object(
+        period = type_object(
+          year = type_integer()
+        )
+      )$schema
+    ),
+    "Argument `period` must be of type object."
+  )
+})

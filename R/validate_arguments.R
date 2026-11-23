@@ -56,7 +56,23 @@ has_type <- function(
     ),
     boolean = is.logical(
       value
-    )
+    ),
+    array = is.list(
+      value
+    ) &&
+      is.null(
+        names(
+          value
+        )
+      ),
+    object = is.list(
+      value
+    ) &&
+      !is.null(
+        names(
+          value
+        )
+      )
   )
 }
 
