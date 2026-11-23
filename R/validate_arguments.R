@@ -77,6 +77,21 @@ argument_problem <- function(
       )
     )
   }
+  if (
+    !is.null(property$pattern) &&
+      !grepl(
+        property$pattern,
+        value,
+        perl = TRUE
+      )
+  ) {
+    return(
+      paste(
+        "match the pattern",
+        property$pattern
+      )
+    )
+  }
 }
 
 has_type <- function(

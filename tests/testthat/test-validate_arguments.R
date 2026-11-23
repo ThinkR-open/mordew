@@ -181,3 +181,35 @@ test_that("validate_arguments() rejects a value over the maximum", {
     "Argument `share` must be at most 1."
   )
 })
+
+test_that("validate_arguments() rejects a string not matching the pattern", {
+  expect_error(
+    validate_arguments(
+      list(
+        zip = "7500"
+      ),
+      type_object(
+        zip = type_string(
+          pattern = "^[0-9]{5}$"
+        )
+      )$schema
+    ),
+    "Argument `zip` must match the pattern ^[0-9]{5}$.",
+    fixed = TRUE
+  )
+})
+
+test_that("validate_arguments() reads the pattern as ECMA-262 does", {
+  expect_no_error(
+    validate_arguments(
+      list(
+        date = "2023-04-01"
+      ),
+      type_object(
+        date = type_string(
+          pattern = "^[\\d-]+$"
+        )
+      )$schema
+    )
+  )
+})
