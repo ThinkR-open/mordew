@@ -458,6 +458,9 @@ Two caveats:
 | condition (error)         | an `isError` result with a message the model can act on                      |
 | very large outputs        | to explore: an MCP resource instead of inline content                        |
 
+A value that does not match the tool's `@mcpReturns` comes back as an
+`isError` result naming the declared kind and the received one.
+
 When a tool declares an output schema (`@mcpOutput`), `{mordew}` also sends
 the value as `structuredContent`, validated against that schema, next to
 the text version.
