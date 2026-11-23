@@ -30,6 +30,26 @@ roxy_tag_parse.roxy_tag_mcpReturns <- function(
   )
 }
 
+parse_toggle <- function(
+  x
+) {
+  roxygen2::tag_toggle(
+    x
+  )
+}
+
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpReadOnly <- parse_toggle
+
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpNonDestructive <- parse_toggle
+
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpIdempotent <- parse_toggle
+
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpClosedWorld <- parse_toggle
+
 #' @exportS3Method roxygen2::roclet_process
 roclet_process.roclet_registry <- function(
   x,
@@ -116,17 +136,53 @@ tool_entry <- function(
       "` needs `@mcpReturns` text, table, image or json."
     )
   }
+  tool <- list(
+    name = name,
+    title = roxygen2::block_get_tag(
+      block,
+      "title"
+    )$raw,
+    description = description
+  )
+  tool$annotations <- tool_annotations(
+    block
+  )
   list(
     fun = fun,
-    tool = list(
-      name = name,
-      title = roxygen2::block_get_tag(
-        block,
-        "title"
-      )$raw,
-      description = description
-    ),
+    tool = tool,
     returns = returns
+  )
+}
+
+tool_annotations <- function(
+  block
+) {
+  hints <- list(
+    mcpReadOnly = list(
+      readOnlyHint = TRUE
+    ),
+    mcpNonDestructive = list(
+      destructiveHint = FALSE
+    ),
+    mcpIdempotent = list(
+      idempotentHint = TRUE
+    ),
+    mcpClosedWorld = list(
+      openWorldHint = FALSE
+    )
+  )
+  unlist(
+    unname(
+      hints[
+        vapply(
+          names(hints),
+          roxygen2::block_has_tags,
+          logical(1),
+          block = block
+        )
+      ]
+    ),
+    recursive = FALSE
   )
 }
 

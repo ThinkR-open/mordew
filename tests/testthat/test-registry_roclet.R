@@ -300,3 +300,68 @@ test_that("a package without tools gets an empty registry", {
     "mordew_registry <- list()"
   )
 })
+
+test_that("annotation tags declare the safe side", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpClosedWorld
+      #' @mcpReadOnly
+      summarise_runs <- function() NULL
+      "
+    )$summarise_runs$tool$annotations,
+    list(
+      readOnlyHint = TRUE,
+      openWorldHint = FALSE
+    )
+  )
+})
+
+test_that("redundant annotation tags next to @mcpReadOnly are accepted", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpReadOnly
+      #' @mcpNonDestructive
+      #' @mcpIdempotent
+      summarise_runs <- function() NULL
+      "
+    )$summarise_runs$tool$annotations,
+    list(
+      readOnlyHint = TRUE,
+      destructiveHint = FALSE,
+      idempotentHint = TRUE
+    )
+  )
+})
+
+test_that("a tool without annotation tags sends no annotations", {
+  expect_false(
+    "annotations" %in%
+      names(
+        roxygen2::roc_proc_text(
+          registry_roclet(),
+          "
+          #' Summarise runs
+          #'
+          #' Number of runs per year.
+          #' @mcpTool
+          #' @mcpReturns text
+          summarise_runs <- function() NULL
+          "
+        )$summarise_runs$tool
+      )
+  )
+})

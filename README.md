@@ -323,8 +323,8 @@ tag name at `_`, `.` or `-`.
 | `@mcpType <param> <expression>`   | The parameter's type, as an R expression (see below). Required for every parameter; naming a parameter the function does not have is an error.                             |
 | `@mcpReturns <kind>`              | Required: `text`, `table`, `image` or `json`; drives serialisation.                                                                                                        |
 | `@mcpReadOnly`                    | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
-| `@mcpNonDestructive`              | `destructiveHint: false`. An error next to `@mcpReadOnly`, where it means nothing.                                                                                       |
-| `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. An error next to `@mcpReadOnly`.                                                    |
+| `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
+| `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
 | `@mcpClosedWorld`                 | `openWorldHint: false`: the tool does not reach external entities.                                                                                                         |
 | `@mcpLimit rows <n>`              | Maximum number of rows a `table` returns; the default is set with serialisation. A `seconds` limit comes with the timeouts (phase 3).                                      |
 | `@mcpConfirm <message>`           | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments. |
