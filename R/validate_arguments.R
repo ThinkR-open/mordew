@@ -16,6 +16,48 @@ validate_arguments <- function(
     ),
     "Missing"
   )
+  for (name in names(arguments)) {
+    type <- schema$properties[[name]]$type
+    if (
+      !has_type(
+        arguments[[name]],
+        type
+      )
+    ) {
+      stop(
+        "Argument `",
+        name,
+        "` must be of type ",
+        type,
+        "."
+      )
+    }
+  }
+}
+
+has_type <- function(
+  value,
+  type
+) {
+  switch(
+    type,
+    string = is.character(
+      value
+    ),
+    integer = is.numeric(
+      value
+    ) &&
+      value ==
+        round(
+          value
+        ),
+    number = is.numeric(
+      value
+    ),
+    boolean = is.logical(
+      value
+    )
+  )
 }
 
 stop_on_first <- function(
