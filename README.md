@@ -381,8 +381,10 @@ word from a closed set is not a language.
 
 The roxygen title becomes the tool's `title`, shown to users; the
 description becomes its `description`, read by the model; and each
-`@param` becomes a parameter description. **These texts are prompts**: they should
-say when to use the tool, when not to, and give units and formats.
+`@param` becomes a parameter description. Roxygen sends the paragraphs
+after the description to `@details`: they stay in the R help, and the
+model never reads them. **These texts are prompts**: they should say when
+to use the tool, when not to, and give units and formats.
 `{mordew}` will ship a guide on writing them.
 
 ### Resources and prompts
