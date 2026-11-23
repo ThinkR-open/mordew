@@ -129,3 +129,55 @@ test_that("validate_arguments() rejects an array for an object", {
     "Argument `period` must be of type object."
   )
 })
+
+test_that("validate_arguments() rejects a value outside the enum", {
+  expect_error(
+    validate_arguments(
+      list(
+        surface = "beach"
+      ),
+      type_object(
+        surface = type_enum(
+          c(
+            "road",
+            "trail",
+            "track"
+          )
+        )
+      )$schema
+    ),
+    "Argument `surface` must be one of: road, trail, track."
+  )
+})
+
+test_that("validate_arguments() rejects a value under the minimum", {
+  expect_error(
+    validate_arguments(
+      list(
+        year = 2010
+      ),
+      type_object(
+        year = type_integer(
+          min = 2015
+        )
+      )$schema
+    ),
+    "Argument `year` must be at least 2015."
+  )
+})
+
+test_that("validate_arguments() rejects a value over the maximum", {
+  expect_error(
+    validate_arguments(
+      list(
+        share = 1.5
+      ),
+      type_object(
+        share = type_number(
+          max = 1
+        )
+      )$schema
+    ),
+    "Argument `share` must be at most 1."
+  )
+})

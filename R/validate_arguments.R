@@ -17,21 +17,65 @@ validate_arguments <- function(
     "Missing"
   )
   for (name in names(arguments)) {
-    type <- schema$properties[[name]]$type
-    if (
-      !has_type(
-        arguments[[name]],
-        type
-      )
-    ) {
+    problem <- argument_problem(
+      arguments[[name]],
+      schema$properties[[name]]
+    )
+    if (!is.null(problem)) {
       stop(
         "Argument `",
         name,
-        "` must be of type ",
-        type,
+        "` must ",
+        problem,
         "."
       )
     }
+  }
+}
+
+argument_problem <- function(
+  value,
+  property
+) {
+  if (
+    !has_type(
+      value,
+      property$type
+    )
+  ) {
+    return(
+      paste(
+        "be of type",
+        property$type
+      )
+    )
+  }
+  if (!is.null(property$enum) && !value %in% property$enum) {
+    return(
+      paste(
+        "be one of:",
+        paste(
+          property$enum,
+          collapse = ", "
+        )
+      )
+    )
+  }
+  if (!is.null(property$minimum) && value < property$minimum) {
+    return(
+      paste(
+        "be at least",
+        property$minimum
+      )
+    )
+  }
+  if (!is.null(property$maximum) && value > property$maximum) {
+    return(
+      paste(
+        "be at most",
+        property$maximum
+      )
+    )
   }
 }
 
