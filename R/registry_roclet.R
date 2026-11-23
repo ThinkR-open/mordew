@@ -50,6 +50,15 @@ roxy_tag_parse.roxy_tag_mcpIdempotent <- parse_toggle
 #' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpClosedWorld <- parse_toggle
 
+#' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpLimit <- function(
+  x
+) {
+  roxygen2::tag_words_line(
+    x
+  )
+}
+
 #' @exportS3Method roxygen2::roclet_process
 roclet_process.roclet_registry <- function(
   x,
@@ -147,10 +156,60 @@ tool_entry <- function(
   tool$annotations <- tool_annotations(
     block
   )
-  list(
+  entry <- list(
     fun = fun,
     tool = tool,
     returns = returns
+  )
+  entry$limit <- tool_limit(
+    block,
+    fun,
+    returns
+  )
+  entry
+}
+
+tool_limit <- function(
+  block,
+  fun,
+  returns
+) {
+  words <- roxygen2::block_get_tag_value(
+    block,
+    "mcpLimit"
+  )
+  if (is.null(words)) {
+    return(
+      NULL
+    )
+  }
+  if (
+    length(words) != 2 ||
+      words[[1]] != "rows" ||
+      !grepl(
+        "^[1-9][0-9]*$",
+        words[[2]]
+      )
+  ) {
+    stop(
+      "`",
+      fun,
+      "` needs `@mcpLimit rows <n>`, with n a positive integer."
+    )
+  }
+  if (returns != "table") {
+    stop(
+      "`",
+      fun,
+      "` returns ",
+      returns,
+      ": `@mcpLimit rows` needs `@mcpReturns table`."
+    )
+  }
+  list(
+    rows = as.integer(
+      words[[2]]
+    )
   )
 }
 

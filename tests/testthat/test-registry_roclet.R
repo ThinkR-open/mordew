@@ -365,3 +365,102 @@ test_that("a tool without annotation tags sends no annotations", {
       )
   )
 })
+
+test_that("@mcpLimit rows caps the rows of a table tool", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns table
+      #' @mcpLimit rows 500
+      summarise_runs <- function() NULL
+      "
+    )$summarise_runs$limit,
+    list(
+      rows = 500L
+    )
+  )
+})
+
+test_that("a tool without @mcpLimit has no limit", {
+  expect_false(
+    "limit" %in%
+      names(
+        roxygen2::roc_proc_text(
+          registry_roclet(),
+          "
+          #' Summarise runs
+          #'
+          #' Number of runs per year.
+          #' @mcpTool
+          #' @mcpReturns table
+          summarise_runs <- function() NULL
+          "
+        )$summarise_runs
+      )
+  )
+})
+
+test_that("a limit other than rows is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns table
+      #' @mcpLimit seconds 10
+      summarise_runs <- function() NULL
+      "
+    ),
+    "`summarise_runs` needs `@mcpLimit rows <n>`, with n a positive integer."
+  )
+})
+
+test_that("a row limit that is not a positive integer is an error", {
+  for (n in c("0", "many")) {
+    expect_error(
+      roxygen2::roc_proc_text(
+        registry_roclet(),
+        paste0(
+          "
+          #' Summarise runs
+          #'
+          #' Number of runs per year.
+          #' @mcpTool
+          #' @mcpReturns table
+          #' @mcpLimit rows ",
+          n,
+          "
+          summarise_runs <- function() NULL
+          "
+        )
+      ),
+      "`summarise_runs` needs `@mcpLimit rows <n>`, with n a positive integer."
+    )
+  }
+})
+
+test_that("a row limit on a tool that does not return a table is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpLimit rows 500
+      summarise_runs <- function() NULL
+      "
+    ),
+    "`summarise_runs` returns text: `@mcpLimit rows` needs `@mcpReturns table`."
+  )
+})
