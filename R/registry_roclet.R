@@ -75,10 +75,26 @@ tool_entry <- function(
       "` is not a valid tool name: use 1 to 128 characters among A-Z a-z 0-9 _ - ."
     )
   }
+  description <- roxygen2::block_get_tag(
+    block,
+    "description"
+  )$raw
+  if (is.null(description)) {
+    stop(
+      "`",
+      fun,
+      "` has no description: the model reads it to choose the tool."
+    )
+  }
   list(
     fun = fun,
     tool = list(
-      name = name
+      name = name,
+      title = roxygen2::block_get_tag(
+        block,
+        "title"
+      )$raw,
+      description = description
     )
   )
 }
