@@ -12,6 +12,7 @@ Description: An opinionated framework for building Model Context Protocol
     from 'roxygen2' documentation, testing helpers and deployment helpers.
 License: MIT + file LICENSE
 Imports:
+    jsonlite,
     utils
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

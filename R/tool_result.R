@@ -17,8 +17,9 @@ tool_result <- function(
     )
   }
   if (
-    !is.character(
-      value
+    !has_kind(
+      value,
+      returns
     )
   ) {
     return(
@@ -35,8 +36,38 @@ tool_result <- function(
   }
   list(
     content = text_content(
-      value
+      switch(
+        returns,
+        text = value,
+        json = as.character(
+          jsonlite::toJSON(
+            value,
+            auto_unbox = TRUE,
+            digits = NA,
+            na = "null",
+            null = "null"
+          )
+        )
+      )
     )
+  )
+}
+
+has_kind <- function(
+  value,
+  returns
+) {
+  switch(
+    returns,
+    text = is.character(
+      value
+    ),
+    json = is.list(
+      value
+    ) &&
+      !is.data.frame(
+        value
+      )
   )
 }
 
