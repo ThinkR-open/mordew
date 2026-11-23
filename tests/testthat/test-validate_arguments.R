@@ -213,3 +213,64 @@ test_that("validate_arguments() reads the pattern as ECMA-262 does", {
     )
   )
 })
+
+test_that("validate_arguments() checks each item of an array", {
+  expect_error(
+    validate_arguments(
+      list(
+        surfaces = list(
+          "road",
+          12
+        )
+      ),
+      type_object(
+        surfaces = type_array(
+          type_string()
+        )
+      )$schema
+    ),
+    "Argument `surfaces[1]` must be of type string.",
+    fixed = TRUE
+  )
+})
+
+test_that("validate_arguments() checks each field of a nested object", {
+  expect_error(
+    validate_arguments(
+      list(
+        period = list(
+          year = "2023"
+        )
+      ),
+      type_object(
+        period = type_object(
+          year = type_integer()
+        )
+      )$schema
+    ),
+    "Argument `period.year` must be of type integer.",
+    fixed = TRUE
+  )
+})
+
+test_that("validate_arguments() rejects a missing field of a nested object", {
+  expect_error(
+    validate_arguments(
+      list(
+        period = list(
+          month = 4
+        )
+      ),
+      type_object(
+        period = type_object(
+          year = type_integer(),
+          month = type_integer(
+            required = FALSE
+          )
+        )
+      )$schema
+    ),
+    "Missing argument `period.year`.",
+    fixed = TRUE
+  )
+})

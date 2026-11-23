@@ -2,34 +2,100 @@ validate_arguments <- function(
   arguments,
   schema
 ) {
+  check_fields(
+    arguments,
+    schema,
+    NULL
+  )
+}
+
+check_fields <- function(
+  value,
+  schema,
+  path
+) {
   stop_on_first(
     setdiff(
-      names(arguments),
+      names(value),
       names(schema$properties)
     ),
-    "Unknown"
+    "Unknown",
+    path
   )
   stop_on_first(
     setdiff(
       schema$required,
-      names(arguments)
+      names(value)
     ),
-    "Missing"
+    "Missing",
+    path
   )
-  for (name in names(arguments)) {
-    problem <- argument_problem(
-      arguments[[name]],
-      schema$properties[[name]]
+  for (name in names(value)) {
+    check_value(
+      value[[name]],
+      schema$properties[[name]],
+      field_path(
+        path,
+        name
+      )
     )
-    if (!is.null(problem)) {
-      stop(
-        "Argument `",
-        name,
-        "` must ",
-        problem,
-        "."
+  }
+}
+
+field_path <- function(
+  path,
+  name
+) {
+  if (is.null(path)) {
+    return(
+      name
+    )
+  }
+  paste0(
+    path,
+    ".",
+    name
+  )
+}
+
+check_value <- function(
+  value,
+  schema,
+  path
+) {
+  problem <- argument_problem(
+    value,
+    schema
+  )
+  if (!is.null(problem)) {
+    stop(
+      "Argument `",
+      path,
+      "` must ",
+      problem,
+      "."
+    )
+  }
+  if (schema$type == "array") {
+    for (i in seq_along(value)) {
+      check_value(
+        value[[i]],
+        schema$items,
+        paste0(
+          path,
+          "[",
+          i - 1,
+          "]"
+        )
       )
     }
+  }
+  if (schema$type == "object") {
+    check_fields(
+      value,
+      schema,
+      path
+    )
   }
 }
 
@@ -137,13 +203,17 @@ has_type <- function(
 
 stop_on_first <- function(
   offending,
-  problem
+  problem,
+  path
 ) {
   if (length(offending) > 0) {
     stop(
       problem,
       " argument `",
-      offending[[1]],
+      field_path(
+        path,
+        offending[[1]]
+      ),
       "`."
     )
   }
