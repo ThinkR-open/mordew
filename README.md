@@ -780,7 +780,10 @@ reading](#what-mcptools-does-today) and the spike above.
 The client side follows. Contract tests need the raw JSON-RPC response,
 which `mcp_tools()` turns into ellmer objects; over stdio it also waits
 4 seconds at most and does not check response ids. A minimal stdio
-client of our own serves both `call_tool()` and `run_dev()`.
+client of our own serves both `call_tool()` and `run_dev()`: it starts
+the server, opens a 2025-11-25 session, returns the raw response that
+carries each request's id, waits up to a configurable timeout, and
+reports the end of the server's stderr when the server stops.
 
 The cost: following the specification becomes `{mordew}`'s work (see
 [Risks](#risks)), and `add_connect()` loses mcptools' `engine: mcptools`.
@@ -1367,7 +1370,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Argument validation generated from the schema
 - [x] Return-value serialisation (text, table, image, JSON, errors)
 - [x] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
-- [ ] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
+- [x] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [ ] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [ ] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette

@@ -18,6 +18,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
     ggplot2,
+    processx,
     testthat (>= 3.0.0),
     roxygen2,
     withr

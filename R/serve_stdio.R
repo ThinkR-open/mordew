@@ -48,11 +48,8 @@ serve_stdio <- function(
       next
     }
     writeLines(
-      jsonlite::toJSON(
-        response,
-        auto_unbox = TRUE,
-        digits = NA,
-        null = "null"
+      json_line(
+        response
       ),
       output,
       useBytes = TRUE
@@ -73,4 +70,15 @@ stdout_to_stderr <- function(
     sink()
   )
   code
+}
+
+json_line <- function(
+  message
+) {
+  jsonlite::toJSON(
+    message,
+    auto_unbox = TRUE,
+    digits = NA,
+    null = "null"
+  )
 }
