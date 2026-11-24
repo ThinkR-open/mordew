@@ -783,7 +783,10 @@ which `mcp_tools()` turns into ellmer objects; over stdio it also waits
 client of our own serves both `call_tool()` and `run_dev()`: it starts
 the server, opens a 2025-11-25 session, returns the raw response that
 carries each request's id, waits up to a configurable timeout, and
-reports the end of the server's stderr when the server stops.
+reports the end of the server's stderr when the server stops. On
+Windows, writing a request larger than the pipe buffer to a server that
+does not read its stdin blocks until the server reads or exits: the
+timeout only applies to the answer.
 
 The cost: following the specification becomes `{mordew}`'s work (see
 [Risks](#risks)), and `add_connect()` loses mcptools' `engine: mcptools`.

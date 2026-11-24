@@ -231,6 +231,10 @@ test_that("client_request() reports a server that stops while it is sent a reque
 })
 
 test_that("client_request() fails when the server does not read a request in time", {
+  # On Windows, processx's write does not return until the server reads or exits.
+  skip_on_os(
+    "windows"
+  )
   client <- fake_server(
     answer_initialize,
     "Sys.sleep(30)",
