@@ -1392,7 +1392,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
-- [ ] Re-check client restriction options before each release: they change quickly
+- [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
@@ -1405,6 +1405,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Hostile-argument test generator
 - [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
 - [ ] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
+- [ ] Automate the restriction check, later: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
 
 ### Phase 3: production
 
