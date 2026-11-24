@@ -108,7 +108,10 @@ tools_call <- function(
         tool_result(
           do.call(
             entry$fun,
-            arguments,
+            as_r_value(
+              arguments,
+              entry$tool$inputSchema
+            ),
             envir = envir
           ),
           entry$returns,

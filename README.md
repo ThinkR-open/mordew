@@ -378,6 +378,14 @@ ones listed in `required`. Every `type_object()` sets
 `additionalProperties: false`, so fields it does not describe are
 rejected, at every level.
 
+The server validates the arguments against this schema, then converts
+them before calling the function, so a type always reaches the tool as
+the same R type: an `integer` becomes an R integer, a `number` a double,
+an array of scalars a vector of their type (an empty array included, as
+`character(0)` for strings), an object a named list, and an array of
+objects or arrays a list. An integer beyond R's integer range is
+rejected rather than turned into `NA`.
+
 Single-word tags (`@mcpReturns table`, `@mcpReadOnly`) stay words: one
 word from a closed set is not a language.
 

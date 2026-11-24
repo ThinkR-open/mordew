@@ -175,7 +175,11 @@ has_type <- function(
       value ==
         round(
           value
-        ),
+        ) &&
+      abs(
+        value
+      ) <=
+        .Machine$integer.max,
     number = is.numeric(
       value
     ),

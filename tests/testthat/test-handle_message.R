@@ -317,6 +317,65 @@ test_that("handle_message() calls a tool without arguments", {
   )
 })
 
+test_that("handle_message() passes a JSON array to the tool as an R vector", {
+  total_distance <- function(
+    distances
+  ) {
+    as.character(
+      sum(
+        distances
+      )
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          name = "total_distance",
+          arguments = list(
+            distances = list(
+              10.5,
+              21.1
+            )
+          )
+        )
+      ),
+      registry = list(
+        total_distance = list(
+          fun = "total_distance",
+          tool = list(
+            name = "total_distance",
+            description = "Add up distances.",
+            inputSchema = type_object(
+              distances = type_array(
+                type_number()
+              )
+            )$schema
+          ),
+          returns = "text"
+        )
+      ),
+      envir = environment()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      result = list(
+        content = list(
+          list(
+            type = "text",
+            text = "31.6"
+          )
+        )
+      )
+    )
+  )
+})
+
 test_that("handle_message() sends a tool error as an isError result", {
   summarise_runs <- function(
     surface

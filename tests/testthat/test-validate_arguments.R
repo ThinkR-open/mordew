@@ -274,3 +274,17 @@ test_that("validate_arguments() rejects a missing field of a nested object", {
     fixed = TRUE
   )
 })
+
+test_that("validate_arguments() rejects an integer beyond the R integer range", {
+  expect_error(
+    validate_arguments(
+      list(
+        steps = 3e9
+      ),
+      type_object(
+        steps = type_integer()
+      )$schema
+    ),
+    "Argument `steps` must be of type integer."
+  )
+})
