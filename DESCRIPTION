@@ -17,6 +17,7 @@ Imports:
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
+    ellmer,
     ggplot2,
     pkgload,
     processx,

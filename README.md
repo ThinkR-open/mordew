@@ -897,13 +897,14 @@ mordew::run_dev(
 )
 ```
 
-In both cases, `run_dev()` first writes a temporary MCP configuration
-whose stdio server starts the development version of the package
-(`Rscript --no-init-file -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`). Then:
+In both cases, the stdio server runs the development version of the
+package (`Rscript --no-init-file -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`);
+with `client = "claude"`, `run_dev()` first writes a temporary MCP
+configuration that starts it. Then:
 
 |                             | `client = "ellmer"`                                                                 | `client = "claude"`                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Connects to the server with | `{mordew}`'s stdio client, whose tools become ellmer tools, then `chat$set_tools()` | `--mcp-config` pointing to the temporary configuration                                           |
+| Connects to the server with | `{mordew}`'s stdio client, whose tools become ellmer tools, then `chat$set_tools()`; the server's instructions join the chat's system prompt | `--mcp-config` pointing to the temporary configuration                                           |
 | Opens                       | `ellmer::live_console()`, or `ellmer::live_browser()` with `ui = "browser"`         | a Claude Code session in the IDE terminal (RStudio, Positron), or prints the command to paste    |
 | Model and billing           | any ellmer provider or a local model; API key in the environment, billed per token  | the user's Claude Code login, for example a Claude subscription                                  |
 | Other tools available       | none: ellmer only sends the server's tools                                          | none: the session is [restricted to the server](#a-claude-code-session-restricted-to-the-server) |
@@ -930,7 +931,9 @@ Anthropic's terms.
 The tools go through MCP, exactly as they will for any other client:
 same schema, same validation, same serialisation. Each tool call is
 shown with its arguments, so it is clear at once whether the model picks
-the right tool.
+the right tool. One exception with ellmer 0.3.2: it sends tool results to
+the model as text, so an `image` tool reaches the model as a line saying
+an image was returned.
 
 Things to keep in mind:
 
@@ -1383,7 +1386,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Return-value serialisation (text, table, image, JSON, errors)
 - [x] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
 - [x] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
-- [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
+- [x] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [ ] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [ ] Re-check client restriction options before each release: they change quickly

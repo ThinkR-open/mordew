@@ -42,3 +42,22 @@ test_that("server_identity() reads the identity of an installed package", {
     )
   )
 })
+
+test_that("server_identity() refuses a package without instructions", {
+  path <- local_dev_package()
+  unlink(
+    file.path(
+      path,
+      "inst",
+      "mordew",
+      "instructions.md"
+    )
+  )
+
+  expect_error(
+    server_identity(
+      "runlog"
+    ),
+    "`runlog` has no inst/mordew/instructions.md."
+  )
+})

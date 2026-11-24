@@ -27,79 +27,22 @@ call_tool <- function(
     transport,
     "stdio"
   )
-  client <- stdio_client(
-    file.path(
-      R.home(
-        "bin"
-      ),
-      "Rscript"
-    ),
-    server_args(
-      package
-    ),
-    timeout
+  client <- start_server(
+    package,
+    timeout = timeout
   )
   on.exit(
     client_stop(
       client
     )
   )
-  response <- client_request(
+  result <- request_tool(
     client,
-    "tools/call",
-    list(
-      name = tool,
-      arguments = if (length(args) == 0) empty_object() else args
-    )
+    tool,
+    args
   )
-  if (!is.null(response$error)) {
-    stop(
-      response$error$message,
-      call. = FALSE
-    )
-  }
-  response$result$isError <- isTRUE(
-    response$result$isError
+  result$isError <- isTRUE(
+    result$isError
   )
-  response$result
-}
-
-server_args <- function(
-  package
-) {
-  path <- find.package(
-    package
-  )
-  c(
-    "--no-init-file",
-    "-e",
-    paste0(
-      ".libPaths(",
-      paste(
-        deparse(
-          .libPaths()
-        ),
-        collapse = ""
-      ),
-      "); ",
-      if (
-        !dir.exists(
-          file.path(
-            path,
-            "Meta"
-          )
-        )
-      ) {
-        paste0(
-          "pkgload::load_all(",
-          deparse(
-            path
-          ),
-          ", quiet = TRUE); "
-        )
-      },
-      package,
-      "::run_mcp_server()"
-    )
-  )
+  result
 }
