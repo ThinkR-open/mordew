@@ -8,6 +8,9 @@ fake_server <- function(
   timeout = 10,
   env = parent.frame()
 ) {
+  skip_if_not_installed(
+    "processx"
+  )
   script <- withr::local_tempfile(
     fileext = ".R",
     .local_envir = env
@@ -87,6 +90,10 @@ test_that("stdio_client() opens an MCP 2025-11-25 session", {
     simplifyVector = FALSE
   )
 
+  expect_equal(
+    client$server$serverInfo$name,
+    "fake"
+  )
   expect_equal(
     messages[[1]]$method,
     "initialize"

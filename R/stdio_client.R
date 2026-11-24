@@ -50,6 +50,7 @@ stdio_client <- function(
       )
     )
   }
+  client$server <- response$result
   client_send(
     client,
     list(

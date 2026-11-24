@@ -73,6 +73,9 @@ test_that("run_mcp_server() serves the tools of an installed package", {
 
 test_that("a generated package serves its tools to a client over stdio", {
   skip_on_cran()
+  skip_if_not_installed(
+    "processx"
+  )
   path <- file.path(
     tempfile(),
     "runlog"
@@ -123,68 +126,53 @@ test_that("a generated package serves its tools to a client over stdio", {
   local_install(
     path
   )
-  requests <- withr::local_tempfile(
-    lines = c(
-      '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}',
-      '{"jsonrpc":"2.0","method":"notifications/initialized"}',
-      '{"jsonrpc":"2.0","id":2,"method":"tools/list"}',
-      '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"echo","arguments":{"text":"trail"}}}'
-    )
-  )
   withr::local_envvar(
     R_LIBS = paste(
       .libPaths(),
       collapse = .Platform$path.sep
     )
   )
-
-  responses <- lapply(
-    system2(
-      file.path(
-        R.home(
-          "bin"
-        ),
-        "Rscript"
+  client <- stdio_client(
+    file.path(
+      R.home(
+        "bin"
       ),
-      c(
-        "--no-init-file",
-        "-e",
-        shQuote(
-          "runlog::run_mcp_server()"
-        )
-      ),
-      stdin = requests,
-      stdout = TRUE,
-      stderr = FALSE,
-      timeout = 60
-    ),
-    jsonlite::fromJSON,
-    simplifyVector = FALSE
-  )
-
-  expect_equal(
-    vapply(
-      responses,
-      `[[`,
-      numeric(1),
-      "id"
+      "Rscript"
     ),
     c(
-      1,
-      2,
-      3
+      "--no-init-file",
+      "-e",
+      "runlog::run_mcp_server()"
     )
   )
+  withr::defer(
+    client_stop(
+      client
+    )
+  )
+
   expect_equal(
-    responses[[1]]$result$serverInfo$name,
+    client$server$serverInfo$name,
     "runlog"
   )
   expect_equal(
-    responses[[2]]$result$tools[[1]]$name,
+    client_request(
+      client,
+      "tools/list"
+    )$result$tools[[1]]$name,
     "echo"
   )
   expect_equal(
-    responses[[3]]$result$content[[1]]$text,
+    client_request(
+      client,
+      "tools/call",
+      list(
+        name = "echo",
+        arguments = list(
+          text = "trail"
+        )
+      )
+    )$result$content[[1]]$text,
     "trail"
   )
 })
