@@ -170,6 +170,68 @@ test_that("handle_message() answers an unknown tool with a JSON-RPC error", {
   )
 })
 
+test_that("handle_message() answers a tool call without a name as invalid params", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          arguments = list()
+        )
+      ),
+      registry = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a tool call with a non-string name as invalid params", {
+  summarise_runs <- function(
+    surface
+  ) {
+    paste0(
+      "12 runs on ",
+      surface,
+      "."
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          name = 1,
+          arguments = list(
+            surface = "trail"
+          )
+        )
+      ),
+      registry = summarise_runs_registry(),
+      envir = environment()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
 test_that("handle_message() calls a tool and sends its result", {
   summarise_runs <- function(
     surface
@@ -205,6 +267,49 @@ test_that("handle_message() calls a tool and sends its result", {
           list(
             type = "text",
             text = "12 runs on trail."
+          )
+        )
+      )
+    )
+  )
+})
+
+test_that("handle_message() calls a tool without arguments", {
+  count_runs <- function() {
+    "42 runs."
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          name = "count_runs"
+        )
+      ),
+      registry = list(
+        count_runs = list(
+          fun = "count_runs",
+          tool = list(
+            name = "count_runs",
+            description = "Count all runs.",
+            inputSchema = type_object()$schema
+          ),
+          returns = "text"
+        )
+      ),
+      envir = environment()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      result = list(
+        content = list(
+          list(
+            type = "text",
+            text = "42 runs."
           )
         )
       )
@@ -394,6 +499,75 @@ test_that("handle_message() sends a table within the tool row limit", {
         )
       )
     )
+  )
+})
+
+test_that("handle_message() answers a request without a method as invalid", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32600,
+        message = "Invalid Request"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a request with a non-string method as invalid", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = 1
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32600,
+        message = "Invalid Request"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a message that is not a JSON object as invalid", {
+  invalid <- list(
+    jsonrpc = "2.0",
+    id = NULL,
+    error = list(
+      code = -32600,
+      message = "Invalid Request"
+    )
+  )
+
+  expect_equal(
+    handle_message(
+      1
+    ),
+    invalid
+  )
+  expect_equal(
+    handle_message(
+      list(
+        list(
+          jsonrpc = "2.0",
+          id = 1,
+          method = "ping"
+        )
+      )
+    ),
+    invalid
   )
 })
 

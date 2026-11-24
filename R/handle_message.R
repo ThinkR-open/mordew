@@ -1,19 +1,30 @@
 handle_message <- function(
   message,
-  identity,
+  server,
   registry,
   envir
 ) {
+  if (!is.list(message) || is.null(names(message))) {
+    return(
+      invalid_request(
+        NULL
+      )
+    )
+  }
   if (is.null(message$id)) {
     return(
       NULL
     )
   }
-  c(
-    list(
-      jsonrpc = "2.0",
-      id = message$id
-    ),
+  if (!is.character(message$method)) {
+    return(
+      invalid_request(
+        message$id
+      )
+    )
+  }
+  rpc_response(
+    message$id,
     switch(
       message$method,
       initialize = list(
@@ -22,11 +33,11 @@ handle_message <- function(
           capabilities = list(
             tools = empty_object()
           ),
-          serverInfo = identity[c(
+          serverInfo = server[c(
             "name",
             "version"
           )],
-          instructions = identity$instructions
+          instructions = server$instructions
         )
       ),
       ping = list(
@@ -64,6 +75,14 @@ tools_call <- function(
   registry,
   envir
 ) {
+  if (!is.character(params$name)) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid params"
+      )
+    )
+  }
   entry <- registry[[params$name]]
   if (is.null(entry)) {
     return(
@@ -76,17 +95,20 @@ tools_call <- function(
       )
     )
   }
+  arguments <- as.list(
+    params$arguments
+  )
   list(
     result = tryCatch(
       {
         validate_arguments(
-          params$arguments,
+          arguments,
           entry$tool$inputSchema
         )
         tool_result(
           do.call(
             entry$fun,
-            params$arguments,
+            arguments,
             envir = envir
           ),
           entry$returns,
@@ -109,6 +131,31 @@ empty_object <- function() {
   structure(
     list(),
     names = character()
+  )
+}
+
+rpc_response <- function(
+  id,
+  body
+) {
+  c(
+    list(
+      jsonrpc = "2.0",
+      id = id
+    ),
+    body
+  )
+}
+
+invalid_request <- function(
+  id
+) {
+  rpc_response(
+    id,
+    rpc_error(
+      -32600,
+      "Invalid Request"
+    )
   )
 }
 
