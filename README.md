@@ -1199,6 +1199,53 @@ deployments.
 - Every call stays in the audit log with its queue time, run time and
   status.
 
+### Spike: an asynchronous HTTP front
+
+To validate architecture B early, `dev/spike_http/server.R` runs an
+httpuv front that answers `initialize`, `ping` and `tools/list` itself
+and hands each `tools/call` to a pool of mirai daemons (with dispatcher),
+returning a promise. The worker runs `{mordew}`'s own `handle_message()`,
+unchanged. Measured on 2026-11-24 (macOS, mirai 2.5.1, httpuv 1.6.16)
+with a tool that sleeps 2 seconds, a 3-second timeout and at most 8 calls
+in flight (`sh dev/spike_http/run.sh`, log in `dev/spike_http/spike.log`):
+
+| Scenario                                   | Synchronous front (tools run in the front) | 4 workers                                                    |
+| ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------ |
+| 4 calls at once                            | answered at 2, 4, 6 and 8 s                | all answered at 2.1 s                                        |
+| A `ping` sent while they run               | answered at 8.3 s, after all of them       | answered before any tool finished                            |
+| 12 calls at once                           | not run                                    | 4 "busy, retry later" results within 0.03 s                  |
+| 1 worker: a 10-second call, then a short one | not run                                  | timeout result at 3.0 s; the next call ran at once (0.19 s) |
+
+What the spike shows:
+
+- **The protocol layer fits as it is.** `handle_message()` takes a
+  message and returns a response, both serialisable: the front only
+  routes `tools/call` to a worker.
+- **mirai's `.timeout` counts the time spent in the queue.** With 8
+  calls on 4 workers, calls 5 to 8 waited 2 seconds for a worker, then
+  were cancelled after 1 second of work. The per-call limit must start
+  when the worker starts the call (for instance with `setTimeLimit()` in
+  the worker), and the queue needs a bound of its own: the in-flight
+  limit.
+- **Cancellation is best effort.** mirai interrupts the worker: with one
+  worker, a 10-second `Sys.sleep()` stopped at once and the next call
+  ran. But after four cancellations at the same moment, one task kept
+  its worker until its natural end (`executing` stayed above 0 in
+  `mirai::info()`), and the next calls queued behind it. mirai's
+  documentation adds that compiled code is not always interruptible. A
+  guaranteed stop means killing and replacing the worker process.
+- **The workers must be ready before the front serves.** `everywhere()`
+  returns at once; waiting on it (`[]`) keeps the first calls from
+  queueing behind the workers' start-up.
+- **Load tests need care.** curl's multi interface multiplexes by
+  default and holds requests until its first connection is up, which
+  looks like a slow server; the load script turns multiplexing off.
+
+Not covered by the spike: Streamable HTTP beyond a JSON response
+(sessions, SSE, `MCP-Protocol-Version` and `Origin` checks),
+authentication, progress and cancellation notifications, a real MCP
+client over HTTP, and memory per worker.
+
 ### Tasks: long-running calls
 
 Some R computations take minutes: fitting a model on a season of runs,
@@ -1393,7 +1440,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
-- [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
+- [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop

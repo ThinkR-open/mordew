@@ -1,0 +1,124 @@
+== 0 workers, four
+  request seconds answer
+1  call_1    2.05 call 1
+2  call_2    4.29 call 2
+3  call_3    6.30 call 3
+4  call_4    8.31 call 4
+5    ping    8.31   pong
+-- server log, 0 workers
+14:19:17.820 spike server on port 8100 with 0 workers 
+14:19:18.044 received ping 0 
+14:19:18.255 received tools/call 1 
+14:19:20.292 received tools/call 2 
+14:19:22.513 received tools/call 3 
+14:19:24.548 received tools/call 4 
+14:19:26.551 received ping 100 
+dev/spike_http/run.sh: line 4: 59826 Terminated: 15          Rscript --no-init-file dev/spike_http/server.R "$workers" "$port" 2> "/tmp/spike_http_$port.log"
+== 4 workers, four
+  request seconds answer
+1    ping    0.64   pong
+2  call_2    2.13 call 2
+3  call_3    2.14 call 3
+4  call_4    2.14 call 4
+5  call_1    2.14 call 1
+== 4 workers, eight
+  request seconds                                    answer
+1    ping    0.15                                      pong
+2  call_2    2.19                                    call 2
+3  call_3    2.19                                    call 3
+4  call_4    2.19                                    call 4
+5  call_5    2.19                                    call 5
+6  call_6    3.02 The tool did not finish within 3 seconds.
+7  call_7    3.03 The tool did not finish within 3 seconds.
+8  call_8    3.03 The tool did not finish within 3 seconds.
+9  call_1    3.04 The tool did not finish within 3 seconds.
+== 4 workers, twelve
+   request seconds                                    answer
+1   call_9    0.03          The server is busy: retry later.
+2  call_10    0.03          The server is busy: retry later.
+3  call_11    0.03          The server is busy: retry later.
+4  call_12    0.03          The server is busy: retry later.
+5     ping    0.94                                      pong
+6   call_1    2.03                                    call 1
+7   call_2    2.03                                    call 2
+8   call_3    2.03                                    call 3
+9   call_4    2.03                                    call 4
+10  call_5    3.04 The tool did not finish within 3 seconds.
+11  call_6    3.04 The tool did not finish within 3 seconds.
+12  call_7    3.04 The tool did not finish within 3 seconds.
+13  call_8    3.04 The tool did not finish within 3 seconds.
+-- server log, 4 workers
+14:19:27.918 spike server on port 8101 with 4 workers 
+14:19:28.284 received ping 0 
+14:19:28.495 received tools/call 1 
+14:19:28.507 received tools/call 2 
+14:19:28.508 received tools/call 3 
+14:19:28.510 received tools/call 4 
+14:19:29.011 received ping 100 
+14:19:30.601 tools/call 4 worker 60117 queued 0.01 s, ran 2.09 s 
+14:19:30.604 tools/call 2 worker 60109 queued 0 s, ran 2.1 s 
+14:19:30.605 tools/call 3 worker 60111 queued 0 s, ran 2.1 s 
+14:19:30.605 tools/call 1 worker 60107 queued 0 s, ran 2.1 s 
+14:19:30.857 received tools/call 2 
+14:19:30.862 received tools/call 3 
+14:19:30.863 received tools/call 4 
+14:19:30.865 received tools/call 5 
+14:19:30.868 received tools/call 6 
+14:19:30.869 received tools/call 7 
+14:19:30.877 received tools/call 8 
+14:19:30.880 received tools/call 1 
+14:19:31.001 received ping 100 
+14:19:33.011 tools/call 2 worker 60107 queued 0 s, ran 2.15 s 
+14:19:33.022 tools/call 3 worker 60109 queued 0 s, ran 2.16 s 
+14:19:33.025 tools/call 4 worker 60111 queued 0 s, ran 2.16 s 
+14:19:33.033 tools/call 5 worker 60117 queued 0 s, ran 2.17 s 
+14:19:33.870 tools/call 6 5 | Timed out after 3 s 
+14:19:33.871 pool: connections 4, cumulative 4, awaiting 0, executing 3, completed 14 
+14:19:33.875 tools/call 7 5 | Timed out after 3.01 s 
+14:19:33.875 pool: connections 4, cumulative 4, awaiting 0, executing 3, completed 14 
+14:19:33.878 tools/call 8 5 | Timed out after 3 s 
+14:19:33.879 pool: connections 4, cumulative 4, awaiting 0, executing 2, completed 15 
+14:19:33.885 tools/call 1 5 | Timed out after 3 s 
+14:19:33.886 pool: connections 4, cumulative 4, awaiting 0, executing 1, completed 16 
+14:19:34.081 received tools/call 1 
+14:19:34.086 received tools/call 2 
+14:19:34.087 received tools/call 3 
+14:19:34.088 received tools/call 4 
+14:19:34.090 received tools/call 5 
+14:19:34.091 received tools/call 6 
+14:19:34.096 received tools/call 7 
+14:19:34.098 received tools/call 8 
+14:19:34.099 received tools/call 9 
+14:19:34.099 tools/call 9 refused: busy 
+14:19:34.100 received tools/call 10 
+14:19:34.100 tools/call 10 refused: busy 
+14:19:34.101 received tools/call 11 
+14:19:34.101 tools/call 11 refused: busy 
+14:19:34.102 received tools/call 12 
+14:19:34.102 tools/call 12 refused: busy 
+14:19:35.007 received ping 100 
+14:19:36.093 tools/call 1 worker 60107 queued 0 s, ran 2.01 s 
+14:19:36.095 tools/call 3 worker 60111 queued 0 s, ran 2.01 s 
+14:19:36.096 tools/call 2 worker 60109 queued 0 s, ran 2.01 s 
+14:19:36.099 tools/call 4 worker 60117 queued 0 s, ran 2.01 s 
+14:19:37.092 tools/call 5 5 | Timed out after 3 s 
+14:19:37.092 pool: connections 4, cumulative 4, awaiting 0, executing 3, completed 22 
+14:19:37.097 tools/call 6 5 | Timed out after 3.01 s 
+14:19:37.098 pool: connections 4, cumulative 4, awaiting 0, executing 2, completed 23 
+14:19:37.107 tools/call 7 5 | Timed out after 3.01 s 
+14:19:37.108 pool: connections 4, cumulative 4, awaiting 0, executing 1, completed 24 
+14:19:37.109 tools/call 8 5 | Timed out after 3.01 s 
+14:19:37.109 pool: connections 4, cumulative 4, awaiting 0, executing 1, completed 24 
+dev/spike_http/run.sh: line 4: 60045 Terminated: 15          Rscript --no-init-file dev/spike_http/server.R "$workers" "$port" 2> "/tmp/spike_http_$port.log"
+== 1 workers, timeout
+    request seconds                                    answer
+1  call_10s    3.04 The tool did not finish within 3 seconds.
+2 call_0.1s    0.19                                    call 2
+-- server log, 1 workers
+14:19:38.169 spike server on port 8102 with 1 workers 
+14:19:38.513 received ping 0 
+14:19:38.773 received tools/call 1 
+14:19:41.794 tools/call 1 5 | Timed out after 3.01 s 
+14:19:41.796 pool: connections 1, cumulative 1, awaiting 0, executing 0, completed 3 
+14:19:41.831 received tools/call 2 
+14:19:42.002 tools/call 2 worker 60450 queued 0 s, ran 0.17 s 
