@@ -623,6 +623,12 @@ stops the worker running the call, then recycles it.
   the instrumentation already present in ellmer and mcplite, and joining
   the client's trace through the `traceparent` field of `_meta`. MCP's
   own logging is deprecated: logs go to stderr and OpenTelemetry.
+- **Malformed input never stops the server.** A line that is not JSON
+  gets a -32700 error, a message that is not a request object or has no
+  string `method` gets -32600, and a tool call without a string `name`
+  gets -32602; the server then reads the next line. Messages are read
+  and written as UTF-8 whatever the locale, as the specification
+  requires, and numbers are written without rounding.
 
 ### What mcptools does today
 
@@ -917,9 +923,10 @@ Things to keep in mind:
 - The server runs in its own process: changing a tool means restarting
   `run_dev()`.
 - In stdio mode, nothing but protocol messages may reach stdout:
-  `Rscript` runs with `--no-init-file` (a user `.Rprofile` may print),
-  package loading must stay quiet, and tools must not `cat()` or
-  `print()`.
+  `Rscript` runs with `--no-init-file` (a user `.Rprofile` may print)
+  and package loading must stay quiet. While it handles a request, the
+  server diverts stdout to stderr, so a `cat()` or `print()` left in a
+  tool lands in the logs instead of the stream.
 - `run_dev()` is a manual version of the level 3 tests: evals automate
   the same loop over a set of questions.
 
@@ -1301,9 +1308,10 @@ architecture locally before deploying it.
   secret store, never baked into the image.
 - **Configuration** through environment variables that override
   `inst/mordew/config.yml`.
-- **stdout is reserved for the protocol in stdio mode.** Any `cat()`,
-  `print()` or message written to stdout by a tool corrupts the JSON-RPC
-  stream; logs go to stderr or to a file.
+- **stdout is reserved for the protocol in stdio mode.** The server
+  diverts what a tool prints to stderr, but anything written to stdout
+  before it starts (a `.Rprofile`, a noisy `.onLoad()`) corrupts the
+  JSON-RPC stream; logs go to stderr or to a file.
 - **Pinned versions**: R version, `renv.lock`, base image digest.
 - **Resource limits** (CPU, memory) per container, sized to the worker
   pool.
@@ -1350,7 +1358,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Write the roclet that generates `R/mordew_registry.R`
 - [x] Argument validation generated from the schema
 - [x] Return-value serialisation (text, table, image, JSON, errors)
-- [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
+- [x] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
 - [ ] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [ ] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`

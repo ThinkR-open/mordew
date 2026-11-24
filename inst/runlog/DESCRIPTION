@@ -6,6 +6,8 @@ Description: What the server does (one paragraph).
 License: What license is it under?
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("collate", "namespace", "rd", "mordew::registry_roclet"))
+Imports:
+    mordew
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

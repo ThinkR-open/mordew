@@ -35,11 +35,13 @@ serve_stdio <- function(
         )
       )
     } else {
-      handle_message(
-        message,
-        server,
-        registry,
-        envir
+      stdout_to_stderr(
+        handle_message(
+          message,
+          server,
+          registry,
+          envir
+        )
       )
     }
     if (is.null(response)) {
@@ -59,4 +61,16 @@ serve_stdio <- function(
       output
     )
   }
+}
+
+stdout_to_stderr <- function(
+  code
+) {
+  sink(
+    stderr()
+  )
+  on.exit(
+    sink()
+  )
+  code
 }

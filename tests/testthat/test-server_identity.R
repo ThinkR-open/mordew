@@ -18,20 +18,8 @@ test_that("server_identity() reads the identity of an installed package", {
       "instructions.md"
     )
   )
-  lib <- tempfile()
-  dir.create(
-    lib
-  )
-  utils::install.packages(
-    path,
-    repos = NULL,
-    type = "source",
-    lib = lib,
-    quiet = TRUE
-  )
-  withr::local_libpaths(
-    lib,
-    action = "prefix"
+  local_install(
+    path
   )
 
   expect_equal(

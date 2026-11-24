@@ -229,3 +229,53 @@ test_that("serve_stdio() keeps UTF-8 text intact in a C locale", {
     )
   )
 })
+
+test_that("serve_stdio() sends what a tool prints to stderr", {
+  chatty <- function() {
+    print(
+      "debug"
+    )
+    "done"
+  }
+  input <- withr::local_connection(
+    textConnection(
+      '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"chatty"}}'
+    )
+  )
+  path <- withr::local_tempfile()
+  output <- withr::local_connection(
+    file(
+      path,
+      "w"
+    )
+  )
+
+  expect_equal(
+    capture.output(
+      serve_stdio(
+        input,
+        output,
+        registry = list(
+          chatty = list(
+            fun = "chatty",
+            tool = list(
+              name = "chatty",
+              description = "Print, then answer.",
+              inputSchema = type_object()$schema
+            ),
+            returns = "text"
+          )
+        ),
+        envir = environment()
+      ),
+      type = "message"
+    ),
+    '[1] "debug"'
+  )
+  expect_equal(
+    readLines(
+      path
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"done"}]}}'
+  )
+})
