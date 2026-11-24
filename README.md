@@ -326,7 +326,7 @@ tag name at `_`, `.` or `-`.
 | `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
 | `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
 | `@mcpClosedWorld`                 | `openWorldHint: false`: the tool does not reach external entities.                                                                                                         |
-| `@mcpLimit rows <n>`              | Maximum number of rows a `table` returns, and an error on any other kind; the default is set with serialisation. A `seconds` limit comes with the timeouts (phase 3).      |
+| `@mcpLimit rows <n>`              | Maximum number of rows a `table` returns, and an error on any other kind; the default is 50. A `seconds` limit comes with the timeouts (phase 3).                          |
 | `@mcpConfirm <message>`           | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments. |
 | `@mcpElicit <param>`              | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                                      |
 | `@mcpResource <uri>`              | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                                                |
@@ -454,8 +454,8 @@ Two caveats:
 | R value                   | Sent to the model as                                                         |
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `character`               | text content                                                                 |
-| `data.frame`              | markdown table, truncated to `max_rows`, with dimensions and a short summary |
-| `ggplot` or recorded plot | PNG image content                                                            |
+| `data.frame`              | markdown table with dimensions, truncated to `max_rows` (default 50)         |
+| `ggplot` or recorded plot | PNG image content, 800×600 at 96 dpi                                         |
 | `list`                    | JSON                                                                         |
 | condition (error)         | an `isError` result with a message the model can act on                      |
 | very large outputs        | to explore: an MCP resource instead of inline content                        |
