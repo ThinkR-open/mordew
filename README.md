@@ -463,6 +463,10 @@ Two caveats:
 A value that does not match the tool's `@mcpReturns` comes back as an
 `isError` result naming the declared kind and the received one.
 
+The server catches errors along the whole call: argument validation, the
+tool itself, then serialisation, since a ggplot only fails when printed.
+Each one comes back as an `isError` result.
+
 When a tool declares an output schema (`@mcpOutput`), `{mordew}` also sends
 the value as `structuredContent`, validated against that schema, next to
 the text version.
@@ -1345,7 +1349,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Specify the tool tags (`@mcpTool`, `@mcpType` with R-expression content, `@mcpReturns`, annotations, limits)
 - [x] Write the roclet that generates `R/mordew_registry.R`
 - [x] Argument validation generated from the schema
-- [ ] Return-value serialisation (text, table, image, JSON, errors)
+- [x] Return-value serialisation (text, table, image, JSON, errors)
 - [ ] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
 - [ ] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP

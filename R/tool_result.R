@@ -36,11 +36,13 @@ tool_result <- function(
     )
   }
   list(
-    content = text_content(
-      switch(
-        returns,
-        text = value,
-        json = as.character(
+    content = switch(
+      returns,
+      text = text_content(
+        value
+      ),
+      json = text_content(
+        as.character(
           jsonlite::toJSON(
             value,
             auto_unbox = TRUE,
@@ -48,14 +50,80 @@ tool_result <- function(
             na = "null",
             null = "null"
           )
-        ),
-        table = table_text(
+        )
+      ),
+      table = text_content(
+        table_text(
           value,
           rows
         )
+      ),
+      image = image_content(
+        value
       )
     )
   )
+}
+
+image_content <- function(
+  plot
+) {
+  file <- tempfile(
+    fileext = ".png"
+  )
+  on.exit(
+    unlink(
+      file
+    )
+  )
+  render_png(
+    plot,
+    file
+  )
+  list(
+    list(
+      type = "image",
+      data = jsonlite::base64_enc(
+        readBin(
+          file,
+          "raw",
+          file.size(
+            file
+          )
+        )
+      ),
+      mimeType = "image/png"
+    )
+  )
+}
+
+render_png <- function(
+  plot,
+  file
+) {
+  grDevices::png(
+    file,
+    width = 800,
+    height = 600,
+    res = 96
+  )
+  on.exit(
+    grDevices::dev.off()
+  )
+  if (
+    inherits(
+      plot,
+      "ggplot"
+    )
+  ) {
+    print(
+      plot
+    )
+  } else {
+    grDevices::replayPlot(
+      plot
+    )
+  }
 }
 
 table_text <- function(
@@ -154,6 +222,13 @@ has_kind <- function(
       ),
     table = is.data.frame(
       value
+    ),
+    image = inherits(
+      value,
+      c(
+        "ggplot",
+        "recordedplot"
+      )
     )
   )
 }

@@ -171,3 +171,93 @@ test_that("tool_result() escapes pipes in table cells", {
     )
   )
 })
+
+test_that("tool_result() sends a recorded plot as an 800x600 PNG at 96 dpi", {
+  grDevices::pdf(
+    NULL
+  )
+  grDevices::dev.control(
+    "enable"
+  )
+  graphics::plot(
+    1:3
+  )
+  plot <- grDevices::recordPlot()
+  grDevices::dev.off()
+  expect_equal(
+    tool_result(
+      plot,
+      "image"
+    )$content,
+    list(
+      list(
+        type = "image",
+        data = reference_png(
+          function() {
+            grDevices::replayPlot(
+              plot
+            )
+          }
+        ),
+        mimeType = "image/png"
+      )
+    )
+  )
+})
+
+test_that("tool_result() sends a ggplot as an 800x600 PNG at 96 dpi", {
+  skip_if_not_installed(
+    "ggplot2"
+  )
+  plot <- ggplot2::ggplot(
+    data.frame(
+      x = 1:3,
+      y = 1:3
+    ),
+    ggplot2::aes(
+      x,
+      y
+    )
+  ) +
+    ggplot2::geom_point()
+  expect_equal(
+    tool_result(
+      plot,
+      "image"
+    )$content[[1]]$data,
+    reference_png(
+      function() {
+        print(
+          plot
+        )
+      }
+    )
+  )
+})
+
+test_that("tool_result() closes the PNG device when a plot fails", {
+  skip_if_not_installed(
+    "ggplot2"
+  )
+  devices <- grDevices::dev.list()
+  plot <- ggplot2::ggplot(
+    data.frame(
+      x = 1:3
+    ),
+    ggplot2::aes(
+      x,
+      missing_column
+    )
+  ) +
+    ggplot2::geom_point()
+  expect_error(
+    tool_result(
+      plot,
+      "image"
+    )
+  )
+  expect_equal(
+    grDevices::dev.list(),
+    devices
+  )
+})
