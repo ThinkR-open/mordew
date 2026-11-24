@@ -60,11 +60,14 @@ test_that("mcp_client_config() writes a Claude Code session restricted to the se
       "Start a Claude Code session restricted to the server:",
       paste(
         'claude --tools "" --strict-mcp-config --mcp-config runlog.json',
-        '--allowedTools "mcp__runlog__*" --disable-slash-commands'
+        '--no-chrome --disallowedTools "mcp__ide"',
+        '--allowedTools "mcp__runlog__*" --permission-mode dontAsk',
+        "--disable-slash-commands"
       ),
       "",
       paste(
-        "The session has no built-in tools, skills or other MCP servers.",
+        "The session has no skills, no other MCP servers and no built-in",
+        "tools apart from EndConversation, which only ends the conversation.",
         "Claude Code refuses --strict-mcp-config when an organisation",
         "deploys a managed-mcp.json."
       )

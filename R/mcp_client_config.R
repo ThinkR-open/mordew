@@ -61,13 +61,14 @@ mcp_client_config <- function(
         paste0(
           'claude --tools "" --strict-mcp-config --mcp-config ',
           package,
-          '.json --allowedTools "mcp__',
+          '.json --no-chrome --disallowedTools "mcp__ide" --allowedTools "mcp__',
           package,
-          '__*" --disable-slash-commands'
+          '__*" --permission-mode dontAsk --disable-slash-commands'
         ),
         "",
         paste(
-          "The session has no built-in tools, skills or other MCP servers.",
+          "The session has no skills, no other MCP servers and no built-in",
+          "tools apart from EndConversation, which only ends the conversation.",
           "Claude Code refuses --strict-mcp-config when an organisation",
           "deploys a managed-mcp.json."
         )

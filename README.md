@@ -826,7 +826,7 @@ not find `Rscript` on its `PATH`.
 
 ### A Claude Code session restricted to the server
 
-Claude Code has no `--mcp-only` flag, but four flags give the same result,
+Claude Code has no `--mcp-only` flag, but a few flags give the same result,
 and this time it is enforced, not just requested:
 
 ```bash
@@ -834,7 +834,10 @@ claude \
   --tools "" \
   --strict-mcp-config \
   --mcp-config ./runlog.json \
-  --allowedTools "mcp__runlog__*"
+  --no-chrome \
+  --disallowedTools "mcp__ide" \
+  --allowedTools "mcp__runlog__*" \
+  --permission-mode dontAsk
 ```
 
 where `runlog.json` holds the Claude Desktop snippet above.
@@ -844,11 +847,15 @@ where `runlog.json` holds the Claude Desktop snippet above.
 | `--tools ""`                      | Removes every built-in tool (Bash, Read, Edit, web access…). MCP tools are not affected.                           |
 | `--strict-mcp-config`             | Loads only the servers passed with `--mcp-config`, ignoring `.mcp.json`, user configuration and other MCP sources. |
 | `--mcp-config ./runlog.json`      | Loads the `{mordew}` server.                                                                                       |
+| `--no-chrome`                     | Turns off Claude in Chrome, whose browser tools (`javascript_tool`…) `--strict-mcp-config` keeps.                  |
+| `--disallowedTools "mcp__ide"`    | Removes the tools of the IDE server, which Claude Code connects to by itself in an IDE's integrated terminal and `--strict-mcp-config` keeps (`executeCode` runs Python in the Jupyter kernel). A deny rule naming a whole server removes its tools from the model's context. |
 | `--allowedTools "mcp__runlog__*"` | Approves the server's tools without prompting. It only changes permissions: it removes nothing.                    |
+| `--permission-mode dontAsk`       | Denies every call that would ask for permission, so only the approved tools can act, even if a later Claude Code version adds another source of tools. Calls that never ask, such as reads, still run. |
 
 `--disable-slash-commands` also turns off skills and slash commands. In
 such a session, the model cannot run shell commands or read files: those
-tools simply do not exist. One caveat: when an organisation deploys a
+tools simply do not exist. The only built-in tool left is
+`EndConversation`, which only ends the conversation. One caveat: when an organisation deploys a
 managed `managed-mcp.json`, Claude Code exits at startup if
 `--strict-mcp-config` is passed. See the [CLI
 reference](https://code.claude.com/docs/en/cli-reference) and the [MCP
@@ -856,7 +863,9 @@ documentation](https://code.claude.com/docs/en/mcp).
 
 `mcp_client_config("claude_code")` writes this command and its
 configuration file, with `--disable-slash-commands` (checked with Claude
-Code 2.1.331 on 2026-11-24).
+Code 2.1.331 on 2026-11-24, in an IDE terminal with Claude in Chrome
+installed: the session lists only the server's tools and
+`EndConversation`).
 
 ### Restricting other MCP clients
 
@@ -867,7 +876,7 @@ as not being a security mechanism. Checked in November 2026:
 
 | Client                                                                           | Remove built-in tools                                                                                                                                                   | Restrict MCP servers and tools                                                                  | How far it goes                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Claude Code](https://code.claude.com/docs/en/cli-reference)                     | `--tools ""` removes every built-in tool                                                                                                                                | `--strict-mcp-config` + `--mcp-config`; `--disallowedTools`                                     | Enforced: the tools are not in the session.                                                                                                                                                                           |
+| [Claude Code](https://code.claude.com/docs/en/cli-reference)                     | `--tools ""` removes every built-in tool                                                                                                                                | `--strict-mcp-config` + `--mcp-config`; `--no-chrome` and `--disallowedTools "mcp__ide"` for the Chrome and IDE servers; `--permission-mode dontAsk` | Enforced: the tools are not in the session.                                                                                                                                                                           |
 | [Codex CLI](https://github.com/openai/codex/issues/6049)                         | `features.shell_tool = false` (or `codex --disable shell_tool`). Other features (`multi_agent`, `view_image`, `web_search = "disabled"`…) can be turned off one by one. | `mcp_servers.<id>.enabled_tools` and `disabled_tools`                                           | Partial: no official MCP-only mode (the request is still open). Three MCP resource tools (`list_mcp_resources`, `list_mcp_resource_templates`, `read_mcp_resource`) cannot be disabled; they only read MCP resources. |
 | [Gemini CLI](https://geminicli.com/docs/cli/configuration)                       | `coreTools` (allowlist) or `excludeTools`, tool by tool; no documented "none" option                                                                                    | `allowMCPServers` or `--allowed-mcp-server-names`; per-server `includeTools` and `excludeTools` | Partial: the documentation says these lists should not be used as an airtight security mechanism.                                                                                                                     |
 | [VS Code, Copilot](https://code.visualstudio.com/docs/agent-customization/tools) | Tool picker per request; a custom agent with its own tool list for a reusable selection                                                                                 | Same picker, per server and per tool; enterprise allowlist of MCP servers                       | Per session or per agent, configured in the editor.                                                                                                                                                                   |
@@ -919,8 +928,9 @@ With `client = "claude"`, the command `run_dev()` runs is:
 
 ```bash
 claude --tools "" --strict-mcp-config \
-  --mcp-config /tmp/runlog-mcp.json \
-  --allowedTools "mcp__runlog__*" --disable-slash-commands
+  --mcp-config /tmp/runlog-mcp.json --no-chrome \
+  --disallowedTools "mcp__ide" --allowedTools "mcp__runlog__*" \
+  --permission-mode dontAsk --disable-slash-commands
 ```
 
 Claude Code is a full-screen terminal interface, so it cannot run inside
@@ -1446,7 +1456,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [ ] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore`, the way `golem::add_positconnect_file()` does
 - [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
-- [ ] Close the leaks in the restricted Claude Code session: on 2026-11-24, the session from `mcp_client_config("claude_code")` still had the claude-in-chrome server (`javascript_tool`) and the IDE server (`executeCode`, Python in the Jupyter kernel), which do not come from `--mcp-config`. Find the flags that exclude them, then fix `mcp_client_config()` and the README sections that call the restriction enforced
+- [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [ ] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
