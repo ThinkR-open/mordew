@@ -863,10 +863,11 @@ reference](https://code.claude.com/docs/en/cli-reference) and the [MCP
 documentation](https://code.claude.com/docs/en/mcp).
 
 `mcp_client_config("claude_code")` writes this command and its
-configuration file, with `--disable-slash-commands` (checked with Claude
-Code 2.1.331 on 2026-11-24, in an IDE terminal with Claude in Chrome
-installed: the session lists only the server's tools and
-`EndConversation`).
+configuration file, which `add_mcp_client_config()` saves at the package
+root and adds to `.Rbuildignore`. The command has
+`--disable-slash-commands` (checked with Claude Code 2.1.331 on
+2026-11-24, in an IDE terminal with Claude in Chrome installed: the
+session lists only the server's tools and `EndConversation`).
 
 ### Restricting other MCP clients
 
@@ -1458,7 +1459,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
-- [ ] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore`, the way `golem::add_positconnect_file()` does
+- [x] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore`, the way `golem::add_positconnect_file()` does
 - [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it

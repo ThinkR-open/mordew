@@ -25,26 +25,8 @@ mcp_client_config <- function(
   package <- package_name(
     pkg
   )
-  config <- list()
-  config[[package]] <- list(
-    command = rscript(),
-    args = c(
-      "--no-init-file",
-      "-e",
-      paste0(
-        package,
-        "::run_mcp_server()"
-      )
-    )
-  )
-  json <- as.character(
-    jsonlite::toJSON(
-      list(
-        mcpServers = config
-      ),
-      auto_unbox = TRUE,
-      pretty = TRUE
-    )
+  json <- server_config(
+    package
   )
   structure(
     switch(
@@ -103,6 +85,32 @@ print.mordew_client_config <- function(
   )
   invisible(
     x
+  )
+}
+
+server_config <- function(
+  package
+) {
+  config <- list()
+  config[[package]] <- list(
+    command = rscript(),
+    args = c(
+      "--no-init-file",
+      "-e",
+      paste0(
+        package,
+        "::run_mcp_server()"
+      )
+    )
+  )
+  as.character(
+    jsonlite::toJSON(
+      list(
+        mcpServers = config
+      ),
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
   )
 }
 
