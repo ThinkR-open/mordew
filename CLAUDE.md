@@ -40,7 +40,12 @@ goes into this package. Code the developer cannot explain does not go in.
 
 - After every change to R/ or inst/mordewexample/, run
   `Rscript --no-init-file dev/example.R`: inst/runlog/ shows what
-  `create_mordew()` generates. Never edit inst/runlog/ by hand.
+  `create_mordew()` and `add_tool()` generate, filled with the fictional
+  tools and data of dev/runlog/. Never edit inst/runlog/ by hand: edit
+  dev/runlog/.
+- `Rscript --no-init-file dev/evals.R` then measures, through a
+  restricted Claude Code session, whether the model calls the right
+  runlog tool with the right arguments. It costs one request per case.
 
 ## MCP revision
 

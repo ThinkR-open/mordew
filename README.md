@@ -1460,11 +1460,12 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
-- [x] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore`, the way `golem::add_positconnect_file()` does
+- [x] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore` and `.gitignore`, the way `golem::add_positconnect_file()` does
 - [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
+- [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, through the restricted Claude Code session, that the model calls the right tool with the right arguments. One run per case and no threshold yet: `use_evals()` brings them in phase 2
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop

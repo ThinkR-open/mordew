@@ -2,11 +2,15 @@
 % Please edit documentation in R/tool_summarise_runs.R
 \name{summarise_runs}
 \alias{summarise_runs}
-\title{Title of the tool}
+\title{Year summary}
 \usage{
-summarise_runs()
+summarise_runs(year)
+}
+\arguments{
+\item{year}{Four-digit year.}
 }
 \description{
-What the tool does, when to use it and when not to, with units and
-formats.
+Returns the totals of one year for each type of run: number of runs,
+distance (km) and duration (hours). For month by month totals, use
+summarise_runs_by_month.
 }
