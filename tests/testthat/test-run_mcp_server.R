@@ -126,12 +126,6 @@ test_that("a generated package serves its tools to a client over stdio", {
   local_install(
     path
   )
-  withr::local_envvar(
-    R_LIBS = paste(
-      .libPaths(),
-      collapse = .Platform$path.sep
-    )
-  )
   client <- stdio_client(
     file.path(
       R.home(
@@ -142,7 +136,16 @@ test_that("a generated package serves its tools to a client over stdio", {
     c(
       "--no-init-file",
       "-e",
-      "runlog::run_mcp_server()"
+      paste0(
+        ".libPaths(",
+        paste(
+          deparse(
+            .libPaths()
+          ),
+          collapse = ""
+        ),
+        "); runlog::run_mcp_server()"
+      )
     )
   )
   withr::defer(

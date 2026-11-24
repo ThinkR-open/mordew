@@ -106,14 +106,17 @@ client_send <- function(
       error = function(
         error
       ) {
-        stop_server_stopped(
-          client
-        )
+        left
       }
     )
     if (length(left) == 0) {
       return(
         invisible()
+      )
+    }
+    if (!client$process$is_alive()) {
+      stop_server_stopped(
+        client
       )
     }
     if (Sys.time() > deadline) {
