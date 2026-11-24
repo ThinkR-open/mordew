@@ -225,7 +225,8 @@ test_that("client_request() reports a server that stops while it is sent a reque
         )
       )
     ),
-    "The server stopped.\ngone"
+    "The server stopped (exit status 1).\ngone",
+    fixed = TRUE
   )
 })
 
@@ -257,7 +258,8 @@ test_that("stdio_client() reports what the server wrote to stderr when it stops"
       "message('boom')",
       "quit(status = 1)"
     ),
-    "The server stopped.\nboom"
+    "The server stopped (exit status 1).\nboom",
+    fixed = TRUE
   )
 })
 

@@ -239,10 +239,19 @@ stop_timeout <- function(
 stop_server_stopped <- function(
   client
 ) {
+  client$process$wait(
+    1000
+  )
   stop(
     paste(
       c(
-        "The server stopped.",
+        paste0(
+          "The server stopped (exit status ",
+          toString(
+            client$process$get_exit_status()
+          ),
+          ")."
+        ),
         utils::tail(
           readLines(
             client$errors,
