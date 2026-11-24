@@ -70,6 +70,11 @@ test_that("mcp_client_config() writes a Claude Code session restricted to the se
         "tools apart from EndConversation, which only ends the conversation.",
         "Claude Code refuses --strict-mcp-config when an organisation",
         "deploys a managed-mcp.json."
+      ),
+      "",
+      paste(
+        "--disable-slash-commands also removes /mcp: to see the server's",
+        "status, run the command without it."
       )
     )
   )

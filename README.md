@@ -852,8 +852,9 @@ where `runlog.json` holds the Claude Desktop snippet above.
 | `--allowedTools "mcp__runlog__*"` | Approves the server's tools without prompting. It only changes permissions: it removes nothing.                    |
 | `--permission-mode dontAsk`       | Denies every call that would ask for permission, so only the approved tools can act, even if a later Claude Code version adds another source of tools. Calls that never ask, such as reads, still run. |
 
-`--disable-slash-commands` also turns off skills and slash commands. In
-such a session, the model cannot run shell commands or read files: those
+`--disable-slash-commands` also turns off skills and slash commands,
+`/mcp` included: to see the server's status, run the command without it.
+In such a session, the model cannot run shell commands or read files: those
 tools simply do not exist. The only built-in tool left is
 `EndConversation`, which only ends the conversation. One caveat: when an organisation deploys a
 managed `managed-mcp.json`, Claude Code exits at startup if
@@ -1460,7 +1461,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore`, the way `golem::add_positconnect_file()` does
 - [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
-- [ ] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
+- [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
