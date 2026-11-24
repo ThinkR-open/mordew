@@ -1465,14 +1465,14 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
-- [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, through the restricted Claude Code session, that the model calls the right tool with the right arguments. One run per case and no threshold yet: `use_evals()` brings them in phase 2
+- [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, through the restricted Claude Code session, that the model calls the right tool with the right arguments. One run per case by default and no threshold yet: `use_evals()` brings them in phase 2
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
-- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow
+- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
 - [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
