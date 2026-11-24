@@ -673,3 +673,24 @@ test_that("a parameter with a default value and required = FALSE is optional", {
     )
   )
 })
+
+test_that("a parameter description stops at its text", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Summarise runs
+      #'
+      #' Number of runs per year.
+      #'
+      #' @param year Four-digit year.
+      #'
+      #' @mcpTool
+      #' @mcpType year type_integer()
+      #' @mcpReturns text
+      summarise_runs <- function(year) NULL
+      "
+    )$summarise_runs$tool$inputSchema$properties$year$description,
+    "Four-digit year."
+  )
+})

@@ -54,7 +54,7 @@ roxy_tag_parse.roxy_tag_mcpClosedWorld <- parse_toggle
 roxy_tag_parse.roxy_tag_mcpLimit <- function(
   x
 ) {
-  roxygen2::tag_words_line(
+  roxygen2::tag_words(
     x
   )
 }
@@ -337,10 +337,12 @@ param_description <- function(
   )) {
     if (tag$val$name == param) {
       return(
-        sub(
-          "^\\S+\\s+",
-          "",
-          tag$raw
+        trimws(
+          sub(
+            "^\\S+\\s+",
+            "",
+            tag$raw
+          )
         )
       )
     }

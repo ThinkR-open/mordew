@@ -12,7 +12,7 @@
               "properties": {
                   "text": {
                       "type": "string",
-                      "description": "Text to send back.\n"
+                      "description": "Text to send back."
                   }
               },
               "required": [
