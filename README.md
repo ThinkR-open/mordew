@@ -270,8 +270,8 @@ runlog/
 │           └── weekly_review.md # prompt template
 ├── tests/
 │   └── testthat/
-│       ├── test-tool_summarise_runs.R
-│       └── test-contract.R      # schema snapshots, round-trips
+│       ├── test-tool_summarise_runs.R  # unit tests, schema snapshot
+│       └── test-contract.R      # round-trips through call_tool()
 ├── evals/                       # behavioural evals, not run on CRAN
 ├── dev/
 │   ├── 01_start.R
@@ -989,6 +989,15 @@ test_that("summarise_runs answers through a real MCP client", {
 })
 ```
 
+`add_tool()` writes the schema snapshot test with the tool. `call_tool()`
+starts the package's server in a separate R process and talks to it
+through `{mordew}`'s stdio client, one server per call so that no state
+leaks between tests: under `devtools::test()` the server loads the
+development version with `pkgload::load_all()`, under `R CMD check` it
+runs the installed package. A protocol error (an unknown tool) is an R
+error; a tool error is an `isError` result, which `expect_tool_error()`
+checks, with an optional pattern on its message.
+
 **Level 3, behaviour**, uses evals: each case is a user prompt with the
 expected tool and arguments, scored over several runs. Evals need an API
 key, cost money and are not deterministic, so they run in a separate CI
@@ -1375,7 +1384,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_mcp_server()` for stdio, on `{mordew}`'s own protocol layer, speaking 2025-11-25
 - [x] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [ ] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
-- [ ] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
+- [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [ ] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [ ] Re-check client restriction options before each release: they change quickly
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early

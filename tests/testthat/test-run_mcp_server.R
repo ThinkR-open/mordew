@@ -76,55 +76,8 @@ test_that("a generated package serves its tools to a client over stdio", {
   skip_if_not_installed(
     "processx"
   )
-  path <- file.path(
-    tempfile(),
-    "runlog"
-  )
-  create_mordew(
-    path
-  )
-  tool <- c(
-    "#' Echo the text",
-    "#'",
-    "#' Sends the text back.",
-    "#'",
-    "#' @param text Text to send back.",
-    "#'",
-    "#' @mcpTool",
-    "#' @mcpType text type_string()",
-    "#' @mcpReturns text",
-    "echo <- function(text) {",
-    "  text",
-    "}"
-  )
-  dir.create(
-    file.path(
-      path,
-      "R"
-    ),
-    showWarnings = FALSE
-  )
-  writeLines(
-    tool,
-    file.path(
-      path,
-      "R",
-      "tool_echo.R"
-    )
-  )
-  roxygen2::roclet_output(
-    registry_roclet(),
-    roxygen2::roc_proc_text(
-      registry_roclet(),
-      paste(
-        tool,
-        collapse = "\n"
-      )
-    ),
-    base_path = path
-  )
   local_install(
-    path
+    local_tool_package()
   )
   client <- stdio_client(
     file.path(
