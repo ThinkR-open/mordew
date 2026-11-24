@@ -864,7 +864,8 @@ documentation](https://code.claude.com/docs/en/mcp).
 
 `mcp_client_config("claude_code")` writes this command and its
 configuration file, which `add_mcp_client_config()` saves at the package
-root and adds to `.Rbuildignore`. The command has
+root and adds to `.Rbuildignore` and `.gitignore` (it holds the path of
+the current `Rscript`). The command has
 `--disable-slash-commands` (checked with Claude Code 2.1.331 on
 2026-11-24, in an IDE terminal with Claude in Chrome installed: the
 session lists only the server's tools and `EndConversation`).

@@ -2,7 +2,8 @@
 #'
 #' Writes the configuration file of [mcp_client_config()] for Claude Code at
 #' the root of the package, as `<package>.json`, and adds it to
-#' `.Rbuildignore`.
+#' `.Rbuildignore` and `.gitignore`: it holds the path of the current
+#' `Rscript`, which differs from one machine to the next.
 #'
 #' @inheritParams mcp_client_config
 #' @param overwrite Whether to replace an existing file.
@@ -39,31 +40,54 @@ add_mcp_client_config <- function(
     ),
     file
   )
-  buildignore <- file.path(
-    pkg,
-    ".Rbuildignore"
+  add_line(
+    file.path(
+      pkg,
+      ".Rbuildignore"
+    ),
+    paste0(
+      "^",
+      gsub(
+        ".",
+        "\\.",
+        basename(
+          file
+        ),
+        fixed = TRUE
+      ),
+      "$"
+    )
   )
-  ignore <- paste0(
-    "^",
-    gsub(
-      ".",
-      "\\.",
+  add_line(
+    file.path(
+      pkg,
+      ".gitignore"
+    ),
+    paste0(
+      "/",
       basename(
         file
-      ),
-      fixed = TRUE
-    ),
-    "$"
-  )
-  if (
-    !ignore %in%
-      readLines(
-        buildignore
       )
+    )
+  )
+}
+
+add_line <- function(
+  file,
+  line
+) {
+  if (
+    !file.exists(
+      file
+    ) ||
+      !line %in%
+        readLines(
+          file
+        )
   ) {
     cat(
-      ignore,
-      file = buildignore,
+      line,
+      file = file,
       sep = "\n",
       append = TRUE
     )

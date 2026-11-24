@@ -14,5 +14,6 @@ add_mcp_client_config(pkg = ".", overwrite = FALSE)
 \description{
 Writes the configuration file of \code{\link[=mcp_client_config]{mcp_client_config()}} for Claude Code at
 the root of the package, as \verb{<package>.json}, and adds it to
-\code{.Rbuildignore}.
+\code{.Rbuildignore} and \code{.gitignore}: it holds the path of the current
+\code{Rscript}, which differs from one machine to the next.
 }

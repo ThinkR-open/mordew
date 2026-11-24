@@ -58,3 +58,25 @@ test_that("add_mcp_client_config() refuses to replace an existing file", {
     fixed = TRUE
   )
 })
+
+test_that("add_mcp_client_config() keeps the configuration out of git, once", {
+  path <- local_runlog()
+
+  add_mcp_client_config(
+    path
+  )
+  add_mcp_client_config(
+    path,
+    overwrite = TRUE
+  )
+
+  expect_equal(
+    readLines(
+      file.path(
+        path,
+        ".gitignore"
+      )
+    ),
+    "/runlog.json"
+  )
+})
