@@ -889,7 +889,10 @@ Two consequences for `{mordew}`:
    must hold on their own.
 2. **`mcp_client_config()` generates the most restricted configuration
    each client allows**, and says plainly when that restriction is
-   partial.
+   partial. It is a development tool: it does not contain a client in
+   production. Neither can the server, which MCP never shows the
+   client's other tools or the conversation: containing the client is
+   the job of whoever deploys it.
 
 ### Development loop: `run_dev()`
 
