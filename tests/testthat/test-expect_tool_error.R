@@ -42,6 +42,7 @@ test_that("expect_tool_error() fails on an error that does not match", {
       "fail_always",
       regexp = "Rain",
       package = "runlog"
-    )
+    ),
+    "The error of tool `fail_always` does not match `Rain`:\nNo runs today."
   )
 })

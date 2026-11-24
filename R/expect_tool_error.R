@@ -21,20 +21,33 @@ expect_tool_error <- function(
     args,
     ...
   )
+  error <- result$content[[1]]$text
   testthat::expect(
-    result$isError,
-    paste0(
-      "Tool `",
-      tool,
-      "` did not return an error."
-    )
+    result$isError &&
+      (is.null(
+        regexp
+      ) ||
+        grepl(
+          regexp,
+          error
+        )),
+    if (result$isError) {
+      paste0(
+        "The error of tool `",
+        tool,
+        "` does not match `",
+        regexp,
+        "`:\n",
+        error
+      )
+    } else {
+      paste0(
+        "Tool `",
+        tool,
+        "` did not return an error."
+      )
+    }
   )
-  if (!is.null(regexp)) {
-    testthat::expect_match(
-      result$content[[1]]$text,
-      regexp
-    )
-  }
   invisible(
     result
   )
