@@ -44,7 +44,12 @@ mcp_client_config <- function(
           'claude --tools "" --strict-mcp-config --mcp-config ',
           package,
           '.json --no-chrome --disallowedTools "mcp__ide" --allowedTools "mcp__',
-          package,
+          gsub(
+            ".",
+            "_",
+            package,
+            fixed = TRUE
+          ),
           '__*" --permission-mode dontAsk --disable-slash-commands'
         ),
         "",

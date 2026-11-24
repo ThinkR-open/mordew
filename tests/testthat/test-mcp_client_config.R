@@ -73,3 +73,22 @@ test_that("rscript() points to the Rscript of the running R", {
     )
   )
 })
+
+test_that("mcp_client_config() allows the tools of a package with a dot in its name", {
+  path <- file.path(
+    withr::local_tempfile(),
+    "run.log"
+  )
+  create_mordew(
+    path
+  )
+
+  expect_match(
+    mcp_client_config(
+      "claude_code",
+      pkg = path
+    )[[5]],
+    '--allowedTools "mcp__run_log__*"',
+    fixed = TRUE
+  )
+})
