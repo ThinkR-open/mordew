@@ -90,3 +90,84 @@ test_that("tool_result() rejects a data frame for @mcpReturns json", {
     )$isError
   )
 })
+
+test_that("tool_result() sends a data frame as a markdown table", {
+  expect_equal(
+    tool_result(
+      data.frame(
+        surface = c(
+          "road",
+          "trail"
+        ),
+        runs = c(
+          12L,
+          3L
+        )
+      ),
+      "table"
+    )$content[[1]]$text,
+    paste(
+      "Rows: 2. Columns: 2.",
+      "",
+      "| surface | runs |",
+      "| --- | --- |",
+      "| road | 12 |",
+      "| trail | 3 |",
+      sep = "\n"
+    )
+  )
+})
+
+test_that("tool_result() truncates a table to its row limit", {
+  expect_equal(
+    tool_result(
+      data.frame(
+        runs = 1:3
+      ),
+      "table",
+      rows = 2
+    )$content[[1]]$text,
+    paste(
+      "Rows: 3 (first 2 shown). Columns: 1.",
+      "",
+      "| runs |",
+      "| --- |",
+      "| 1 |",
+      "| 2 |",
+      sep = "\n"
+    )
+  )
+})
+
+test_that("tool_result() truncates a table to 50 rows without a row limit", {
+  expect_match(
+    tool_result(
+      data.frame(
+        runs = 1:51
+      ),
+      "table",
+      rows = NULL
+    )$content[[1]]$text,
+    "Rows: 51 (first 50 shown).",
+    fixed = TRUE
+  )
+})
+
+test_that("tool_result() escapes pipes in table cells", {
+  expect_equal(
+    tool_result(
+      data.frame(
+        note = "a|b"
+      ),
+      "table"
+    )$content[[1]]$text,
+    paste(
+      "Rows: 1. Columns: 1.",
+      "",
+      "| note |",
+      "| --- |",
+      "| a\\|b |",
+      sep = "\n"
+    )
+  )
+})

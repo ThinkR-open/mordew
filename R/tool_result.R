@@ -1,6 +1,7 @@
 tool_result <- function(
   value,
-  returns
+  returns,
+  rows = NULL
 ) {
   if (
     inherits(
@@ -47,9 +48,92 @@ tool_result <- function(
             na = "null",
             null = "null"
           )
+        ),
+        table = table_text(
+          value,
+          rows
         )
       )
     )
+  )
+}
+
+table_text <- function(
+  table,
+  rows
+) {
+  shown <- utils::head(
+    table,
+    if (is.null(rows)) 50L else rows
+  )
+  lines <- c(
+    paste(
+      names(table),
+      collapse = " | "
+    ),
+    paste(
+      rep(
+        "---",
+        ncol(table)
+      ),
+      collapse = " | "
+    ),
+    do.call(
+      paste,
+      c(
+        lapply(
+          shown,
+          markdown_cell
+        ),
+        sep = " | "
+      )
+    )
+  )
+  paste0(
+    table_dimensions(
+      table,
+      shown
+    ),
+    "\n\n",
+    paste0(
+      "| ",
+      lines,
+      " |",
+      collapse = "\n"
+    )
+  )
+}
+
+markdown_cell <- function(
+  column
+) {
+  gsub(
+    "|",
+    "\\|",
+    as.character(
+      column
+    ),
+    fixed = TRUE
+  )
+}
+
+table_dimensions <- function(
+  table,
+  shown
+) {
+  paste0(
+    "Rows: ",
+    nrow(table),
+    if (nrow(shown) < nrow(table)) {
+      paste0(
+        " (first ",
+        nrow(shown),
+        " shown)"
+      )
+    },
+    ". Columns: ",
+    ncol(table),
+    "."
   )
 }
 
@@ -67,7 +151,10 @@ has_kind <- function(
     ) &&
       !is.data.frame(
         value
-      )
+      ),
+    table = is.data.frame(
+      value
+    )
   )
 }
 
