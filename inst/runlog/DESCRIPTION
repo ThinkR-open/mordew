@@ -9,6 +9,8 @@ Roxygen: list(markdown = TRUE, roclets = c("collate", "namespace", "rd", "mordew
 Imports:
     mordew
 Suggests:
+    pkgload,
+    processx,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3

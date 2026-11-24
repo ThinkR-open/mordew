@@ -44,7 +44,9 @@ mordew::add_tool(
 )
 
 # try the tools with a model, from the R console
-mordew::run_dev()
+mordew::run_dev(
+  chat = ellmer::chat_anthropic()
+)
 
 # run the MCP server (stdio by default)
 runlog::run_mcp_server()
@@ -462,7 +464,7 @@ Two caveats:
 | R value                   | Sent to the model as                                                         |
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `character`               | text content                                                                 |
-| `data.frame`              | markdown table with dimensions, truncated to `max_rows` (default 50)         |
+| `data.frame`              | markdown table with dimensions, truncated to `@mcpLimit rows` (default 50)   |
 | `ggplot` or recorded plot | PNG image content, 800×600 at 96 dpi                                         |
 | `list`                    | JSON                                                                         |
 | condition (error)         | an `isError` result with a message the model can act on                      |
@@ -884,7 +886,8 @@ Two consequences for `{mordew}`:
 
 `{mordew}` ships no chat, but it gives a quick way to talk to the package's
 tools while developing them, the way `golem::run_dev()` runs a Shiny app
-under development. Two clients are planned:
+under development. It works with ellmer today; the `claude` client comes
+in phase 2:
 
 ```r
 # any model provider, through ellmer (needs an API key)
@@ -894,7 +897,7 @@ mordew::run_dev(
   ui = "console"
 )
 
-# the `claude` CLI found on the PATH (uses the Claude subscription)
+# phase 2: the `claude` CLI found on the PATH (uses the Claude subscription)
 mordew::run_dev(
   client = "claude"
 )
@@ -917,7 +920,7 @@ With `client = "claude"`, the command `run_dev()` runs is:
 ```bash
 claude --tools "" --strict-mcp-config \
   --mcp-config /tmp/runlog-mcp.json \
-  --allowedTools "mcp__runlog__*"
+  --allowedTools "mcp__runlog__*" --disable-slash-commands
 ```
 
 Claude Code is a full-screen terminal interface, so it cannot run inside
@@ -941,7 +944,8 @@ an image was returned.
 Things to keep in mind:
 
 - The server runs in its own process: changing a tool means restarting
-  `run_dev()`.
+  `run_dev()`, after `devtools::document()` when its roxygen tags changed,
+  since the registry comes from them.
 - In stdio mode, nothing but protocol messages may reach stdout:
   `Rscript` runs with `--no-init-file` (a user `.Rprofile` may print)
   and package loading must stay quiet. While it handles a request, the
@@ -981,6 +985,7 @@ test_that("summarise_runs is exposed with a stable schema", {
 })
 
 test_that("summarise_runs answers through a real MCP client", {
+  skip_on_cran()
   res <- call_tool(
     tool = "summarise_runs",
     args = list(
@@ -1028,9 +1033,9 @@ suggestions, progress notifications, cancellation, and task life cycles
 2025-11-25 clients: `server/discover`, `resultType`, cacheable results,
 request headers, error codes.
 
-Planned helpers: `expect_tool_schema()`, `call_tool()`,
-`expect_tool_error()`, `expect_structured_output()`, `read_resource()`,
-`expect_resource()`, `get_prompt()`, `expect_prompt()`,
+Available helpers: `call_tool()`, `expect_tool_error()`,
+`expect_tool_schema()`. Planned: `expect_structured_output()`,
+`read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`,
 `simulate_elicitation()`, `expect_task()`, `expect_conformance()`,
 `use_evals()`, `check_tools()`.
 
@@ -1072,7 +1077,7 @@ kept away.
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls                         | Per-call timeouts and resource limits.                                                                                                                                                                                                       |
-| Data leakage to the model provider    | Aggregated outputs by default, `max_rows`, a redaction hook, and, on the client side, the option of a self-hosted model.                                                                                                                     |
+| Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a redaction hook, and, on the client side, the option of a self-hosted model.                                                                                                               |
 | Unauthorised access to an HTTP server | Authentication following the MCP authorization specification (OAuth 2.1), or a reverse proxy in front of the server.                                                                                                                         |
 | No traceability                       | Audit log of every call (below).                                                                                                                                                                                                             |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
@@ -1130,7 +1135,7 @@ privacy trade-off.
 
 | Target                | Transport | How                                                                                                |
 | --------------------- | --------- | -------------------------------------------------------------------------------------------------- |
-| Local, desktop client | stdio     | `Rscript -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()`                           |
+| Local, desktop client | stdio     | `Rscript --no-init-file -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()`            |
 | Docker                | HTTP      | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
 | Kubernetes            | HTTP      | example manifests: probes, replicas, secrets                                                       |
 | Posit Connect         | HTTP      | `add_connect()`; path to find, since mcptools' `engine: mcptools` no longer applies                |
@@ -1446,7 +1451,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 ### Phase 2: testing toolkit and development loop
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
-- [ ] Round-trip helper through a real MCP client over stdio
+- [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
 - [ ] `use_evals()`: vitals scaffolding and a separate CI workflow
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
