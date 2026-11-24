@@ -1093,7 +1093,7 @@ kept away.
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls                         | Per-call timeouts and resource limits.                                                                                                                                                                                                       |
-| Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a redaction hook, and, on the client side, the option of a self-hosted model.                                                                                                               |
+| Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a redaction hook, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation. In `dev/evals.R` (2026-11-24), the model got 107 of 174 rows truncated at 50 by asking again for each type of run. |
 | Unauthorised access to an HTTP server | Authentication following the MCP authorization specification (OAuth 2.1), or a reverse proxy in front of the server.                                                                                                                         |
 | No traceability                       | Audit log of every call (below).                                                                                                                                                                                                             |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
@@ -1472,7 +1472,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
-- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times
+- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times; count the calls and flag a case that takes more than expected (a year summary took five)
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
 - [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
@@ -1485,6 +1485,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] `inst/mordew/config.yml` in the package template: transport, port, workers, limits, audit log
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
 - [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits
+- [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
 - [ ] Back-pressure: bounded queue and a "busy, retry later" error
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
