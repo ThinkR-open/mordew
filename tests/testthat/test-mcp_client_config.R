@@ -33,7 +33,7 @@ test_that("mcp_client_config() writes a Claude Code session restricted to the se
       "Start a Claude Code session restricted to the server:",
       paste(
         'claude --tools "" --strict-mcp-config --mcp-config runlog.json',
-        '--no-chrome --disallowedTools "mcp__ide"',
+        "--no-chrome --disallowedTools mcp__ide",
         '--allowedTools "mcp__runlog__*" --permission-mode dontAsk',
         "--disable-slash-commands"
       ),

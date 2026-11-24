@@ -40,17 +40,13 @@ mcp_client_config <- function(
         json,
         "",
         "Start a Claude Code session restricted to the server:",
-        paste0(
-          'claude --tools "" --strict-mcp-config --mcp-config ',
-          package,
-          '.json --no-chrome --disallowedTools "mcp__ide" --allowedTools "mcp__',
-          gsub(
-            ".",
-            "_",
-            package,
-            fixed = TRUE
-          ),
-          '__*" --permission-mode dontAsk --disable-slash-commands'
+        command_line(
+          c(
+            "claude",
+            claude_args(
+              package
+            )
+          )
         ),
         "",
         paste(
@@ -90,6 +86,58 @@ print.mordew_client_config <- function(
   )
   invisible(
     x
+  )
+}
+
+claude_args <- function(
+  package
+) {
+  c(
+    "--tools",
+    "",
+    "--strict-mcp-config",
+    "--mcp-config",
+    paste0(
+      package,
+      ".json"
+    ),
+    "--no-chrome",
+    "--disallowedTools",
+    "mcp__ide",
+    "--allowedTools",
+    paste0(
+      "mcp__",
+      gsub(
+        ".",
+        "_",
+        package,
+        fixed = TRUE
+      ),
+      "__*"
+    ),
+    "--permission-mode",
+    "dontAsk",
+    "--disable-slash-commands"
+  )
+}
+
+command_line <- function(
+  args
+) {
+  paste(
+    ifelse(
+      grepl(
+        "^[[:alnum:]_./-]+$",
+        args
+      ),
+      args,
+      paste0(
+        '"',
+        args,
+        '"'
+      )
+    ),
+    collapse = " "
   )
 }
 
