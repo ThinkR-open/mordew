@@ -53,3 +53,8 @@ goes into this package. Code the developer cannot explain does not go in.
 - Line break after every opening parenthesis. Empty calls stay on one
   line: `tempfile()`. Air has the last word: it keeps
   `test_that("...", {` on one line.
+
+## Versioning
+
+- Bump `Version:` in DESCRIPTION before every push. Until phase 3, bump
+  the development component only: 0.0.0.9000 → 0.0.0.9001.
