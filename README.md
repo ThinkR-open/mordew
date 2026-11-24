@@ -1466,7 +1466,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, through the restricted Claude Code session, that the model calls the right tool with the right arguments. One run per case by default and no threshold yet: `use_evals()` brings them in phase 2
-- [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
+- [x] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop
 
