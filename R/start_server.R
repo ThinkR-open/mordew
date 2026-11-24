@@ -6,12 +6,7 @@ start_server <- function(
   timeout = 30
 ) {
   stdio_client(
-    file.path(
-      R.home(
-        "bin"
-      ),
-      "Rscript"
-    ),
+    rscript(),
     c(
       "--no-init-file",
       "-e",
@@ -45,6 +40,18 @@ start_server <- function(
       )
     ),
     timeout
+  )
+}
+
+rscript <- function() {
+  file.path(
+    R.home(
+      "bin"
+    ),
+    paste0(
+      "Rscript",
+      if (.Platform$OS.type == "windows") ".exe"
+    )
   )
 }
 

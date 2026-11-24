@@ -818,8 +818,9 @@ Claude Desktop (`claude_desktop_config.json`):
 stdout corrupts the JSON-RPC stream before the first message (seen in the
 spike above).
 
-`{mordew}` will generate these snippets with a helper such as
-`mcp_client_config()`.
+`mcp_client_config("claude_desktop")` writes this snippet for the
+package, with the full path of the current `Rscript`: a desktop app may
+not find `Rscript` on its `PATH`.
 
 ### A Claude Code session restricted to the server
 
@@ -851,7 +852,9 @@ managed `managed-mcp.json`, Claude Code exits at startup if
 reference](https://code.claude.com/docs/en/cli-reference) and the [MCP
 documentation](https://code.claude.com/docs/en/mcp).
 
-`mcp_client_config()` will generate this command too.
+`mcp_client_config("claude_code")` writes this command and its
+configuration file, with `--disable-slash-commands` (checked with Claude
+Code 2.1.331 on 2026-11-24).
 
 ### Restricting other MCP clients
 
@@ -1388,7 +1391,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Minimal stdio MCP client, shared by `call_tool()` and `run_dev()`
 - [x] `run_dev(client = "ellmer")`: ellmer chat (console or ellmer's browser UI) connected to the development version of the package through MCP
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
-- [ ] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
+- [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [ ] Re-check client restriction options before each release: they change quickly
 - [ ] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
 - [ ] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users

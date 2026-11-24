@@ -34,13 +34,9 @@ run_dev <- function(
     ui
   )
   connection <- start_server(
-    read.dcf(
-      file.path(
-        pkg,
-        "DESCRIPTION"
-      ),
-      "Package"
-    )[[1]],
+    package_name(
+      pkg
+    ),
     normalizePath(
       pkg
     ),
