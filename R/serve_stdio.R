@@ -14,36 +14,12 @@ serve_stdio <- function(
     if (length(line) == 0) {
       break
     }
-    message <- tryCatch(
-      jsonlite::fromJSON(
-        line,
-        simplifyVector = FALSE
-      ),
-      error = identity
+    response <- respond(
+      line,
+      server,
+      registry,
+      envir
     )
-    response <- if (
-      inherits(
-        message,
-        "error"
-      )
-    ) {
-      rpc_response(
-        NULL,
-        rpc_error(
-          -32700,
-          "Parse error"
-        )
-      )
-    } else {
-      stdout_to_stderr(
-        handle_message(
-          message,
-          server,
-          registry,
-          envir
-        )
-      )
-    }
     if (is.null(response)) {
       next
     }
@@ -58,6 +34,45 @@ serve_stdio <- function(
       output
     )
   }
+}
+
+respond <- function(
+  text,
+  server,
+  registry,
+  envir
+) {
+  message <- tryCatch(
+    jsonlite::fromJSON(
+      text,
+      simplifyVector = FALSE
+    ),
+    error = identity
+  )
+  if (
+    inherits(
+      message,
+      "error"
+    )
+  ) {
+    return(
+      rpc_response(
+        NULL,
+        rpc_error(
+          -32700,
+          "Parse error"
+        )
+      )
+    )
+  }
+  stdout_to_stderr(
+    handle_message(
+      message,
+      server,
+      registry,
+      envir
+    )
+  )
 }
 
 stdout_to_stderr <- function(
