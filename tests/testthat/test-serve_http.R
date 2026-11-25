@@ -39,6 +39,32 @@ test_that("http_app() reads the path httpuv receives", {
   )
 })
 
+test_that("http_app() refuses a request on its headers, without reading the body", {
+  request <- rook_request()
+  request$rook.input$read <- function() {
+    stop(
+      "The body was read."
+    )
+  }
+
+  expect_identical(
+    http_app(
+      token = "s3cret"
+    )$onHeaders(
+      request
+    )$status,
+    401L
+  )
+})
+
+test_that("http_app() lets httpuv go on with a request its headers allow", {
+  expect_null(
+    http_app()$onHeaders(
+      rook_request()
+    )
+  )
+})
+
 test_that("serve_http() starts the workers, then runs the app with httpuv", {
   local_mocked_bindings(
     start_workers = function(

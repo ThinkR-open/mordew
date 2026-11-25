@@ -857,6 +857,11 @@ instead, or the network may be private. Serving on another host than
 `127.0.0.1`, `localhost` or `::1` without one prints a warning at
 start-up, so that an open server does not go unnoticed.
 
+The 403, 401, 405 and 400 above are settled on the headers: the server
+answers when they arrive, through httpuv's `onHeaders`, and never reads
+the body of a request it refuses (on 2026-11-25, a 50 MB POST without
+the token got its 401 after 0.8 MB).
+
 ```bash
 MORDEW_TOKEN=... Rscript -e "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0')"
 claude mcp add --transport http runlog http://server:8000/mcp --header "Authorization: Bearer ..."

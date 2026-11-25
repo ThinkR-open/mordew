@@ -6,6 +6,48 @@ handle_http <- function(
   pool = NULL,
   token = NULL
 ) {
+  reply <- reply_from_headers(
+    request,
+    token
+  )
+  if (!is.null(reply)) {
+    return(
+      reply
+    )
+  }
+  message <- if (
+    !is.null(
+      pool
+    )
+  ) {
+    tool_call_message(
+      request$body
+    )
+  }
+  if (!is.null(message)) {
+    return(
+      pool_call(
+        pool,
+        message,
+        request$body,
+        server
+      )
+    )
+  }
+  http_reply(
+    respond(
+      request$body,
+      server,
+      registry,
+      envir
+    )
+  )
+}
+
+reply_from_headers <- function(
+  request,
+  token
+) {
   if (
     !local_origin(
       request$headers$origin
@@ -51,46 +93,6 @@ handle_http <- function(
       )
     )
   }
-  refusal <- http_refusal(
-    request
-  )
-  if (!is.null(refusal)) {
-    return(
-      refusal
-    )
-  }
-  message <- if (
-    !is.null(
-      pool
-    )
-  ) {
-    tool_call_message(
-      request$body
-    )
-  }
-  if (!is.null(message)) {
-    return(
-      pool_call(
-        pool,
-        message,
-        request$body,
-        server
-      )
-    )
-  }
-  http_reply(
-    respond(
-      request$body,
-      server,
-      registry,
-      envir
-    )
-  )
-}
-
-http_refusal <- function(
-  request
-) {
   if (request$method != "POST") {
     return(
       http_response(
