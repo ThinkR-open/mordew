@@ -1137,7 +1137,9 @@ fails cannot hide among the others. When `ANTHROPIC_API_KEY` is set, as
 in the CI workflow, the session runs with `--bare`, which leaves out the
 developer's `CLAUDE.md`, memory, hooks and plugins: that run is the
 reference. Without it, `--bare` would ignore a subscription login, so a
-local run on a subscription still reads that configuration.
+local run on a subscription still reads that configuration. The `claude`
+CLI inherits R's environment: a key in `.Renviron` makes local runs use
+it, billed per token, even when the shell has none.
 
 **Security tests** feed hostile arguments to each tool. Wrong types and
 values outside the schema never reach it: validation rejects them first,
