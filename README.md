@@ -1657,7 +1657,9 @@ architecture locally before deploying it.
 The plan is to **ship a tools-only MVP first**, then grow towards full
 specification coverage. Partial coverage at the start is fine: every
 feature has its phase below, and nothing in the MVP should have to break
-to add one.
+to add one. The proof of concept stops at phase 3, with a server that
+runs over stdio and HTTP and deploys to Docker and Posit Connect; what
+comes after is a direction, not a commitment.
 
 ### Phase 0: frame
 
@@ -1710,30 +1712,35 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
 - [ ] Automate the restriction check, later: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
 
-### Phase 3: production
+### Phase 3: deployment, the end of the proof of concept
 
 - [x] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
+- [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
+- [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
+- [x] Authentication for the HTTP transport, first step: a shared bearer token (`MORDEW_TOKEN`), required to serve off localhost, with `GET /health` left open
+- [ ] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`
+- [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
+
+### Later, beyond the proof of concept
+
+The production features below wait until the proof of concept has been
+tried by others.
+
 - [ ] `inst/mordew/config.yml` in the package template: transport, port, workers, limits, audit log
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
-- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`). A worker that stops is replaced. Left: a timeout per tool, stopping a worker that ignores the interrupt at its timeout (compiled code), and resource limits
+- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`), and a worker that stops is replaced. Left: a timeout per tool, stopping a worker that ignores the interrupt at its timeout (compiled code), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
-- [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
 - [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases
-- [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
 - [ ] Check that tools keep no in-memory state (a contract test)
-- [ ] `add_dockerfile()` with dockerfiler: HTTP replica, worker pool and stdio variants
 - [ ] Generated `docker-compose.yml`: MCP server and reverse proxy
-- [ ] Container defaults: `0.0.0.0` binding, non-root user, health check, configuration through environment variables
-- [x] Authentication for the HTTP transport, first step: a shared bearer token (`MORDEW_TOKEN`), required to serve off localhost, with `GET /health` left open
 - [ ] Audit log, with queue time and run time
 - [ ] Session-scoped object store, if the prototype shows it is needed
 - [ ] OpenTelemetry tracing
 - [ ] Kubernetes manifests example
-- [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
 - [ ] Redaction hook and output policies
 
 ### Phase 4: specification coverage and conformance
