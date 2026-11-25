@@ -1706,7 +1706,6 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Testing core, moved up from the toolkit: `call_tool()`, `expect_tool_schema()`, `expect_tool_error()`
 - [x] `mcp_client_config()` for Claude Code and Claude Desktop; the other clients move to a vignette
 - [x] `add_mcp_client_config()`: writes the configuration file from `mcp_client_config()` at the package root and adds it to `.Rbuildignore` and `.gitignore`, the way `golem::add_positconnect_file()` does
-- [ ] Re-check client restriction options before each release: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it comes later, in phase 2
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
@@ -1715,19 +1714,13 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 ### Phase 2: testing toolkit and development loop
 
-- [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [x] Round-trip helper through a third-party MCP client over stdio, next to `call_tool()`'s own client: `call_tool(client = "inspector")`, through the MCP Inspector 2.16.0. Claude Code lists its tools only in a session with the model, so it is left to the evals
 - [x] `use_evals()`: `dev/evals.R` and a CI workflow started by hand, through the `claude` CLI and without vitals for now: add it later if its log viewer is worth the dependency. It applies the lessons of the first evals (`dev/evals.R`, and a real server on 2026-11-24): each argument compared on its own terms, several answers per case, every call checked, several runs per case, a flag on a run that takes more calls than expected, and a pass rate per case
-- [ ] Run the evals workflow on a real CI job: installing the `claude` CLI on the runner (`~/.local/bin` on the `PATH`) and a missing `ANTHROPIC_API_KEY` secret are untested. Until `{mordew}` is on CRAN, the package needs `Remotes: ThinkR-open/mordew`
 - [x] Keep the evals apart from the developer's Claude Code configuration: with `ANTHROPIC_API_KEY` set, as in CI, the session runs with `--bare`; a local run on a subscription still reads `~/.claude/CLAUDE.md` and auto memory, since `--bare` ignores a subscription login
 - [x] `check_tools()`: static analysis of the code of every function of the package, tools and the helpers they call, for the calls through which an argument could become code (`eval()`, `parse()`, `source()`, `system()` and similar). The package template runs it in a test, so `R CMD check` fails on such a call. A lint for honest mistakes: it does not look for calls built at run time
-- [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
 - [x] Hostile-argument test generator: `expect_hostile_safe()` calls a tool with each extreme value its schema accepts (strings and numbers for now) and expects an answer to every call; `add_tool()` writes it in the tests of each tool
-- [ ] Extreme values for arrays and objects in `expect_hostile_safe()`
 - [x] `run_dev(client = "claude")`: prints the command of a Claude Code session restricted to the development server, to paste in a terminal
-- [ ] Launch that session from `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal
 - [x] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
-- [ ] Automate the restriction check, later: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
 
 ### Phase 3: deployment, the end of the proof of concept
 
@@ -1737,6 +1730,11 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Authentication for the HTTP transport, first step: an optional shared bearer token (`MORDEW_TOKEN`), with a warning when the server is open beyond the machine, and `GET /health` left open
 - [x] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`. Checked with a local `{mordew}` archive; a build from GitHub needs the repository public
 - [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
+- [ ] Open the repository, then check what needs it public: the `R-CMD-check` workflow back on, the evals workflow on a real CI job (the `claude` CLI on the runner, a missing `ANTHROPIC_API_KEY` secret), and a Docker image built with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
+
+### Before each release
+
+- [ ] Re-check the client restriction options: they change quickly. Manual for now (Claude Code flags checked with 2.1.331 on 2026-11-24); automating it is in the list below
 
 ### Later, beyond the proof of concept
 
@@ -1748,8 +1746,8 @@ tried by others.
 - [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`), and a worker that stops is replaced. Left: a timeout per tool, stopping a worker that ignores the interrupt at its timeout (compiled code), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
-- [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
-- [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases
+- [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live, and `expect_task()`
+- [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases; `simulate_elicitation()` to test them
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
 - [ ] Check that tools keep no in-memory state (a contract test)
@@ -1759,6 +1757,10 @@ tried by others.
 - [ ] OpenTelemetry tracing
 - [ ] Kubernetes manifests example
 - [ ] Redaction hook and output policies
+- [ ] Automate the restriction check: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
+- [ ] Launch the session of `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal
+- [ ] Extreme values for arrays and objects in `expect_hostile_safe()`
+- [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
 
 ### Phase 4: specification coverage and conformance
 
@@ -1771,10 +1773,10 @@ tried by others.
 - [ ] `x-mcp-header` on tool parameters: mirrors a parameter into an HTTP header
 - [ ] Tool icons (`icons`)
 - [ ] Serve 2025-11-25 and 2026-07-28 clients side by side
-- [ ] Structured output: `@mcpOutput`, `structuredContent` validated against the schema
+- [ ] Structured output: `@mcpOutput`, `structuredContent` validated against the schema, and `expect_structured_output()`
 - [ ] Completion: automatic for enums, `@mcpComplete` for dynamic values
 - [ ] OpenTelemetry trace context propagation from `_meta`
-- [ ] Conformance test suite for both revisions
+- [ ] Conformance test suite for both revisions, with `expect_conformance()`
 - [ ] Contribute these changes to mcptools where its maintainers agree
 
 ### Phase 5: extensions
