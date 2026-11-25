@@ -1,6 +1,6 @@
 Package: mordew
 Title: Build, Test and Ship 'MCP' Servers as R Packages
-Version: 0.0.0.9014
+Version: 0.0.0.9015
 Authors@R: c(
     person("Colin", "Fay", , "contact@colinfay.me", role = c("cre", "aut"),
            comment = c(ORCID = "0000-0001-7343-1846")),
@@ -11,6 +11,8 @@ Description: An opinionated framework for building Model Context Protocol
     function. The package provides scaffolding, a tool registry generated
     from 'roxygen2' documentation, testing helpers and deployment helpers.
 License: MIT + file LICENSE
+URL: https://github.com/ThinkR-open/mordew
+BugReports: https://github.com/ThinkR-open/mordew/issues
 Imports:
     httpuv,
     jsonlite,

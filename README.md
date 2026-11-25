@@ -77,11 +77,6 @@ model chooses which function to call and with which arguments; R does the
 computation. Results are reproducible, tested and traceable, which is what
 regulated organisations (pharma, public research) need.
 
-This pattern is already emerging. In November 2026, Jumping Rivers
-published [an agent that answers questions on clinical-trial safety
-data](https://www.r-bloggers.com/2026/11/agents-in-production-build-an-ai-chat-app-with-shiny-and-shinychat/)
-with four tools, where R does the counting.
-
 ### Why a framework, given that the pieces exist
 
 Every building block already exists in R (see [Prior art](#prior-art)).
@@ -144,8 +139,8 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 | [mcptools](https://posit-dev.github.io/mcptools/) (Posit)                                    | MCP server from arbitrary R functions (ellmer tools), stdio or HTTP. MCP client for ellmer chats. Turnkey deployment documented for Posit Connect. | No project structure, no testing conventions, no deployment path outside Connect. |
 | [mcpr](https://github.com/devOpifex/mcpr) (devOpifex)                                        | Roxygen roclet: `@mcp` and `@type` tags generate `inst/mcp_server.R`. Tools, resources and prompts.                                                | Generates a file, not a project framework.                                        |
 | [mcpr](https://chi2labs.github.io/mcpr/index.html) (chi2labs)                                | Decorator-based MCP server, following plumber's patterns.                                                                                          | No package structure.                                                             |
-| [plumber2mcp](https://cdn.jsdelivr.net/gh/armish/plumber2mcp@main/README.md)                 | Turns a plumber API into an MCP server.                                                                                                            | Starts from an API, not from a domain package.                                    |
-| [mcplite](https://stat.ethz.ch/CRAN/web/packages/mcplite/mcplite.pdf)                        | Lightweight stdio MCP server, with OpenTelemetry spans.                                                                                            | stdio only, no production framework.                                              |
+| [plumber2mcp](https://github.com/armish/plumber2mcp)                 | Turns a plumber API into an MCP server.                                                                                                            | Starts from an API, not from a domain package.                                    |
+| [mcplite](https://CRAN.R-project.org/package=mcplite)                        | Lightweight stdio MCP server, with OpenTelemetry spans.                                                                                            | stdio only, no production framework.                                              |
 | [shinychat](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/) + ellmer (Posit) | Shiny chat UI wired to a model, with tool-call display.                                                                                            | A building block for a separate chat product, outside `{mordew}`'s scope.         |
 | [btw](https://posit-dev.github.io/btw/) (Posit)                                              | Ready-made tools that give models context about R sessions and packages.                                                                           | Aimed at coding assistants, not at domain tools.                                  |
 | [FastMCP](https://gofastmcp.com/docs) (Python)                                               | The reference framework in Python: schema, validation, authentication, deployment.                                                                 | No R equivalent.                                                                  |
@@ -153,7 +148,7 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 The Python side carries two lessons:
 
 1. **The framework layer has value even when the SDK exists.** According
-   to [its README](https://raw.githubusercontent.com/jlowin/fastmcp/HEAD/README.md),
+   to [its README](https://github.com/PrefectHQ/fastmcp),
    some version of FastMCP powers 70% of MCP servers, all languages
    combined.
 2. **Frameworks get absorbed.** FastMCP 1.0 was merged into the official
@@ -1894,10 +1889,10 @@ name sounds like _mordieu_, an old oath meaning "by God's death".
 - [R and the Model Context Protocol](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/), tidyverse blog
 - [mcpr (devOpifex)](https://github.com/devOpifex/mcpr)
 - [mcpr (chi2labs)](https://chi2labs.github.io/mcpr/index.html)
-- [plumber2mcp](https://cdn.jsdelivr.net/gh/armish/plumber2mcp@main/README.md)
-- [mcplite](https://stat.ethz.ch/CRAN/web/packages/mcplite/mcplite.pdf)
+- [plumber2mcp](https://github.com/armish/plumber2mcp)
+- [mcplite](https://CRAN.R-project.org/package=mcplite)
 - [shinychat: tool calling UI](https://opensource.posit.co/blog/2025-11-20_shinychat-tool-ui/)
-- [FastMCP documentation](https://gofastmcp.com/docs) and [README](https://raw.githubusercontent.com/jlowin/fastmcp/HEAD/README.md)
+- [FastMCP documentation](https://gofastmcp.com/docs) and [README](https://github.com/PrefectHQ/fastmcp)
 - [Agents in Production](https://www.r-bloggers.com/2026/11/agents-in-production-build-an-ai-chat-app-with-shiny-and-shinychat/), Jumping Rivers
 - [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
