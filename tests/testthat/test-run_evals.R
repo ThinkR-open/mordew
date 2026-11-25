@@ -25,7 +25,8 @@ test_that("run_evals() reports each case with the calls of the model", {
       run = 1L,
       passed = TRUE,
       calls = 'fastest_runs {"n":3,"type":"interval"}',
-      n_calls = 1L
+      n_calls = 1L,
+      too_many_calls = FALSE
     )
   )
 })
@@ -99,5 +100,25 @@ test_that("run_evals() asks each case several times", {
       1L,
       2L
     )
+  )
+})
+
+test_that("run_evals() flags more calls than the longest answer", {
+  skip_on_os(
+    "windows"
+  )
+  local_fake_claude(
+    withr::local_tempdir()
+  )
+
+  expect_true(
+    run_evals(
+      list(
+        eval_case(
+          "Quel temps fera-t-il demain à Bruxelles ?"
+        )
+      ),
+      pkg = local_runlog()
+    )$too_many_calls
   )
 })

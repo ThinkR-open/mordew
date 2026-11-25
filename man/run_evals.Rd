@@ -15,8 +15,10 @@ answer the same way.}
 \item{pkg}{Path to the package.}
 }
 \value{
-A data frame with one row per run of a case: \code{question}, \code{run}, \code{passed},
-the tool \code{calls} of the model and their number, \code{n_calls}.
+A data frame with one row per run of a case: \code{question}, \code{run},
+\code{passed}, the tool \code{calls} of the model, their number \code{n_calls}, and
+\code{too_many_calls}, \code{TRUE} when the model made more calls than the longest
+answer of the case.
 }
 \description{
 Asks Claude Code each question in a session restricted to the package's

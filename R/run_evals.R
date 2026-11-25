@@ -10,8 +10,10 @@
 #'   answer the same way.
 #' @param pkg Path to the package.
 #'
-#' @return A data frame with one row per run of a case: `question`, `run`, `passed`,
-#'   the tool `calls` of the model and their number, `n_calls`.
+#' @return A data frame with one row per run of a case: `question`, `run`,
+#'   `passed`, the tool `calls` of the model, their number `n_calls`, and
+#'   `too_many_calls`, `TRUE` when the model made more calls than the longest
+#'   answer of the case.
 #'
 #' @export
 run_evals <- function(
@@ -58,7 +60,16 @@ eval_run <- function(
     ),
     n_calls = length(
       calls
-    )
+    ),
+    too_many_calls = length(
+      calls
+    ) >
+      max(
+        lengths(
+          case$answers
+        ),
+        0
+      )
   )
 }
 
