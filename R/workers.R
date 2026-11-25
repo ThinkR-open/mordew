@@ -45,14 +45,17 @@ start_workers <- function(
 new_pool <- function(
   package,
   workers,
-  timeout
+  timeout,
+  queue
 ) {
   list2env(
     list(
       package = package,
       workers = workers,
       timeout = timeout,
-      in_flight = 0
+      queue = queue,
+      in_flight = 0,
+      waiting = list()
     )
   )
 }
@@ -63,7 +66,22 @@ pool_call <- function(
   text,
   server
 ) {
-  if (pool$in_flight >= pool$workers) {
+  if (pool$in_flight < pool$workers) {
+    return(
+      run_in_pool(
+        pool,
+        message,
+        text,
+        server
+      )
+    )
+  }
+  if (
+    length(
+      pool$waiting
+    ) >=
+      pool$queue
+  ) {
     return(
       http_reply(
         tool_failure(
@@ -73,6 +91,31 @@ pool_call <- function(
       )
     )
   }
+  promises::promise(
+    function(resolve, reject) {
+      pool$waiting <- c(
+        pool$waiting,
+        function() {
+          resolve(
+            run_in_pool(
+              pool,
+              message,
+              text,
+              server
+            )
+          )
+        }
+      )
+    }
+  )
+}
+
+run_in_pool <- function(
+  pool,
+  message,
+  text,
+  server
+) {
   pool$in_flight <- pool$in_flight + 1
   promises::finally(
     promises::then(
@@ -97,6 +140,16 @@ pool_call <- function(
     ),
     onFinally = function() {
       pool$in_flight <- pool$in_flight - 1
+      if (
+        length(
+          pool$waiting
+        ) >
+          0
+      ) {
+        next_call <- pool$waiting[[1]]
+        pool$waiting <- pool$waiting[-1]
+        next_call()
+      }
     }
   )
 }

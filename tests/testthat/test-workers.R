@@ -111,7 +111,8 @@ test_that("http_app() runs a tool call in a worker and answers with a promise", 
       new_pool(
         "runlog",
         1,
-        60
+        60,
+        0
       )
     )$call(
       rook_request(
@@ -190,7 +191,8 @@ test_that("handle_http() answers a body that is not JSON in the front, with work
       pool = new_pool(
         "runlog",
         1,
-        60
+        60,
+        0
       )
     )$status,
     400L
@@ -205,13 +207,19 @@ tool_text <- function(
   )$result$content$text
 }
 
-test_that("handle_http() answers busy when every worker runs a call", {
+test_that("handle_http() answers busy when every worker runs a call and the queue is full", {
   pool <- new_pool(
     "runlog",
     1,
-    60
+    60,
+    1
   )
   pool$in_flight <- 1
+  pool$waiting <- list(
+    function() {
+      NULL
+    }
+  )
 
   expect_identical(
     tool_text(
@@ -263,7 +271,8 @@ test_that("handle_http() stops a tool call that runs too long", {
   pool <- new_pool(
     "runlog",
     1,
-    1
+    1,
+    0
   )
 
   response <- wait_for(
@@ -337,7 +346,8 @@ test_that("handle_http() answers when the worker running a tool stops", {
       pool = new_pool(
         "runlog",
         1,
-        60
+        60,
+        0
       )
     )
   )
@@ -347,5 +357,111 @@ test_that("handle_http() answers when the worker running a tool stops", {
       response
     ),
     "^The worker running the tool stopped"
+  )
+})
+
+nap_package <- function(
+  env = parent.frame()
+) {
+  local_tool_package(
+    env,
+    tools = c(
+      "#' Wait",
+      "#'",
+      "#' Waits for some seconds.",
+      "#'",
+      "#' @param seconds Seconds to wait.",
+      "#'",
+      "#' @mcpTool",
+      "#' @mcpType seconds type_number(min = 0)",
+      "#' @mcpReturns text",
+      "nap <- function(seconds) {",
+      "  Sys.sleep(seconds)",
+      "  \"Done.\"",
+      "}"
+    )
+  )
+}
+
+test_that("handle_http() queues a call until a worker is free, then times its run only", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_dev_package(
+    nap_package()
+  )
+  start_workers(
+    1,
+    "runlog"
+  )
+  withr::defer(
+    mirai::daemons(
+      0
+    )
+  )
+  pool <- new_pool(
+    "runlog",
+    1,
+    1.5,
+    1
+  )
+  call_nap <- function() {
+    handle_http(
+      http_request(
+        tool_call_body(
+          "nap",
+          list(
+            seconds = 1
+          )
+        )
+      ),
+      server_identity(
+        "runlog"
+      ),
+      pool = pool
+    )
+  }
+
+  first <- call_nap()
+  second <- call_nap()
+  queued <- length(
+    pool$waiting
+  )
+  first <- wait_for(
+    first
+  )
+  second <- wait_for(
+    second
+  )
+
+  expect_identical(
+    queued,
+    1L
+  )
+  expect_identical(
+    c(
+      tool_text(
+        first
+      ),
+      tool_text(
+        second
+      )
+    ),
+    c(
+      "Done.",
+      "Done."
+    )
+  )
+  expect_identical(
+    c(
+      pool$in_flight,
+      length(
+        pool$waiting
+      )
+    ),
+    c(
+      0,
+      0
+    )
   )
 })

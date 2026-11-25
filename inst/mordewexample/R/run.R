@@ -5,7 +5,7 @@
 #' `transport = "http"`.
 #'
 #' @param ... Passed to [mordew::run_mcp_server()]: `transport`, `host`,
-#'   `port`, `workers` and `timeout`.
+#'   `port`, `workers`, `timeout` and `queue`.
 #'
 #' @export
 run_mcp_server <- function(

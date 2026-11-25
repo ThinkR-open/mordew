@@ -30,7 +30,8 @@ serve_http <- function(
   port,
   package,
   workers,
-  timeout
+  timeout,
+  queue
 ) {
   start_workers(
     workers,
@@ -56,7 +57,8 @@ serve_http <- function(
       new_pool(
         package,
         workers,
-        timeout
+        timeout,
+        queue
       )
     )
   )

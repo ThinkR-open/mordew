@@ -10,7 +10,8 @@ run_mcp_server(
   host = "127.0.0.1",
   port = 8000,
   workers = 4,
-  timeout = 60
+  timeout = 60,
+  queue = 8
 )
 }
 \arguments{
@@ -24,11 +25,15 @@ machine only, as the MCP specification recommends for a local server.}
 \item{port}{Port to listen on over HTTP.}
 
 \item{workers}{Number of R processes that run the tool calls over HTTP,
-each with the package loaded once. A call that comes while every worker
-runs one gets a "busy, retry later" error at once, rather than waiting.}
+each with the package loaded once.}
 
 \item{timeout}{Seconds a tool call may run over HTTP before it is stopped
-and answered with an error.}
+and answered with an error. It counts from the start of the run, not
+the time spent in the queue.}
+
+\item{queue}{Number of tool calls that may wait for a free worker over
+HTTP. A call that comes when the queue is full gets a "busy, retry
+later" error at once.}
 }
 \description{
 Serves the tools of an installed mordew package. It blocks the R process,

@@ -830,7 +830,8 @@ not find `Rscript` on its `PATH`.
 Over HTTP, the server runs on its own and clients connect to its URL:
 
 ```r
-# in a dedicated R process: 127.0.0.1:8000, 4 workers, 60-second calls
+# in a dedicated R process: 127.0.0.1:8000, 4 workers, 60-second calls,
+# 8 calls waiting at most
 runlog::run_mcp_server(
   transport = "http"
 )
@@ -1347,13 +1348,16 @@ on the lessons of the [spike](#spike-an-asynchronous-http-front). The
 front answers `initialize`, `ping` and `tools/list` itself, so that they
 never wait behind a tool, and hands each `tools/call` to a worker,
 answering with a promise. The workers load the package before the server
-serves. At most one call runs per worker: a call beyond that gets a
-"busy, retry later" error at once, and since nothing queues, mirai's
-timeout counts the run time only. A call that times out, or whose worker
-stops, gets an `isError` result. Measured on 2026-11-25 with a tool that
-sleeps 2 seconds: four calls on four workers end at 2.05 s and a `ping`
-sent meanwhile at 0.02 s; with two workers and a 1-second timeout, a third
-call is busy at 0.01 s and the first two time out at 1.01 s.
+serves. At most one call runs per worker; the others wait in a bounded
+queue held by the front, which hands a call to mirai only when a worker
+is free, so that mirai's timeout counts the run time and not the wait. A
+call that finds the queue full gets a "busy, retry later" error at once;
+a call that times out, or whose worker stops, gets an `isError` result.
+Measured on 2026-11-25 with a tool that sleeps 2 seconds: four calls on
+four workers end at 2.05 s and a `ping` sent meanwhile at 0.02 s. With
+two workers, a one-place queue, a 1.5-second timeout and four 1-second
+calls: two end at 1.04 s, the queued one at 2.04 s without timing out,
+and the fourth is busy at 0.01 s.
 
 Not handled yet: a worker that stops is not replaced, so the pool runs
 with one worker less; nor are cancellation, progress, sessions and SSE
@@ -1649,7 +1653,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
 - [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`). Left: a timeout per tool, replacing a worker that stops (the pool runs with one worker less today), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
-- [x] Back-pressure: at most one call per worker, and a "busy, retry later" error beyond, at once
+- [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
 - [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases
