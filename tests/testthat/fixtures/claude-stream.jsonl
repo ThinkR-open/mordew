@@ -1,0 +1,8 @@
+{"type": "system", "subtype": "init", "tools": ["mcp__runlog__fastest_runs", "mcp__runlog__get_runs", "mcp__runlog__longest_runs", "mcp__runlog__summarise_runs", "mcp__runlog__summarise_runs_by_month"], "mcp_servers": [{"name": "runlog", "status": "connected", "source": "dynamic"}]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "mcp__runlog__fastest_runs", "input": {"n": 3, "type": "interval"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": [{"type": "text", "text": "Rows: 3. Columns: 5.\n\n| date | type | distance_km | duration_min | pace |\n| --- | --- | --- | --- | --- |\n| 2024-04-10 | interval | 10.1 | 48 | 4.75 |\n| 2024-03-18 | interval | 9.8 | 47 | 4.8 |\n| 2024-09-02 | interval | 9 | 44 | 4.89 |"}]}]}}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "thinking", "thinking": ""}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "1. 10/04/2024 : 10,1 km en 48 min, soit 4:45/km\n2. 18/03/2024 : 9,8 km en 47 min, soit 4:48/km\n3. 02/09/2024 : 9 km en 44 min, soit 4:53/km"}]}}
+{"type": "result", "subtype": "success", "is_error": false, "num_turns": 2, "result": "1. 10/04/2024 : 10,1 km en 48 min, soit 4:45/km\n2. 18/03/2024 : 9,8 km en 47 min, soit 4:48/km\n3. 02/09/2024 : 9 km en 44 min, soit 4:53/km"}

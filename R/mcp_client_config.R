@@ -106,18 +106,29 @@ claude_args <- function(
     "mcp__ide",
     "--allowedTools",
     paste0(
-      "mcp__",
-      gsub(
-        ".",
-        "_",
-        package,
-        fixed = TRUE
+      tool_prefix(
+        package
       ),
-      "__*"
+      "*"
     ),
     "--permission-mode",
     "dontAsk",
     "--disable-slash-commands"
+  )
+}
+
+tool_prefix <- function(
+  package
+) {
+  paste0(
+    "mcp__",
+    gsub(
+      ".",
+      "_",
+      package,
+      fixed = TRUE
+    ),
+    "__"
   )
 }
 
