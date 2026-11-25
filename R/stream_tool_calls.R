@@ -4,12 +4,11 @@ stream_tool_calls <- function(
 ) {
   blocks <- unlist(
     lapply(
-      lines,
-      function(line) {
-        jsonlite::fromJSON(
-          line,
-          simplifyVector = FALSE
-        )[["message"]][["content"]]
+      parse_stream(
+        lines
+      ),
+      function(message) {
+        message[["message"]][["content"]]
       }
     ),
     recursive = FALSE
@@ -37,5 +36,37 @@ stream_tool_calls <- function(
         args = block$input
       )
     }
+  )
+}
+
+stream_result <- function(
+  lines
+) {
+  unlist(
+    lapply(
+      parse_stream(
+        lines
+      ),
+      function(message) {
+        if (
+          identical(
+            message$type,
+            "result"
+          )
+        ) {
+          message$result
+        }
+      }
+    )
+  )
+}
+
+parse_stream <- function(
+  lines
+) {
+  lapply(
+    lines,
+    jsonlite::fromJSON,
+    simplifyVector = FALSE
   )
 }

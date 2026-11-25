@@ -45,13 +45,25 @@ claude_tool_calls <- function(
         package
       )
     ),
-    wd = session
+    wd = session,
+    error_on_status = FALSE
   )
+  lines <- strsplit(
+    run$stdout,
+    "\n"
+  )[[1]]
+  if (run$status != 0) {
+    stop(
+      "claude failed: ",
+      run$stderr,
+      stream_result(
+        lines
+      ),
+      call. = FALSE
+    )
+  }
   stream_tool_calls(
-    strsplit(
-      run$stdout,
-      "\n"
-    )[[1]],
+    lines,
     package
   )
 }

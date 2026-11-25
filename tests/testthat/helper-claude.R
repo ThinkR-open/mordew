@@ -1,5 +1,8 @@
 local_fake_claude <- function(
   record,
+  stream = "claude-stream.jsonl",
+  stderr = NULL,
+  status = 0,
   env = parent.frame()
 ) {
   bin <- withr::local_tempfile(
@@ -33,16 +36,31 @@ local_fake_claude <- function(
           )
         )
       ),
-      paste(
-        "cat",
-        shQuote(
-          normalizePath(
-            test_path(
-              "fixtures",
-              "claude-stream.jsonl"
+      if (!is.null(stream)) {
+        paste(
+          "cat",
+          shQuote(
+            normalizePath(
+              test_path(
+                "fixtures",
+                stream
+              )
             )
           )
         )
+      },
+      if (!is.null(stderr)) {
+        paste(
+          "echo",
+          shQuote(
+            stderr
+          ),
+          ">&2"
+        )
+      },
+      paste(
+        "exit",
+        status
       )
     ),
     claude

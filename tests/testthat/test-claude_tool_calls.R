@@ -90,3 +90,44 @@ test_that("claude_tool_calls() serves the development version of the package", {
     )
   )
 })
+
+test_that("claude_tool_calls() stops with the message of a failed session", {
+  skip_on_os(
+    "windows"
+  )
+  local_fake_claude(
+    withr::local_tempdir(),
+    stream = "claude-not-logged-in.jsonl",
+    status = 1
+  )
+
+  expect_error(
+    claude_tool_calls(
+      "Show me my long runs in 2024.",
+      local_runlog()
+    ),
+    "Not logged in · Please run /login",
+    fixed = TRUE
+  )
+})
+
+test_that("claude_tool_calls() stops with the errors of the CLI", {
+  skip_on_os(
+    "windows"
+  )
+  local_fake_claude(
+    withr::local_tempdir(),
+    stream = NULL,
+    stderr = "error: unknown option '--not-a-flag'",
+    status = 1
+  )
+
+  expect_error(
+    claude_tool_calls(
+      "Show me my long runs in 2024.",
+      local_runlog()
+    ),
+    "error: unknown option '--not-a-flag'",
+    fixed = TRUE
+  )
+})
