@@ -8,12 +8,13 @@
 
 > Build, test and ship MCP servers as R packages.
 
-**Status: early development**, phase 1 of the
-[roadmap](#roadmap-and-task-list). For now, this README is the design
-document: it records the rationale, the target architecture, the known
-pitfalls, the open questions and the full task list. Once the MVP ships,
-it will be cut down to a user-facing README and the design material will
-move to `dev/design/`.
+**Status: early development**, phase 2 of the
+[roadmap](#roadmap-and-task-list): the tools-only MVP is built, not yet
+released. For now, this README is the design document: it records the
+rationale, the target architecture, the known pitfalls, the open
+questions and the full task list. Once the MVP ships, it will be cut
+down to a user-facing README and the design material will move to
+`dev/design/`.
 
 ---
 
@@ -924,9 +925,16 @@ mordew::call_tool(
 ```
 
 The MCP Inspector starts the server from its command and arguments: the
-ones `mcp_client_config()` writes. Its documentation does not say how
-arguments that start with a dash (`--no-init-file`, `-e`) are passed, so
-check it for the version you run.
+ones `mcp_client_config()` writes. With version 2.16.0, its own options
+come first and the server command after `--`, or it takes `-e` for one
+of its options (checked on 2026-11-25):
+
+```bash
+npx @modelcontextprotocol/inspector@2.16.0 --cli --method tools/list -- \
+  Rscript --no-init-file -e "runlog::run_mcp_server()"
+```
+
+`call_tool(client = "inspector")` runs the same call through it.
 
 ### Development loop: `run_dev()`
 
@@ -1057,6 +1065,34 @@ development version with `pkgload::load_all()`, under `R CMD check` it
 runs the installed package. A protocol error (an unknown tool) is an R
 error; a tool error is an `isError` result, which `expect_tool_error()`
 checks, with an optional pattern on its message.
+
+With `client = "inspector"`, `call_tool()` makes the same call through the
+MCP Inspector, the reference client of the MCP project, run with `npx`
+in its CLI mode, pinned to the version checked. The server and
+`{mordew}`'s client share one reading of the protocol, so a mistake in it
+would pass unnoticed between them: a client written by others catches it.
+Both clients give the same result shape, so a test can compare them:
+
+```r
+test_that("summarise_runs answers the same through the MCP Inspector", {
+  skip_on_cran()
+  args <- list(
+    surface = "trail",
+    year = 2025
+  )
+  expect_identical(
+    call_tool(
+      "summarise_runs",
+      args,
+      client = "inspector"
+    ),
+    call_tool(
+      "summarise_runs",
+      args
+    )
+  )
+})
+```
 
 **Level 3, behaviour**, uses evals: each case is a user prompt with the
 tool calls to accept, scored over several runs. Evals need the `claude` CLI
@@ -1550,7 +1586,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 ### Phase 2: testing toolkit and development loop
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
-- [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
+- [x] Round-trip helper through a third-party MCP client over stdio, next to `call_tool()`'s own client: `call_tool(client = "inspector")`, through the MCP Inspector 2.16.0. Claude Code lists its tools only in a session with the model, so it is left to the evals
 - [x] `use_evals()`: `dev/evals.R` and a CI workflow started by hand, through the `claude` CLI and without vitals for now: add it later if its log viewer is worth the dependency. It applies the lessons of the first evals (`dev/evals.R`, and a real server on 2026-11-24): each argument compared on its own terms, several answers per case, every call checked, several runs per case, a flag on a run that takes more calls than expected, and a pass rate per case
 - [ ] Run the evals workflow on a real CI job: installing the `claude` CLI on the runner (`~/.local/bin` on the `PATH`) and a missing `ANTHROPIC_API_KEY` secret are untested. Until `{mordew}` is on CRAN, the package needs `Remotes: ThinkR-open/mordew`
 - [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login

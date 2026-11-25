@@ -9,7 +9,8 @@ call_tool(
   args = list(),
   transport = "stdio",
   package = testthat::testing_package(),
-  timeout = 30
+  timeout = 30,
+  client = c("mordew", "inspector")
 )
 }
 \arguments{
@@ -22,7 +23,13 @@ call_tool(
 \item{package}{Package that serves the tool, by default the one being
 tested.}
 
-\item{timeout}{Seconds to wait for each answer of the server.}
+\item{timeout}{Seconds to wait for each answer of the server, with the
+\code{"mordew"} client.}
+
+\item{client}{MCP client that calls the tool: \code{"mordew"}, its own, or
+\code{"inspector"}, the MCP Inspector run through \code{npx}, which needs Node.js. A
+client written by others checks that the server is understood beyond
+\code{{mordew}}'s own reading of the protocol.}
 }
 \value{
 The tool result: a list with \code{content} and \code{isError}.

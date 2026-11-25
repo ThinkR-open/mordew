@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Rows: 3. Columns: 5.\n\n| date | type | distance_km | duration_min | pace |\n| --- | --- | --- | --- | --- |\n| 2024-04-10 | interval | 10.1 | 48 | 4.75 |\n| 2024-03-18 | interval | 9.8 | 47 | 4.8 |\n| 2024-09-02 | interval | 9 | 44 | 4.89 |"
+    }
+  ]
+}
