@@ -123,10 +123,9 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 
 - **To try tools during development**: `mordew::run_dev()` opens an
   ellmer chat in the R console, connected to the package's MCP server
-  (see [Development loop](#development-loop-run_dev)). Tools can also be
-  called without a model with `call_tool()`, or tried from an MCP
-  inspector or a [Claude Code session restricted to the
-  server](#a-claude-code-session-restricted-to-the-server).
+  (see [Development loop](#development-loop-run_dev)). The other ways to
+  try them, with or without a model, are in [Trying the
+  tools](#trying-the-tools).
 - **To give users a chat**: build it as its own application, for example
   a golem app using shinychat and ellmer, that connects to the `{mordew}`
   server through MCP. Everything the server enforces (validation, limits,
@@ -900,6 +899,35 @@ Two consequences for `{mordew}`:
    client's other tools or the conversation: containing the client is
    the job of whoever deploys it.
 
+### Trying the tools
+
+| Way                                                                        | Model                                           | Version served                                           | What for                                                                                       |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `call_tool()`                                                              | none                                            | development, after `devtools::load_all()`; or installed  | one call and its exact result, in the console or in a test                                     |
+| [MCP Inspector](https://github.com/modelcontextprotocol/inspector)        | none                                            | the command it is given                                  | list the tools, fill their arguments in a form, read the raw protocol messages                 |
+| `run_dev()`                                                                | an ellmer chat, or Claude Code with `client = "claude"` | development                                              | see by hand which tool the model picks, and with which arguments                               |
+| `add_mcp_client_config()` and its [restricted Claude Code session](#a-claude-code-session-restricted-to-the-server) | Claude Code                                     | installed                                                | the package as its users will get it                                                           |
+| `dev/evals.R`, from `use_evals()`                                          | Claude Code                                     | development                                              | the check of `run_dev()`, automated over a set of questions, several runs each                 |
+
+`call_tool()` runs outside tests too, given the package:
+
+```r
+devtools::load_all()
+mordew::call_tool(
+  "summarise_runs",
+  list(
+    surface = "trail",
+    year = 2025
+  ),
+  package = "runlog"
+)
+```
+
+The MCP Inspector starts the server from its command and arguments: the
+ones `mcp_client_config()` writes. Its documentation does not say how
+arguments that start with a dash (`--no-init-file`, `-e`) are passed, so
+check it for the version you run.
+
 ### Development loop: `run_dev()`
 
 `{mordew}` ships no chat, but it gives a quick way to talk to the package's
@@ -1520,7 +1548,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Hostile-argument test generator
 - [x] `run_dev(client = "claude")`: prints the command of a Claude Code session restricted to the development server, to paste in a terminal
 - [ ] Launch that session from `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal
-- [ ] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
+- [x] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
 - [ ] Automate the restriction check, later: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
 
 ### Phase 3: production
