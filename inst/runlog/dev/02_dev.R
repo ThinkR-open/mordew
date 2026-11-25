@@ -5,3 +5,5 @@ mordew::add_tool(
 )
 
 mordew::add_mcp_client_config()
+
+mordew::use_evals()
