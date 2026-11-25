@@ -120,6 +120,24 @@ test_that("create_mordew() keeps dev/ out of the build", {
   )
 })
 
+test_that("create_mordew() keeps .github/ out of the build", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  expect_contains(
+    readLines(
+      file.path(
+        path,
+        ".Rbuildignore"
+      )
+    ),
+    "^\\.github$"
+  )
+})
+
 test_that("create_mordew() sets up testthat", {
   path <- tempfile()
 

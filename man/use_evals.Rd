@@ -11,6 +11,9 @@ use_evals(pkg = ".")
 }
 \description{
 Creates \code{dev/evals.R}, a script that checks, through Claude Code, that the
-model calls the right tool with the right arguments. Replace its example
-cases with questions your users ask.
+model calls the right tool with the right arguments, and
+\code{.github/workflows/evals.yaml}, a workflow that runs it when started by
+hand. Replace the example cases of the script with questions your users
+ask, and add an \code{ANTHROPIC_API_KEY} secret to the repository for the
+workflow.
 }

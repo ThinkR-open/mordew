@@ -1,0 +1,33 @@
+# Runs dev/evals.R: does the model call the right tool, with the right
+# arguments? Started by hand from the Actions tab, since each run of a case
+# costs one request. Needs an ANTHROPIC_API_KEY secret in the repository.
+on:
+  workflow_dispatch:
+
+name: evals.yaml
+
+permissions: read-all
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+
+      - name: Install Claude Code
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run the evals
+        run: Rscript dev/evals.R

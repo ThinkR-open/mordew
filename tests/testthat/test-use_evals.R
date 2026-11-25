@@ -38,3 +38,28 @@ test_that("use_evals() refuses an existing script", {
     "already exists"
   )
 })
+
+test_that("use_evals() writes a CI workflow that runs the script", {
+  path <- tempfile()
+  create_mordew(
+    path
+  )
+
+  use_evals(
+    pkg = path
+  )
+
+  expect_match(
+    readLines(
+      file.path(
+        path,
+        ".github",
+        "workflows",
+        "evals.yaml"
+      )
+    ),
+    "Rscript dev/evals.R",
+    fixed = TRUE,
+    all = FALSE
+  )
+})

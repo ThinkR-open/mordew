@@ -39,6 +39,7 @@ test_that("add_mcp_client_config() keeps the configuration out of the build, onc
     ),
     c(
       "^dev$",
+      "^\\.github$",
       "^runlog\\.json$"
     )
   )
