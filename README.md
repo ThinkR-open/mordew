@@ -904,8 +904,7 @@ Two consequences for `{mordew}`:
 
 `{mordew}` ships no chat, but it gives a quick way to talk to the package's
 tools while developing them, the way `golem::run_dev()` runs a Shiny app
-under development. It works with ellmer today; the `claude` client comes
-in phase 2:
+under development. It works with ellmer, or with the `claude` CLI:
 
 ```r
 # any model provider, through ellmer (needs an API key)
@@ -915,7 +914,7 @@ mordew::run_dev(
   ui = "console"
 )
 
-# phase 2: the `claude` CLI found on the PATH (uses the Claude subscription)
+# the `claude` CLI and its login, for example a Claude subscription
 mordew::run_dev(
   client = "claude"
 )
@@ -929,11 +928,11 @@ configuration that starts it. Then:
 |                             | `client = "ellmer"`                                                                 | `client = "claude"`                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Connects to the server with | `{mordew}`'s stdio client, whose tools become ellmer tools, then `chat$set_tools()`; the server's instructions join the chat's system prompt | `--mcp-config` pointing to the temporary configuration                                           |
-| Opens                       | `ellmer::live_console()`, or `ellmer::live_browser()` with `ui = "browser"`         | a Claude Code session in the IDE terminal (RStudio, Positron), or prints the command to paste    |
+| Opens                       | `ellmer::live_console()`, or `ellmer::live_browser()` with `ui = "browser"`         | nothing: it prints the command to paste in a terminal, such as the IDE's integrated terminal    |
 | Model and billing           | any ellmer provider or a local model; API key in the environment, billed per token  | the user's Claude Code login, for example a Claude subscription                                  |
 | Other tools available       | none: ellmer only sends the server's tools                                          | none: the session is [restricted to the server](#a-claude-code-session-restricted-to-the-server) |
 
-With `client = "claude"`, the command `run_dev()` runs is:
+With `client = "claude"`, the command `run_dev()` prints is:
 
 ```bash
 claude --tools "" --strict-mcp-config \
@@ -943,7 +942,10 @@ claude --tools "" --strict-mcp-config \
 ```
 
 Claude Code is a full-screen terminal interface, so it cannot run inside
-the R console itself. For a one-off question from R,
+the R console itself, and neither Positron nor VS Code lets R code run a
+command in a terminal: neither implements `rstudioapi::terminal*()`
+(checked in their source code on 2026-11-25). The command is printed
+rather than launched. For a one-off question from R,
 `claude -p "question" --output-format json`, with the same flags, returns
 the answer and the tool calls, which can also feed quick evals.
 
@@ -1516,7 +1518,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
-- [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
+- [x] `run_dev(client = "claude")`: prints the command of a Claude Code session restricted to the development server, to paste in a terminal
+- [ ] Launch that session from `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal
 - [ ] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session
 - [ ] Automate the restriction check, later: a separate CI job starts the session that `mcp_client_config("claude_code")` writes and checks that the model only gets the server's tools. It needs the `claude` CLI and an API key in the repository secrets, and costs a request per run. To verify first: that the session's `stream-json` init message lists its tools
 
