@@ -90,17 +90,18 @@ print.mordew_client_config <- function(
 }
 
 claude_args <- function(
-  package
+  package,
+  config = paste0(
+    package,
+    ".json"
+  )
 ) {
   c(
     "--tools",
     "",
     "--strict-mcp-config",
     "--mcp-config",
-    paste0(
-      package,
-      ".json"
-    ),
+    config,
     "--no-chrome",
     "--disallowedTools",
     "mcp__ide",
@@ -176,6 +177,27 @@ server_config <- function(
       auto_unbox = TRUE,
       pretty = TRUE
     )
+  )
+}
+
+write_dev_config <- function(
+  pkg,
+  file
+) {
+  package <- package_name(
+    pkg
+  )
+  writeLines(
+    server_config(
+      package,
+      server_args(
+        package,
+        normalizePath(
+          pkg
+        )
+      )
+    ),
+    file
   )
 }
 

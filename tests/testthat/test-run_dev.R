@@ -158,3 +158,49 @@ test_that("run_dev() can open ellmer's browser UI", {
     "browser"
   )
 })
+
+test_that("run_dev() gives the command of a Claude Code session on the development server", {
+  path <- local_runlog()
+
+  expect_message(
+    command <- run_dev(
+      client = "claude",
+      pkg = path
+    ),
+    "claude --tools"
+  )
+
+  config <- sub(
+    ".* --mcp-config ([^ ]+) .*",
+    "\\1",
+    command
+  )
+  expect_identical(
+    command,
+    command_line(
+      c(
+        "claude",
+        claude_args(
+          "runlog",
+          config
+        )
+      )
+    )
+  )
+  expect_identical(
+    jsonlite::read_json(
+      config
+    )$mcpServers$runlog,
+    list(
+      command = rscript(),
+      args = as.list(
+        server_args(
+          "runlog",
+          normalizePath(
+            path
+          )
+        )
+      )
+    )
+  )
+})

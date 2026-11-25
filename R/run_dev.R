@@ -1,11 +1,15 @@
 #' Try the tools with a model
 #'
-#' Starts the development version of the package's MCP server, connects an
-#' ellmer chat to it through MCP, and opens the chat. The model sees the tools
-#' exactly as any MCP client sends them, and each tool call is shown with its
-#' arguments. Changing a tool means restarting `run_dev()`.
+#' Serves the development version of the package's MCP server to a model.
+#' With `client = "ellmer"`, connects an ellmer chat to the server and opens
+#' the chat. With `client = "claude"`, writes a temporary MCP configuration
+#' and gives the command of a Claude Code session restricted to the server.
+#' The model sees the tools exactly as any MCP client sends them, and each
+#' tool call is shown with its arguments. Changing a tool means restarting
+#' `run_dev()`.
 #'
-#' @param client Client to chat through: `"ellmer"`.
+#' @param client Client to chat through: `"ellmer"`, or `"claude"` for the
+#'   `claude` CLI and its login.
 #' @param chat An ellmer chat, such as `ellmer::chat_anthropic()`. The
 #'   server's instructions are added to its system prompt.
 #' @param ui `"console"` for `ellmer::live_console()`, `"browser"` for
@@ -13,11 +17,14 @@
 #' @param pkg Path to the package.
 #' @param timeout Seconds to wait for each answer of the server.
 #'
-#' @return The chat, invisibly.
+#' @return The chat, or the `claude` command, invisibly.
 #'
 #' @export
 run_dev <- function(
-  client = "ellmer",
+  client = c(
+    "ellmer",
+    "claude"
+  ),
   chat,
   ui = c(
     "console",
@@ -26,10 +33,16 @@ run_dev <- function(
   pkg = ".",
   timeout = 30
 ) {
-  match.arg(
-    client,
-    "ellmer"
+  client <- match.arg(
+    client
   )
+  if (client == "claude") {
+    return(
+      run_claude(
+        pkg
+      )
+    )
+  }
   ui <- match.arg(
     ui
   )
@@ -69,6 +82,41 @@ run_dev <- function(
   )
   invisible(
     chat
+  )
+}
+
+run_claude <- function(
+  pkg
+) {
+  package <- package_name(
+    pkg
+  )
+  config <- tempfile(
+    paste0(
+      package,
+      "-mcp"
+    ),
+    fileext = ".json"
+  )
+  write_dev_config(
+    pkg,
+    config
+  )
+  command <- command_line(
+    c(
+      "claude",
+      claude_args(
+        package,
+        config
+      )
+    )
+  )
+  message(
+    "Run in a terminal:\n",
+    command
+  )
+  invisible(
+    command
   )
 }
 

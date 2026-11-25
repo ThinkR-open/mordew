@@ -15,16 +15,8 @@ claude_tool_calls <- function(
       recursive = TRUE
     )
   )
-  writeLines(
-    server_config(
-      package,
-      server_args(
-        package,
-        normalizePath(
-          pkg
-        )
-      )
-    ),
+  write_dev_config(
+    pkg,
     file.path(
       session,
       paste0(

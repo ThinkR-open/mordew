@@ -5,7 +5,7 @@
 \title{Try the tools with a model}
 \usage{
 run_dev(
-  client = "ellmer",
+  client = c("ellmer", "claude"),
   chat,
   ui = c("console", "browser"),
   pkg = ".",
@@ -13,7 +13,8 @@ run_dev(
 )
 }
 \arguments{
-\item{client}{Client to chat through: \code{"ellmer"}.}
+\item{client}{Client to chat through: \code{"ellmer"}, or \code{"claude"} for the
+\code{claude} CLI and its login.}
 
 \item{chat}{An ellmer chat, such as \code{ellmer::chat_anthropic()}. The
 server's instructions are added to its system prompt.}
@@ -26,11 +27,14 @@ server's instructions are added to its system prompt.}
 \item{timeout}{Seconds to wait for each answer of the server.}
 }
 \value{
-The chat, invisibly.
+The chat, or the \code{claude} command, invisibly.
 }
 \description{
-Starts the development version of the package's MCP server, connects an
-ellmer chat to it through MCP, and opens the chat. The model sees the tools
-exactly as any MCP client sends them, and each tool call is shown with its
-arguments. Changing a tool means restarting \code{run_dev()}.
+Serves the development version of the package's MCP server to a model.
+With \code{client = "ellmer"}, connects an ellmer chat to the server and opens
+the chat. With \code{client = "claude"}, writes a temporary MCP configuration
+and gives the command of a Claude Code session restricted to the server.
+The model sees the tools exactly as any MCP client sends them, and each
+tool call is shown with its arguments. Changing a tool means restarting
+\code{run_dev()}.
 }
