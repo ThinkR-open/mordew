@@ -104,7 +104,7 @@ conventions and the path to production.
 `{mordew}` **is not**:
 
 - an LLM client: `{mordew}` never calls a model itself, except in behavioural
-  evals, which rely on [ellmer](https://ellmer.tidyverse.org/) and vitals
+  evals, which run the model through the `claude` CLI
 - a chat: a chat is a separate product, an MCP client like any other
   (see [Scope: the chat is a separate product](#scope-the-chat-is-a-separate-product))
 - a sandbox: OS-level isolation is documented and scaffolded, not reinvented
@@ -981,7 +981,7 @@ security tests.
 | ------------ | ------------------------------------------------------------ | --------------------------------------- | -------------------------------- |
 | 1. Unit      | Does the function compute the right result?                  | testthat                                | `R CMD check`, CI                |
 | 2. Contract  | Is the tool exposed correctly over MCP?                      | `{mordew}` helpers + testthat snapshots | `R CMD check`, CI                |
-| 3. Behaviour | Does the model pick the right tool with the right arguments? | evals with vitals                       | separate CI job, before releases |
+| 3. Behaviour | Does the model pick the right tool with the right arguments? | evals through the `claude` CLI          | separate CI job, before releases |
 | Security     | Does the tool resist hostile arguments?                      | `{mordew}` helpers                      | `R CMD check`, CI                |
 
 **Level 2, the contract**, is the one nobody covers today. It checks that:
@@ -1472,7 +1472,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
-- [ ] `use_evals()`: vitals scaffolding and a separate CI workflow. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times; count the calls and flag a case that takes more than expected (a year summary took five)
+- [ ] `use_evals()`: eval cases, a runner through the `claude` CLI and a separate CI workflow, without vitals for now: add it later if its log viewer is worth the dependency. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times; count the calls and flag a case that takes more than expected (a year summary took five)
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
 - [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
@@ -1557,7 +1557,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
    only).
 5. **State model**: stateless only, or handles with a session object store.
 6. **One package.** Runtime `Imports` stay minimal — what
-   `run_mcp_server()` executes; the development and testing tooling (testthat, vitals)
+   `run_mcp_server()` executes; the development and testing tooling (testthat)
    lives in `Suggests`, installed on a development machine with
    `mordew::install_dev_deps()`, the golem pattern. Split only if a
    future helper would drag a heavy dependency into `Imports`.
