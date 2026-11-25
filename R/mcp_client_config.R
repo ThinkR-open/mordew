@@ -153,19 +153,20 @@ command_line <- function(
 }
 
 server_config <- function(
-  package
+  package,
+  args = c(
+    "--no-init-file",
+    "-e",
+    paste0(
+      package,
+      "::run_mcp_server()"
+    )
+  )
 ) {
   config <- list()
   config[[package]] <- list(
     command = rscript(),
-    args = c(
-      "--no-init-file",
-      "-e",
-      paste0(
-        package,
-        "::run_mcp_server()"
-      )
-    )
+    args = args
   )
   as.character(
     jsonlite::toJSON(

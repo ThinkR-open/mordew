@@ -7,39 +7,49 @@ start_server <- function(
 ) {
   stdio_client(
     rscript(),
-    c(
-      "--no-init-file",
-      "-e",
-      paste0(
-        ".libPaths(",
-        paste(
-          deparse(
-            .libPaths()
-          ),
-          collapse = ""
-        ),
-        "); ",
-        if (
-          !dir.exists(
-            file.path(
-              path,
-              "Meta"
-            )
-          )
-        ) {
-          paste0(
-            "pkgload::load_all(",
-            deparse(
-              path
-            ),
-            ", quiet = TRUE); "
-          )
-        },
-        package,
-        "::run_mcp_server()"
-      )
+    server_args(
+      package,
+      path
     ),
     timeout
+  )
+}
+
+server_args <- function(
+  package,
+  path
+) {
+  c(
+    "--no-init-file",
+    "-e",
+    paste0(
+      ".libPaths(",
+      paste(
+        deparse(
+          .libPaths()
+        ),
+        collapse = ""
+      ),
+      "); ",
+      if (
+        !dir.exists(
+          file.path(
+            path,
+            "Meta"
+          )
+        )
+      ) {
+        paste0(
+          "pkgload::load_all(",
+          deparse(
+            path
+          ),
+          ", quiet = TRUE); "
+        )
+      },
+      package,
+      "::run_mcp_server()"
+    )
   )
 }
 
