@@ -21,6 +21,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
     curl,
+    dockerfiler,
     ellmer,
     ggplot2,
     later,
