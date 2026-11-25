@@ -1675,8 +1675,9 @@ The plan is to **ship a tools-only MVP first**, then grow towards full
 specification coverage. Partial coverage at the start is fine: every
 feature has its phase below, and nothing in the MVP should have to break
 to add one. The proof of concept stops at phase 3, with a server that
-runs over stdio and HTTP and deploys to Docker and Posit Connect; what
-comes after is a direction, not a commitment.
+runs over stdio and HTTP and deploys to Docker and Posit Connect, then
+checks that need it published; what comes after is a direction, not a
+commitment.
 
 ### Phase 0: frame
 
@@ -1729,8 +1730,18 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
 - [x] Authentication for the HTTP transport, first step: an optional shared bearer token (`MORDEW_TOKEN`), with a warning when the server is open beyond the machine, and `GET /health` left open
 - [x] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`. Checked with a local `{mordew}` archive; a build from GitHub needs the repository public
-- [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
-- [ ] Open the repository, then check what needs it public: the `R-CMD-check` workflow back on, the evals workflow on a real CI job (the `claude` CLI on the runner, a missing `ANTHROPIC_API_KEY` secret), and a Docker image built with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
+- [x] `add_connect()` for Posit Connect: `_server.yml` with `engine: mordew`, and `launch_server()`, checked by calling `launch_server()` locally
+
+### Publish the proof of concept
+
+Checks rather than code: each needs the repository public or a real
+instance.
+
+- [ ] Open the repository
+- [ ] Deploy `runlog` on a real Posit Connect, and connect a client to it
+- [ ] Turn the `R-CMD-check` and `format-check` workflows back on
+- [ ] Run the evals workflow on a real CI job: the `claude` CLI on the runner, and a missing `ANTHROPIC_API_KEY` secret, are untested
+- [ ] Build a Docker image with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
 
 ### Before each release
 
