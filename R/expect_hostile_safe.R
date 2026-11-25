@@ -69,7 +69,9 @@ expect_hostile_safe <- function(
     is.null(
       failure
     ),
-    failure
+    as.character(
+      failure
+    )
   )
 }
 
