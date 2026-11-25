@@ -794,7 +794,8 @@ does not read its stdin blocks until the server reads or exits: the
 timeout only applies to the answer.
 
 The cost: following the specification becomes `{mordew}`'s work (see
-[Risks](#risks)), and `add_connect()` loses mcptools' `engine: mcptools`.
+[Risks](#risks)), and Posit Connect needs `{mordew}`'s own engine rather
+than mcptools' `engine: mcptools` (see [Posit Connect](#posit-connect)).
 Contributing to mcptools stays a goal: what `{mordew}` builds and
 mcptools lacks can be proposed upstream.
 
@@ -1319,7 +1320,39 @@ privacy trade-off.
 | Local, desktop client | stdio     | `Rscript --no-init-file -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()`            |
 | Docker                | HTTP      | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
 | Kubernetes            | HTTP      | example manifests: probes, replicas, secrets                                                       |
-| Posit Connect         | HTTP      | `add_connect()`; path to find, since mcptools' `engine: mcptools` no longer applies                |
+| Posit Connect         | HTTP      | `add_connect()` writes `_server.yml` with `engine: mordew`; `rsconnect::deployAPI(".", contentCategory = "mcp")` |
+
+### Posit Connect
+
+Connect serves `{mordew}` packages through plumber2's `_server.yml`
+standard, as it serves mcptools: the file's first line names the engine
+package, and Connect calls that package's `launch_server(settings, host,
+port)`, which serves until the process stops. `add_connect()` writes
+`_server.yml` with `engine: mordew` at the package root and keeps it out
+of the build; `mordew:::launch_server()` installs the deployed package
+into a temporary library, then serves it over HTTP on the host and port
+Connect gives, with its worker pool:
+
+```r
+mordew::add_connect()
+rsconnect::deployAPI(
+  ".",
+  contentCategory = "mcp"
+)
+```
+
+```bash
+claude mcp add --transport http runlog https://connect.example.com/content/<guid>/mcp \
+  --header "Authorization: Key <Connect API key>"
+```
+
+Connect authenticates the clients itself, with its API keys, and strips
+the `Authorization` header before the request reaches the server: the
+server runs without a token there. Checked on 2026-11-25 by calling
+`launch_server("_server.yml", host, port)` on a copy of `runlog`, as
+Connect does; not yet deployed on a real Connect. Until `{mordew}` is on
+CRAN, Connect installs it from GitHub, which takes
+`Remotes: ThinkR-open/mordew` in the package's `DESCRIPTION`.
 
 ### When a single process is enough
 
@@ -1700,7 +1733,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Session-scoped object store, if the prototype shows it is needed
 - [ ] OpenTelemetry tracing
 - [ ] Kubernetes manifests example
-- [ ] `add_connect()` for Posit Connect
+- [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
 - [ ] Redaction hook and output policies
 
 ### Phase 4: specification coverage and conformance
