@@ -4,9 +4,14 @@
 \alias{run_mcp_server}
 \title{Run the MCP server}
 \usage{
-run_mcp_server()
+run_mcp_server(...)
+}
+\arguments{
+\item{...}{Passed to \code{\link[mordew:run_mcp_server]{mordew::run_mcp_server()}}: \code{transport}, \code{host} and
+\code{port}.}
 }
 \description{
-Serves the package's tools over stdio to the MCP client that started the
-R process, until the client closes stdin.
+Serves the package's tools to MCP clients: over stdio by default, to the
+client that started the R process, until it closes stdin; over HTTP with
+\code{transport = "http"}.
 }

@@ -1,11 +1,18 @@
 #' Run the MCP server
 #'
-#' Serves the package's tools over stdio to the MCP client that started the
-#' R process, until the client closes stdin.
+#' Serves the package's tools to MCP clients: over stdio by default, to the
+#' client that started the R process, until it closes stdin; over HTTP with
+#' `transport = "http"`.
+#'
+#' @param ... Passed to [mordew::run_mcp_server()]: `transport`, `host` and
+#'   `port`.
 #'
 #' @export
-run_mcp_server <- function() {
+run_mcp_server <- function(
+  ...
+) {
   mordew::run_mcp_server(
-    "mordewexample"
+    "mordewexample",
+    ...
   )
 }

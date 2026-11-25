@@ -7,29 +7,56 @@ local_mordew_lib <- function(
   dir.create(
     lib
   )
-  if (
-    length(
-      find.package(
-        "mordew",
-        lib.loc = .libPaths(),
-        quiet = TRUE
-      )
-    ) ==
-      0
-  ) {
-    install_source(
-      test_path(
-        "..",
-        ".."
-      ),
-      lib
-    )
-  }
   withr::local_libpaths(
-    lib,
+    c(
+      lib,
+      mordew_lib()
+    ),
     action = "prefix",
     .local_envir = env
   )
+  lib
+}
+
+mordew_lib <- function() {
+  lib <- file.path(
+    tempdir(),
+    "mordew-lib"
+  )
+  if (
+    !dir.exists(
+      lib
+    )
+  ) {
+    dir.create(
+      lib
+    )
+    installed <- tryCatch(
+      utils::packageVersion(
+        "mordew",
+        lib.loc = .libPaths()
+      ),
+      error = function(error) {
+        NULL
+      }
+    )
+    if (
+      !identical(
+        installed,
+        utils::packageVersion(
+          "mordew"
+        )
+      )
+    ) {
+      install_source(
+        test_path(
+          "..",
+          ".."
+        ),
+        lib
+      )
+    }
+  }
   lib
 }
 

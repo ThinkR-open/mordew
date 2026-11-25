@@ -2,16 +2,30 @@
 % Please edit documentation in R/run_mcp_server.R
 \name{run_mcp_server}
 \alias{run_mcp_server}
-\title{Run an MCP server over stdio}
+\title{Run an MCP server}
 \usage{
-run_mcp_server(package)
+run_mcp_server(
+  package,
+  transport = c("stdio", "http"),
+  host = "127.0.0.1",
+  port = 8000
+)
 }
 \arguments{
 \item{package}{Name of the installed package whose tools to serve.}
+
+\item{transport}{\code{"stdio"} or \code{"http"}.}
+
+\item{host}{Address to listen on over HTTP: \code{"127.0.0.1"} serves this
+machine only, as the MCP specification recommends for a local server.}
+
+\item{port}{Port to listen on over HTTP.}
 }
 \description{
-Serves the tools of an installed mordew package to the MCP client that
-started the R process: reads requests from stdin and writes responses to
-stdout until the client closes stdin. It blocks the R process, so it is
-meant to be the main loop of a dedicated process.
+Serves the tools of an installed mordew package. It blocks the R process,
+so it is meant to be the main loop of a dedicated process. Over stdio, it
+serves the MCP client that started the R process: reads requests from
+stdin and writes responses to stdout until the client closes stdin. Over
+HTTP, it serves the Streamable HTTP transport of MCP on \code{host} and \code{port},
+one call at a time.
 }
