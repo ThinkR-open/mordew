@@ -2,9 +2,10 @@
 #'
 #' Writes a Dockerfile that installs the package with
 #' `dockerfiler::dock_from_desc()`, then serves it over HTTP with its worker
-#' pool, as a non-root user, on `0.0.0.0`. The container needs a token to
-#' start, since it serves beyond the machine, and is probed on `/health`:
-#' `docker run -e MORDEW_TOKEN=... -p 8080:8080 <image>`.
+#' pool, as a non-root user, on `0.0.0.0`, probed on `/health`. Give it a
+#' token, `docker run -e MORDEW_TOKEN=... -p 8080:8080 <image>`, unless a
+#' proxy in front authenticates the clients: without one, it warns at
+#' start-up.
 #'
 #' @param pkg Path to the package.
 #' @param port Port the server listens on in the container.

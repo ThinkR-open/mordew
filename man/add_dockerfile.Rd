@@ -16,7 +16,8 @@ add_dockerfile(pkg = ".", port = 8080, ...)
 \description{
 Writes a Dockerfile that installs the package with
 \code{dockerfiler::dock_from_desc()}, then serves it over HTTP with its worker
-pool, as a non-root user, on \verb{0.0.0.0}. The container needs a token to
-start, since it serves beyond the machine, and is probed on \verb{/health}:
-\verb{docker run -e MORDEW_TOKEN=... -p 8080:8080 <image>}.
+pool, as a non-root user, on \verb{0.0.0.0}, probed on \verb{/health}. Give it a
+token, \verb{docker run -e MORDEW_TOKEN=... -p 8080:8080 <image>}, unless a
+proxy in front authenticates the clients: without one, it warns at
+start-up.
 }

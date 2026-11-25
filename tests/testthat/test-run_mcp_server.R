@@ -141,7 +141,7 @@ test_that("run_mcp_server() takes the token from MORDEW_TOKEN", {
   )
 })
 
-test_that("run_mcp_server() refuses to serve beyond this machine without a token", {
+test_that("run_mcp_server() warns when it serves beyond this machine without a token", {
   local_mocked_bindings(
     serve_http = function(
       ...
@@ -153,14 +153,18 @@ test_that("run_mcp_server() refuses to serve beyond this machine without a token
     MORDEW_TOKEN = NA
   )
 
-  expect_error(
-    run_mcp_server(
+  expect_message(
+    served <- run_mcp_server(
       "mordew",
       transport = "http",
       host = "0.0.0.0"
     ),
-    "Set a token to serve on 0.0.0.0",
+    "Serving on 0.0.0.0 without a token",
     fixed = TRUE
+  )
+  expect_identical(
+    served,
+    "served"
   )
 })
 

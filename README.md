@@ -856,9 +856,11 @@ for a local server.
 With a token, every request but `GET /health` must send
 `Authorization: Bearer <token>`, or gets a 401 with
 `WWW-Authenticate: Bearer`; the token is compared in constant time. It
-comes from the `MORDEW_TOKEN` environment variable by default, and is
-required to serve on another host than `127.0.0.1`, `localhost` or
-`::1`: `run_mcp_server()` refuses to start without one.
+comes from the `MORDEW_TOKEN` environment variable by default. The token
+is optional: a proxy or a gateway in front may authenticate the clients
+instead, or the network may be private. Serving on another host than
+`127.0.0.1`, `localhost` or `::1` without one prints a warning at
+start-up, so that an open server does not go unnoticed.
 
 ```bash
 MORDEW_TOKEN=... Rscript -e "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0')"
@@ -1267,7 +1269,7 @@ kept away.
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; per-tool timeouts and resource limits are planned.                                                                                                              |
 | Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a planned redaction hook, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation. In `dev/evals.R` (2026-11-24), the model got 107 of 174 rows truncated at 50 by asking again for each type of run. |
-| Unauthorised access to an HTTP server | A shared bearer token, required off localhost; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
+| Unauthorised access to an HTTP server | A shared bearer token, or a proxy that authenticates in front, with a warning when the server is open beyond the machine; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
 | No traceability                       | Planned: an audit log of every call (below).                                                                                                                                                                                                 |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
 | Resources exposing too much           | Planned, with resources: they are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
@@ -1571,8 +1573,8 @@ dependencies, then the package, and adds what a server needs:
 - the port, 8080 by default
 - a health check that reads `GET /health` with base R, so the image needs
   no curl
-- a start on `0.0.0.0`, which needs `MORDEW_TOKEN`: without it, the
-  container stops at once and says why
+- a start on `0.0.0.0`, with the token of `MORDEW_TOKEN`; without one,
+  for instance behind a proxy that authenticates, it warns at start-up
 
 What it adds for `runlog`, after the lines from dockerfiler:
 
@@ -1590,9 +1592,8 @@ docker run -e MORDEW_TOKEN=... -p 8080:8080 runlog
 ```
 
 Checked on 2026-11-25 with an image of `runlog`, `{mordew}` installed
-from a local archive: without a token, the container stopped and said
-why; with one, a request without the token got a 401 and a request with
-it the tool's answer, the server ran as `mordew`, and Docker reported the
+from a local archive: with a token, a request without it got a 401 and
+a request with it the tool's answer, the server ran as `mordew`, and Docker reported the
 container healthy. Three things learned on the way:
 
 - **System requirements.** dockerfiler computes them with pak, which must
@@ -1733,7 +1734,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
 - [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
 - [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
-- [x] Authentication for the HTTP transport, first step: a shared bearer token (`MORDEW_TOKEN`), required to serve off localhost, with `GET /health` left open
+- [x] Authentication for the HTTP transport, first step: an optional shared bearer token (`MORDEW_TOKEN`), with a warning when the server is open beyond the machine, and `GET /health` left open
 - [x] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`. Checked with a local `{mordew}` archive; a build from GitHub needs the repository public
 - [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
 
