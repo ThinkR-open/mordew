@@ -1,6 +1,6 @@
 Package: mordew
 Title: Build, Test and Ship 'MCP' Servers as R Packages
-Version: 0.0.0.9017
+Version: 0.0.0.9018
 Authors@R: c(
     person("Colin", "Fay", , "contact@colinfay.me", role = c("cre", "aut"),
            comment = c(ORCID = "0000-0001-7343-1846")),
@@ -14,10 +14,10 @@ License: MIT + file LICENSE
 URL: https://github.com/ThinkR-open/mordew
 BugReports: https://github.com/ThinkR-open/mordew/issues
 Imports:
-    httpuv,
-    jsonlite,
-    mirai,
-    promises,
+    httpuv (>= 1.6.16),
+    jsonlite (>= 2.0.0),
+    mirai (>= 2.7.4),
+    promises (>= 1.5.0),
     utils
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
