@@ -2,7 +2,48 @@ handle_http <- function(
   request,
   server,
   registry,
-  envir
+  envir,
+  package = NULL
+) {
+  refusal <- http_refusal(
+    request
+  )
+  if (!is.null(refusal)) {
+    return(
+      refusal
+    )
+  }
+  if (
+    !is.null(
+      package
+    ) &&
+      is_tool_call(
+        request$body
+      )
+  ) {
+    return(
+      promises::then(
+        in_worker(
+          request$body,
+          package,
+          server
+        ),
+        http_reply
+      )
+    )
+  }
+  http_reply(
+    respond(
+      request$body,
+      server,
+      registry,
+      envir
+    )
+  )
+}
+
+http_refusal <- function(
+  request
 ) {
   if (
     !local_origin(
@@ -33,12 +74,11 @@ handle_http <- function(
       )
     )
   }
-  response <- respond(
-    request$body,
-    server,
-    registry,
-    envir
-  )
+}
+
+http_reply <- function(
+  response
+) {
   if (is.null(response)) {
     return(
       http_response(

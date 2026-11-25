@@ -4,8 +4,8 @@
 #' client that started the R process, until it closes stdin; over HTTP with
 #' `transport = "http"`.
 #'
-#' @param ... Passed to [mordew::run_mcp_server()]: `transport`, `host` and
-#'   `port`.
+#' @param ... Passed to [mordew::run_mcp_server()]: `transport`, `host`,
+#'   `port` and `workers`.
 #'
 #' @export
 run_mcp_server <- function(

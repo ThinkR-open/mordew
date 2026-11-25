@@ -32,11 +32,8 @@ server_args <- function(
       ),
       "); ",
       if (
-        !dir.exists(
-          file.path(
-            path,
-            "Meta"
-          )
+        from_source(
+          path
         )
       ) {
         paste0(
@@ -49,6 +46,17 @@ server_args <- function(
       },
       package,
       "::run_mcp_server()"
+    )
+  )
+}
+
+from_source <- function(
+  path
+) {
+  !dir.exists(
+    file.path(
+      path,
+      "Meta"
     )
   )
 }

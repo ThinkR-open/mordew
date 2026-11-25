@@ -1,7 +1,8 @@
 http_app <- function(
   server,
   registry,
-  envir
+  envir,
+  package = NULL
 ) {
   list(
     call = function(req) {
@@ -17,7 +18,8 @@ http_app <- function(
         ),
         server,
         registry,
-        envir
+        envir,
+        package
       )
     }
   )
@@ -26,17 +28,31 @@ http_app <- function(
 serve_http <- function(
   host,
   port,
-  server,
-  registry,
-  envir
+  package,
+  workers
 ) {
+  start_workers(
+    workers,
+    package
+  )
+  on.exit(
+    mirai::daemons(
+      0
+    )
+  )
+  namespace <- asNamespace(
+    package
+  )
   httpuv::runServer(
     host,
     port,
     http_app(
-      server,
-      registry,
-      envir
+      server_identity(
+        package
+      ),
+      namespace$mordew_registry,
+      namespace,
+      package
     )
   )
 }

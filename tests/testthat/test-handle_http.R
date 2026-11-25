@@ -1,15 +1,3 @@
-http_request <- function(
-  body = '{"jsonrpc":"2.0","id":1,"method":"ping"}',
-  method = "POST",
-  headers = list()
-) {
-  list(
-    method = method,
-    headers = headers,
-    body = body
-  )
-}
-
 test_that("handle_http() answers a request with its JSON-RPC response", {
   expect_identical(
     handle_http(

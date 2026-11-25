@@ -8,7 +8,8 @@ run_mcp_server(
   package,
   transport = c("stdio", "http"),
   host = "127.0.0.1",
-  port = 8000
+  port = 8000,
+  workers = 4
 )
 }
 \arguments{
@@ -20,12 +21,17 @@ run_mcp_server(
 machine only, as the MCP specification recommends for a local server.}
 
 \item{port}{Port to listen on over HTTP.}
+
+\item{workers}{Number of R processes that run the tool calls over HTTP,
+each with the package loaded once.}
 }
 \description{
 Serves the tools of an installed mordew package. It blocks the R process,
 so it is meant to be the main loop of a dedicated process. Over stdio, it
 serves the MCP client that started the R process: reads requests from
 stdin and writes responses to stdout until the client closes stdin. Over
-HTTP, it serves the Streamable HTTP transport of MCP on \code{host} and \code{port},
-one call at a time.
+HTTP, it serves the Streamable HTTP transport of MCP on \code{host} and \code{port}:
+the HTTP front answers \code{initialize}, \code{ping} and \code{tools/list} itself and
+hands each tool call to a pool of mirai workers, so that it keeps serving
+while tools run.
 }

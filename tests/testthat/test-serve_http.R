@@ -1,23 +1,3 @@
-rook_request <- function(
-  body = '{"jsonrpc":"2.0","id":1,"method":"ping"}',
-  method = "POST",
-  headers = c(
-    "content-type" = "application/json"
-  )
-) {
-  list(
-    REQUEST_METHOD = method,
-    HEADERS = headers,
-    rook.input = list(
-      read = function() {
-        charToRaw(
-          body
-        )
-      }
-    )
-  )
-}
-
 test_that("http_app() answers the requests httpuv receives", {
   expect_identical(
     http_app()$call(
@@ -46,7 +26,18 @@ test_that("http_app() reads the headers httpuv receives", {
   )
 })
 
-test_that("serve_http() runs the app with httpuv on the host and port", {
+test_that("serve_http() starts the workers, then runs the app with httpuv", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      started <<- list(
+        workers = workers,
+        package = package
+      )
+    }
+  )
   local_mocked_bindings(
     runServer = function(
       host,
@@ -63,19 +54,26 @@ test_that("serve_http() runs the app with httpuv on the host and port", {
     },
     .package = "httpuv"
   )
+  started <- NULL
 
   expect_identical(
     serve_http(
       "127.0.0.1",
       8000,
-      NULL,
-      NULL,
-      NULL
+      "mordew",
+      4
     ),
     list(
       host = "127.0.0.1",
       port = 8000,
       status = 200L
+    )
+  )
+  expect_identical(
+    started,
+    list(
+      workers = 4,
+      package = "mordew"
     )
   )
 })

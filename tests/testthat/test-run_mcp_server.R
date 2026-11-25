@@ -76,14 +76,14 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
     serve_http = function(
       host,
       port,
-      server,
-      registry,
-      envir
+      package,
+      workers
     ) {
       list(
         host = host,
         port = port,
-        envir = envir
+        package = package,
+        workers = workers
       )
     }
   )
@@ -96,9 +96,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
     list(
       host = "127.0.0.1",
       port = 8000,
-      envir = asNamespace(
-        "mordew"
-      )
+      package = "mordew",
+      workers = 4
     )
   )
 })
@@ -190,7 +189,7 @@ test_that("a generated package serves its tools to a client over HTTP", {
           ),
           collapse = ""
         ),
-        "); runlog::run_mcp_server(transport = \"http\", port = ",
+        "); runlog::run_mcp_server(transport = \"http\", workers = 1, port = ",
         port,
         ")"
       )
