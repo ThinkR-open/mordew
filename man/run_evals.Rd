@@ -24,5 +24,7 @@ answer of the case.
 Asks Claude Code each question in a session restricted to the package's
 MCP server, and checks the tool calls of the model against the answers of
 the case. Needs the \code{claude} CLI, logged in: each run of a case costs one
-request.
+request. When \code{ANTHROPIC_API_KEY} is set, as in CI, the session runs with
+\code{--bare}: it leaves out the developer's \code{CLAUDE.md}, memory, hooks and
+plugins, so that the results do not depend on the machine.
 }

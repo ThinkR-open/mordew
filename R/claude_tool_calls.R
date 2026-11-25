@@ -33,6 +33,15 @@ claude_tool_calls <- function(
       "--output-format",
       "stream-json",
       "--verbose",
+      if (
+        nzchar(
+          Sys.getenv(
+            "ANTHROPIC_API_KEY"
+          )
+        )
+      ) {
+        "--bare"
+      },
       claude_args(
         package
       )

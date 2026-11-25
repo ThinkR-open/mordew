@@ -3,7 +3,9 @@
 #' Asks Claude Code each question in a session restricted to the package's
 #' MCP server, and checks the tool calls of the model against the answers of
 #' the case. Needs the `claude` CLI, logged in: each run of a case costs one
-#' request.
+#' request. When `ANTHROPIC_API_KEY` is set, as in CI, the session runs with
+#' `--bare`: it leaves out the developer's `CLAUDE.md`, memory, hooks and
+#' plugins, so that the results do not depend on the machine.
 #'
 #' @param cases A list of [eval_case()].
 #' @param runs Number of times to ask each case: the model does not always

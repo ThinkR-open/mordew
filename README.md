@@ -1133,7 +1133,11 @@ of a name), any of the answers of the case, all the calls of an answer, and
 no call for a case without an answer. It flags a run that takes more calls
 than the longest answer. `assert_pass_rate()` stops when a case passes in
 less than 80% of its runs: a rate per case, so that a case that always
-fails cannot hide among the others.
+fails cannot hide among the others. When `ANTHROPIC_API_KEY` is set, as
+in the CI workflow, the session runs with `--bare`, which leaves out the
+developer's `CLAUDE.md`, memory, hooks and plugins: that run is the
+reference. Without it, `--bare` would ignore a subscription login, so a
+local run on a subscription still reads that configuration.
 
 **Security tests** feed hostile arguments to each tool. Wrong types and
 values outside the schema never reach it: validation rejects them first,
@@ -1589,7 +1593,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Round-trip helper through a third-party MCP client over stdio, next to `call_tool()`'s own client: `call_tool(client = "inspector")`, through the MCP Inspector 2.16.0. Claude Code lists its tools only in a session with the model, so it is left to the evals
 - [x] `use_evals()`: `dev/evals.R` and a CI workflow started by hand, through the `claude` CLI and without vitals for now: add it later if its log viewer is worth the dependency. It applies the lessons of the first evals (`dev/evals.R`, and a real server on 2026-11-24): each argument compared on its own terms, several answers per case, every call checked, several runs per case, a flag on a run that takes more calls than expected, and a pass rate per case
 - [ ] Run the evals workflow on a real CI job: installing the `claude` CLI on the runner (`~/.local/bin` on the `PATH`) and a missing `ANTHROPIC_API_KEY` secret are untested. Until `{mordew}` is on CRAN, the package needs `Remotes: ThinkR-open/mordew`
-- [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login
+- [x] Keep the evals apart from the developer's Claude Code configuration: with `ANTHROPIC_API_KEY` set, as in CI, the session runs with `--bare`; a local run on a subscription still reads `~/.claude/CLAUDE.md` and auto memory, since `--bare` ignores a subscription login
 - [x] `check_tools()`: static analysis of the code of every function of the package, tools and the helpers they call, for the calls through which an argument could become code (`eval()`, `parse()`, `source()`, `system()` and similar). The package template runs it in a test, so `R CMD check` fails on such a call. A lint for honest mistakes: it does not look for calls built at run time
 - [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
 - [x] Hostile-argument test generator: `expect_hostile_safe()` calls a tool with each extreme value its schema accepts (strings and numbers for now) and expects an answer to every call; `add_tool()` writes it in the tests of each tool

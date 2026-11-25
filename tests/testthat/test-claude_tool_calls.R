@@ -25,6 +25,9 @@ test_that("claude_tool_calls() asks the question in a session restricted to the 
   skip_on_os(
     "windows"
   )
+  withr::local_envvar(
+    ANTHROPIC_API_KEY = NA
+  )
   record <- withr::local_tempdir()
   local_fake_claude(
     record
@@ -129,5 +132,33 @@ test_that("claude_tool_calls() stops with the errors of the CLI", {
     ),
     "error: unknown option '--not-a-flag'",
     fixed = TRUE
+  )
+})
+
+test_that("claude_tool_calls() leaves the developer's configuration out when an API key is set", {
+  skip_on_os(
+    "windows"
+  )
+  withr::local_envvar(
+    ANTHROPIC_API_KEY = "test-key"
+  )
+  record <- withr::local_tempdir()
+  local_fake_claude(
+    record
+  )
+
+  claude_tool_calls(
+    "Show me my long runs in 2024.",
+    local_runlog()
+  )
+
+  expect_contains(
+    readLines(
+      file.path(
+        record,
+        "args"
+      )
+    ),
+    "--bare"
   )
 })
