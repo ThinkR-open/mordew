@@ -75,7 +75,11 @@ tools_call <- function(
   registry,
   envir
 ) {
-  if (!is.character(params$name)) {
+  if (
+    !is.list(params) ||
+      !is.character(params$name) ||
+      (length(params$arguments) > 0 && is.null(names(params$arguments)))
+  ) {
     return(
       rpc_error(
         -32602,

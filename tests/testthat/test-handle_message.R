@@ -232,6 +232,79 @@ test_that("handle_message() answers a tool call with a non-string name as invali
   )
 })
 
+test_that("handle_message() answers a tool call whose params are not an object as invalid params", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = "get_runs"
+      ),
+      registry = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a tool call whose arguments have no names as invalid params", {
+  get_runs <- function(
+    year = 2025L
+  ) {
+    paste(
+      "Runs of",
+      year
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          name = "get_runs",
+          arguments = list(
+            "not-a-year"
+          )
+        )
+      ),
+      registry = list(
+        get_runs = list(
+          fun = "get_runs",
+          tool = list(
+            name = "get_runs",
+            description = "List the runs of a year.",
+            inputSchema = type_object(
+              year = type_integer(
+                required = FALSE
+              )
+            )$schema
+          ),
+          returns = "text"
+        )
+      ),
+      envir = environment()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
 test_that("handle_message() calls a tool and sends its result", {
   summarise_runs <- function(
     surface
