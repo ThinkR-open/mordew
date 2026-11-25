@@ -1119,10 +1119,10 @@ request headers, error codes.
 
 Available helpers: `call_tool()`, `expect_tool_error()`,
 `expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
-`partial()`, `run_evals()`, `assert_pass_rate()`. Planned:
+`partial()`, `run_evals()`, `assert_pass_rate()`, `check_tools()`. Planned:
 `expect_structured_output()`, `read_resource()`, `expect_resource()`,
 `get_prompt()`, `expect_prompt()`, `simulate_elicitation()`, `expect_task()`,
-`expect_conformance()`, `check_tools()`.
+`expect_conformance()`.
 
 ---
 
@@ -1544,7 +1544,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `use_evals()`: `dev/evals.R` and a CI workflow started by hand, through the `claude` CLI and without vitals for now: add it later if its log viewer is worth the dependency. It applies the lessons of the first evals (`dev/evals.R`, and a real server on 2026-11-24): each argument compared on its own terms, several answers per case, every call checked, several runs per case, a flag on a run that takes more calls than expected, and a pass rate per case
 - [ ] Run the evals workflow on a real CI job: installing the `claude` CLI on the runner (`~/.local/bin` on the `PATH`) and a missing `ANTHROPIC_API_KEY` secret are untested. Until `{mordew}` is on CRAN, the package needs `Remotes: ThinkR-open/mordew`
 - [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login
-- [ ] `check_tools()`: static analysis of tool code
+- [x] `check_tools()`: static analysis of the code of every function of the package, tools and the helpers they call, for the calls through which an argument could become code (`eval()`, `parse()`, `source()`, `system()` and similar). The package template runs it in a test, so `R CMD check` fails on such a call. A lint for honest mistakes: it does not look for calls built at run time
+- [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
 - [ ] Hostile-argument test generator
 - [x] `run_dev(client = "claude")`: prints the command of a Claude Code session restricted to the development server, to paste in a terminal
 - [ ] Launch that session from `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal

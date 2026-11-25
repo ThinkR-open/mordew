@@ -138,6 +138,28 @@ test_that("create_mordew() keeps .github/ out of the build", {
   )
 })
 
+test_that("create_mordew() checks the tools in the tests", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  expect_match(
+    readLines(
+      file.path(
+        path,
+        "tests",
+        "testthat",
+        "test-check_tools.R"
+      )
+    ),
+    "mordew::check_tools()",
+    fixed = TRUE,
+    all = FALSE
+  )
+})
+
 test_that("create_mordew() sets up testthat", {
   path <- tempfile()
 
