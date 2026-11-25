@@ -13,6 +13,8 @@ goes into this package. Code the developer cannot explain does not go in.
   moving on.
 - If the developer says "just do it" about something they don't master yet:
   explain first, code second.
+- End every message with a short recap of what we are working on: the
+  goal, the step we are on, and the next step.
 
 ## TDD, no exceptions
 
