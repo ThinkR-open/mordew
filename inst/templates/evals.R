@@ -2,7 +2,7 @@
 # Run from the root of the package:
 #   Rscript dev/evals.R
 # Needs the claude CLI, logged in. One Claude Code request per case and
-# run.
+# run. Stops when a case passes in less than 80% of its runs.
 
 cases <- list(
   mordew::eval_case(
@@ -25,4 +25,7 @@ print(
   results,
   right = FALSE,
   row.names = FALSE
+)
+mordew::assert_pass_rate(
+  results
 )
