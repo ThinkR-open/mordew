@@ -48,6 +48,9 @@ mordew::run_dev(
   chat = ellmer::chat_anthropic()
 )
 
+# dev/02_dev.R: creates dev/evals.R and a CI workflow that runs it
+mordew::use_evals()
+
 # run the MCP server (stdio by default)
 runlog::run_mcp_server()
 ```
@@ -1026,10 +1029,45 @@ error; a tool error is an `isError` result, which `expect_tool_error()`
 checks, with an optional pattern on its message.
 
 **Level 3, behaviour**, uses evals: each case is a user prompt with the
-expected tool and arguments, scored over several runs. Evals need an API
-key, cost money and are not deterministic, so they run in a separate CI
-job with pass thresholds, before releases and whenever a tool description,
-the system prompt or the model changes.
+tool calls to accept, scored over several runs. Evals need the `claude` CLI
+logged in or an API key, cost one request per run and are not
+deterministic, so they live in `dev/`, out of `R CMD check`, and run in a
+separate CI job started by hand, before releases and whenever a tool
+description, the system prompt or the model changes.
+
+```r
+# dev/evals.R, written by use_evals()
+cases <- list(
+  mordew::eval_case(
+    "Show me my long runs in 2024.",
+    mordew::tool_call(
+      "get_runs",
+      year = 2024,
+      type = "long"
+    )
+  ),
+  mordew::eval_case(
+    "What will the weather be in Brussels tomorrow?"
+  )
+)
+
+results <- mordew::run_evals(
+  cases,
+  runs = 5
+)
+mordew::assert_pass_rate(
+  results
+)
+```
+
+`run_evals()` asks each question through a Claude Code session restricted
+to the package's server, in its development version, and checks every call
+the model makes: each argument on its own terms (`partial()` accepts part
+of a name), any of the answers of the case, all the calls of an answer, and
+no call for a case without an answer. It flags a run that takes more calls
+than the longest answer. `assert_pass_rate()` stops when a case passes in
+less than 80% of its runs: a rate per case, so that a case that always
+fails cannot hide among the others.
 
 **Security tests** feed hostile arguments to each tool: injection strings,
 huge values, wrong types, paths outside the allowed scope.
@@ -1050,10 +1088,11 @@ suggestions, progress notifications, cancellation, and task life cycles
 request headers, error codes.
 
 Available helpers: `call_tool()`, `expect_tool_error()`,
-`expect_tool_schema()`. Planned: `expect_structured_output()`,
-`read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`,
-`simulate_elicitation()`, `expect_task()`, `expect_conformance()`,
-`use_evals()`, `check_tools()`.
+`expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
+`partial()`, `run_evals()`, `assert_pass_rate()`. Planned:
+`expect_structured_output()`, `read_resource()`, `expect_resource()`,
+`get_prompt()`, `expect_prompt()`, `simulate_elicitation()`, `expect_task()`,
+`expect_conformance()`, `check_tools()`.
 
 ---
 
@@ -1465,14 +1504,16 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Close the leaks in the restricted Claude Code session: `--no-chrome` and `--disallowedTools "mcp__ide"` remove the Chrome and IDE servers that `--strict-mcp-config` keeps, and `--permission-mode dontAsk` denies any other call that would ask for permission
 - [x] Say, in the README and in `mcp_client_config("claude_code")`'s output, that `--disable-slash-commands` also removes `/mcp`: to see the server's status, run the command without it
 - [x] Spike: asynchronous HTTP front (handler returning a promise, tools in mirai workers) to validate architecture B early
-- [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, through the restricted Claude Code session, that the model calls the right tool with the right arguments. One run per case by default and no threshold yet: `use_evals()` brings them in phase 2
+- [x] Regression evals for `{mordew}` itself: `dev/example.R` fills `inst/runlog` with five close tools over a fictional running log, and `dev/evals.R` checks, with `run_evals()`, that the model calls the right tool with the right arguments. One run per case by default, and no pass threshold
 - [x] Validate on a real-world server rebuilt with the MVP: note every point of friction, measure tool-call accuracy, collect security and compliance requirements from regulated users
 
 ### Phase 2: testing toolkit and development loop
 
 - [ ] `expect_structured_output()`, `simulate_elicitation()`, `expect_task()`, `expect_conformance()`
 - [ ] Round-trip helper through a third-party MCP client over stdio (Claude Code, MCP Inspector), next to `call_tool()`'s own client
-- [ ] `use_evals()`: eval cases, a runner through the `claude` CLI and a separate CI workflow, without vitals for now: add it later if its log viewer is worth the dependency. Lessons from the first evals (`dev/evals.R`, and a real server on 2026-11-24): compare each argument on its own terms (exact for `n` or `year`, partial for a name); accept several answers per case, since a question with no exact tool can be answered by two calls; check every call the model makes, not only the first; run each case several times; count the calls and flag a case that takes more than expected (a year summary took five)
+- [x] `use_evals()`: `dev/evals.R` and a CI workflow started by hand, through the `claude` CLI and without vitals for now: add it later if its log viewer is worth the dependency. It applies the lessons of the first evals (`dev/evals.R`, and a real server on 2026-11-24): each argument compared on its own terms, several answers per case, every call checked, several runs per case, a flag on a run that takes more calls than expected, and a pass rate per case
+- [ ] Run the evals workflow on a real CI job: installing the `claude` CLI on the runner (`~/.local/bin` on the `PATH`) and a missing `ANTHROPIC_API_KEY` secret are untested. Until `{mordew}` is on CRAN, the package needs `Remotes: ThinkR-open/mordew`
+- [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login
 - [ ] `check_tools()`: static analysis of tool code
 - [ ] Hostile-argument test generator
 - [ ] `run_dev(client = "claude")`: restricted Claude Code session from the `claude` CLI on the PATH, opened in the IDE terminal or printed
