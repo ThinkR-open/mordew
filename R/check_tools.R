@@ -5,6 +5,12 @@
 #' argument of the model could become code: `eval()`, `parse()`, `source()`,
 #' `system()` and similar.
 #'
+#' It only sees direct calls to these functions in the body of a function. A
+#' function passed as a value (`lapply(x, eval)`), a call by name
+#' (`do.call("system", ...)`), a call in a default argument, or another way
+#' to run code (`pipe()`, `glue::glue()`, `rlang::eval_tidy()`,
+#' `processx::run()`) goes unnoticed: a clean result is not a proof.
+#'
 #' @param package Package to check, by default the one being tested.
 #'
 #' @return One line per function and denied call, such as

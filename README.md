@@ -15,6 +15,18 @@ Connect. This README describes what the package does today; the
 
 ---
 
+## Installation
+
+`{mordew}` is not on CRAN: install it from GitHub.
+
+```r
+pak::pak(
+  "ThinkR-open/mordew"
+)
+```
+
+---
+
 ## The idea in one paragraph
 
 `{mordew}` does for MCP servers what golem does for Shiny apps: **an MCP server
@@ -27,8 +39,8 @@ production. `{mordew}` does not ship a chat: a chat is a separate product,
 which talks to a `{mordew}` server through MCP like any other client.
 
 Throughout this README, the examples use `runlog`, a toy package that
-answers questions about a (fake) running log: distances, elevation gain,
-paces, surfaces.
+answers questions about a (fake) running log: dates, types of run,
+distances and durations.
 
 ```r
 # create the package, with its dev/ scripts
@@ -180,7 +192,7 @@ them.
 The MCP server never calls the model, and the model never calls the
 server either. A model only produces text: when it wants a tool, its
 answer contains a request ("call `summarise_runs` with
-`surface = "trail"` and `year = 2025`"). The **client** (Claude Code,
+`year = 2025`"). The **client** (Claude Code,
 ellmer, a chat app…) reads that request, calls the MCP server, and sends
 the result back to the model.
 
@@ -194,7 +206,7 @@ sequenceDiagram
   S-->>C: tool definitions
   U->>C: question
   C->>M: question + tool definitions
-  M-->>C: "call summarise_runs(trail, 2025)"
+  M-->>C: "call summarise_runs(2025)"
   C->>S: tools/call summarise_runs
   S-->>C: result of the R function
   C->>M: tool result
@@ -272,25 +284,21 @@ A tool is a regular exported function. Its roxygen block is both the R
 documentation and the MCP definition.
 
 ```r
-#' Summarise runs by surface
+#' Year summary
 #'
-#' Returns the number of runs, total distance (km), total elevation gain (m)
-#' and average pace (min/km) for one surface and one year.
-#' Use it when the user asks about training volume or progress over a year.
-#' Do not use it for questions about a single run.
+#' Returns the totals of one year for each type of run: number of runs,
+#' distance (km) and duration (hours). For month by month totals, use
+#' summarise_runs_by_month.
 #'
-#' @param surface Running surface: "road", "trail" or "track".
 #' @param year Four-digit year.
 #'
 #' @mcpTool
-#' @mcpType surface type_enum(c("road", "trail", "track"))
-#' @mcpType year type_integer(min = 2015)
+#' @mcpType year type_integer(min = 2024, max = 2025)
 #' @mcpReturns table
 #' @mcpReadOnly
 #' @mcpClosedWorld
 #' @export
 summarise_runs <- function(
-  surface,
   year
 ) {
   # validated computation on the runs dataset lives here
@@ -610,7 +618,7 @@ as not being a security mechanism. Checked in November 2026:
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Claude Code](https://code.claude.com/docs/en/cli-reference)                     | `--tools ""` removes every built-in tool                                                                                                                                | `--strict-mcp-config` + `--mcp-config`; `--no-chrome` and `--disallowedTools "mcp__ide"` for the Chrome and IDE servers; `--permission-mode dontAsk` | Enforced: the tools are not in the session.                                                                                                                                                                           |
 | [Codex CLI](https://github.com/openai/codex/issues/6049)                         | `features.shell_tool = false` (or `codex --disable shell_tool`). Other features (`multi_agent`, `view_image`, `web_search = "disabled"`…) can be turned off one by one. | `mcp_servers.<id>.enabled_tools` and `disabled_tools`                                           | Partial: no official MCP-only mode (the request is still open). Three MCP resource tools (`list_mcp_resources`, `list_mcp_resource_templates`, `read_mcp_resource`) cannot be disabled; they only read MCP resources. |
-| [Gemini CLI](https://geminicli.com/docs/cli/configuration)                       | `coreTools` (allowlist) or `excludeTools`, tool by tool; no documented "none" option                                                                                    | `allowMCPServers` or `--allowed-mcp-server-names`; per-server `includeTools` and `excludeTools` | Partial: the documentation says these lists should not be used as an airtight security mechanism.                                                                                                                     |
+| [Gemini CLI](https://geminicli.com/docs/reference/configuration/)                | `tools.core` (allowlist) or `tools.exclude` (deprecated), tool by tool; no documented "none" option                                                                     | `mcp.allowed` or `--allowed-mcp-server-names`; per-server `includeTools` and `excludeTools`     | Partial: [the documentation](https://geminicli.com/docs/cli/enterprise/) says these settings should not be considered a foolproof security boundary.                                                                  |
 | [VS Code, Copilot](https://code.visualstudio.com/docs/agent-customization/tools) | Tool picker per request; a custom agent with its own tool list for a reusable selection                                                                                 | Same picker, per server and per tool; enterprise allowlist of MCP servers                       | Per session or per agent, configured in the editor.                                                                                                                                                                   |
 
 Two consequences for `{mordew}`:
@@ -643,7 +651,6 @@ devtools::load_all()
 mordew::call_tool(
   "summarise_runs",
   list(
-    surface = "trail",
     year = 2025
   ),
   package = "runlog"
@@ -764,7 +771,6 @@ test_that("summarise_runs answers through a real MCP client", {
   res <- call_tool(
     tool = "summarise_runs",
     args = list(
-      surface = "trail",
       year = 2025
     ),
     transport = "stdio"
@@ -795,7 +801,6 @@ Both clients give the same result shape, so a test can compare them:
 test_that("summarise_runs answers the same through the MCP Inspector", {
   skip_on_cran()
   args <- list(
-    surface = "trail",
     year = 2025
   )
   expect_identical(
@@ -873,7 +878,12 @@ test can judge: paths outside the allowed scope are kept out by a
 `check_tools()`, which the package template runs in a test, reads the
 code of every function of the package and flags the calls through which
 an argument could become code (`eval()`, `parse()`, `source()`,
-`system()` and similar).
+`system()` and similar). It only sees direct calls to these functions in
+the body of a function: a function passed as a value
+(`lapply(x, eval)`), a call by name (`do.call("system", ...)`), a call in
+a default argument, or another way to run code (`pipe()`,
+`glue::glue()`, `rlang::eval_tidy()`, `processx::run()`) goes unnoticed,
+so a clean result is not a proof.
 
 The helpers: `call_tool()`, `expect_tool_error()`,
 `expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
@@ -914,7 +924,7 @@ kept away.
 
 | Risk                                  | Control                                                                                                                                                                                                                                      |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar calls in tool code.                                                                                                     |
+| Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar direct calls in tool code: a lint, not a proof.                                                                         |
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue. |
@@ -1071,8 +1081,8 @@ per-tool limits.
 - **Health check**: on `GET /health`, which `{mordew}`'s front answers.
 - **Timeouts**: align the proxy timeouts with the longest tool. nginx's
   `proxy_read_timeout` defaults to 60 seconds; a longer tool ends in a 504.
-- **Host and Origin**: the proxy must forward the original `Host` and
-  `Origin` headers, so that the server can check them.
+- **Origin**: the proxy must forward the original `Origin` header, so
+  that the server can check it.
 - **Authentication and TLS**: at the proxy (OAuth or OIDC).
 - **No sticky sessions**, as long as tools keep no state in memory.
 
@@ -1149,8 +1159,8 @@ Three things to know:
 
 ## Roadmap and task list
 
-The proof of concept is built: tools over stdio and HTTP, the testing
-toolkit, and deployment to Docker and Posit Connect (phases 0 to 3).
+Phases 0 to 3, the proof of concept, are built: tools over stdio and
+HTTP, the testing toolkit, and deployment to Docker and Posit Connect.
 What is left to publish it comes first; what follows is a direction,
 not a commitment.
 

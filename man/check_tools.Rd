@@ -19,3 +19,10 @@ tools and the helpers they call, and reports the calls through which an
 argument of the model could become code: \code{eval()}, \code{parse()}, \code{source()},
 \code{system()} and similar.
 }
+\details{
+It only sees direct calls to these functions in the body of a function. A
+function passed as a value (\code{lapply(x, eval)}), a call by name
+(\code{do.call("system", ...)}), a call in a default argument, or another way
+to run code (\code{pipe()}, \code{glue::glue()}, \code{rlang::eval_tidy()},
+\code{processx::run()}) goes unnoticed: a clean result is not a proof.
+}
