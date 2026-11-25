@@ -8,7 +8,7 @@ run_mcp_server(...)
 }
 \arguments{
 \item{...}{Passed to \code{\link[mordew:run_mcp_server]{mordew::run_mcp_server()}}: \code{transport}, \code{host},
-\code{port}, \code{workers}, \code{timeout} and \code{queue}.}
+\code{port}, \code{workers}, \code{timeout}, \code{queue} and \code{token}.}
 }
 \description{
 Serves the package's tools to MCP clients: over stdio by default, to the

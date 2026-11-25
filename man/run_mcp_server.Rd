@@ -11,7 +11,8 @@ run_mcp_server(
   port = 8000,
   workers = 4,
   timeout = 60,
-  queue = 8
+  queue = 8,
+  token = Sys.getenv("MORDEW_TOKEN")
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ the time spent in the queue.}
 \item{queue}{Number of tool calls that may wait for a free worker over
 HTTP. A call that comes when the queue is full gets a "busy, retry
 later" error at once.}
+
+\item{token}{Secret that every HTTP request but \code{GET /health} must send
+as \verb{Authorization: Bearer <token>}, or get a 401. Taken from the
+\code{MORDEW_TOKEN} environment variable by default. Required to serve on
+another host than \verb{127.0.0.1}, \code{localhost} or \verb{::1}.}
 }
 \description{
 Serves the tools of an installed mordew package. It blocks the R process,

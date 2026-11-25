@@ -2,7 +2,8 @@ http_app <- function(
   server,
   registry,
   envir,
-  pool = NULL
+  pool = NULL,
+  token = NULL
 ) {
   list(
     call = function(req) {
@@ -20,7 +21,8 @@ http_app <- function(
         server,
         registry,
         envir,
-        pool
+        pool,
+        token
       )
     }
   )
@@ -32,7 +34,8 @@ serve_http <- function(
   package,
   workers,
   timeout,
-  queue
+  queue,
+  token
 ) {
   start_workers(
     workers,
@@ -60,7 +63,8 @@ serve_http <- function(
         workers,
         timeout,
         queue
-      )
+      ),
+      token
     )
   )
 }

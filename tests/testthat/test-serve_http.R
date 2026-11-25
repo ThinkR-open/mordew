@@ -76,7 +76,8 @@ test_that("serve_http() starts the workers, then runs the app with httpuv", {
       "mordew",
       4,
       60,
-      8
+      8,
+      NULL
     ),
     list(
       host = "127.0.0.1",
@@ -90,5 +91,41 @@ test_that("serve_http() starts the workers, then runs the app with httpuv", {
       workers = 4,
       package = "mordew"
     )
+  )
+})
+
+test_that("serve_http() asks for the token", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request()
+      )$status
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "mordew",
+      4,
+      60,
+      8,
+      "s3cret"
+    ),
+    401L
   )
 })

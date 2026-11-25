@@ -22,6 +22,10 @@
 #' @param queue Number of tool calls that may wait for a free worker over
 #'   HTTP. A call that comes when the queue is full gets a "busy, retry
 #'   later" error at once.
+#' @param token Secret that every HTTP request but `GET /health` must send
+#'   as `Authorization: Bearer <token>`, or get a 401. Taken from the
+#'   `MORDEW_TOKEN` environment variable by default. Required to serve on
+#'   another host than `127.0.0.1`, `localhost` or `::1`.
 #'
 #' @export
 run_mcp_server <- function(
@@ -34,7 +38,10 @@ run_mcp_server <- function(
   port = 8000,
   workers = 4,
   timeout = 60,
-  queue = 8
+  queue = 8,
+  token = Sys.getenv(
+    "MORDEW_TOKEN"
+  )
 ) {
   namespace <- asNamespace(
     package
@@ -45,6 +52,27 @@ run_mcp_server <- function(
     ) ==
       "http"
   ) {
+    if (!nzchar(token)) {
+      token <- NULL
+    }
+    if (
+      is.null(
+        token
+      ) &&
+        !host %in%
+          c(
+            "127.0.0.1",
+            "localhost",
+            "::1"
+          )
+    ) {
+      stop(
+        "Set a token to serve on ",
+        host,
+        ": without one, anyone who reaches the port can call the tools.",
+        call. = FALSE
+      )
+    }
     return(
       serve_http(
         host,
@@ -52,7 +80,8 @@ run_mcp_server <- function(
         package,
         workers,
         timeout,
-        queue
+        queue,
+        token
       )
     )
   }

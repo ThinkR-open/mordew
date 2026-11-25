@@ -130,3 +130,72 @@ test_that("handle_http() answers GET /health with 200", {
     )
   )
 })
+
+test_that("handle_http() refuses a request without the token", {
+  expect_identical(
+    handle_http(
+      http_request(),
+      token = "s3cret"
+    ),
+    list(
+      status = 401L,
+      headers = list(
+        "WWW-Authenticate" = "Bearer"
+      ),
+      body = ""
+    )
+  )
+})
+
+test_that("handle_http() refuses a request with another token", {
+  expect_identical(
+    handle_http(
+      http_request(
+        headers = list(
+          authorization = "Bearer s3cre"
+        )
+      ),
+      token = "s3cret"
+    )$status,
+    401L
+  )
+  expect_identical(
+    handle_http(
+      http_request(
+        headers = list(
+          authorization = "s3cret"
+        )
+      ),
+      token = "s3cret"
+    )$status,
+    401L
+  )
+})
+
+test_that("handle_http() answers a request with the token", {
+  expect_identical(
+    handle_http(
+      http_request(
+        headers = list(
+          authorization = "Bearer s3cret"
+        )
+      ),
+      token = "s3cret"
+    )$status,
+    200L
+  )
+})
+
+test_that("handle_http() keeps GET /health open with a token", {
+  expect_identical(
+    handle_http(
+      http_request(
+        "",
+        method = "GET",
+        path = "/health"
+      ),
+      token = "s3cret"
+    )$status,
+    200L
+  )
+})

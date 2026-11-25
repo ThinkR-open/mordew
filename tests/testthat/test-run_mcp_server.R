@@ -79,7 +79,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       package,
       workers,
       timeout,
-      queue
+      queue,
+      token
     ) {
       list(
         host = host,
@@ -87,9 +88,13 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
         package = package,
         workers = workers,
         timeout = timeout,
-        queue = queue
+        queue = queue,
+        token = token
       )
     }
+  )
+  withr::local_envvar(
+    MORDEW_TOKEN = NA
   )
 
   expect_identical(
@@ -103,8 +108,59 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       package = "mordew",
       workers = 4,
       timeout = 60,
-      queue = 8
+      queue = 8,
+      token = NULL
     )
+  )
+})
+
+test_that("run_mcp_server() takes the token from MORDEW_TOKEN", {
+  local_mocked_bindings(
+    serve_http = function(
+      host,
+      port,
+      package,
+      workers,
+      timeout,
+      queue,
+      token
+    ) {
+      token
+    }
+  )
+  withr::local_envvar(
+    MORDEW_TOKEN = "s3cret"
+  )
+
+  expect_identical(
+    run_mcp_server(
+      "mordew",
+      transport = "http"
+    ),
+    "s3cret"
+  )
+})
+
+test_that("run_mcp_server() refuses to serve beyond this machine without a token", {
+  local_mocked_bindings(
+    serve_http = function(
+      ...
+    ) {
+      "served"
+    }
+  )
+  withr::local_envvar(
+    MORDEW_TOKEN = NA
+  )
+
+  expect_error(
+    run_mcp_server(
+      "mordew",
+      transport = "http",
+      host = "0.0.0.0"
+    ),
+    "Set a token to serve on 0.0.0.0",
+    fixed = TRUE
   )
 })
 

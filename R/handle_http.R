@@ -3,7 +3,8 @@ handle_http <- function(
   server,
   registry,
   envir,
-  pool = NULL
+  pool = NULL,
+  token = NULL
 ) {
   if (
     !local_origin(
@@ -29,6 +30,24 @@ handle_http <- function(
           "Content-Type" = "application/json"
         ),
         '{"status":"ok"}'
+      )
+    )
+  }
+  if (
+    !is.null(
+      token
+    ) &&
+      !authorized(
+        request$headers$authorization,
+        token
+      )
+  ) {
+    return(
+      http_response(
+        401L,
+        list(
+          "WWW-Authenticate" = "Bearer"
+        )
       )
     )
   }
@@ -136,5 +155,53 @@ local_origin <- function(
     grepl(
       "^https?://(localhost|127[.]0[.]0[.]1|[[]::1[]])(:[0-9]+)?$",
       origin
+    )
+}
+
+authorized <- function(
+  header,
+  token
+) {
+  is.character(
+    header
+  ) &&
+    grepl(
+      "^Bearer ",
+      header,
+      ignore.case = TRUE
+    ) &&
+    same_secret(
+      substring(
+        header,
+        8
+      ),
+      token
+    )
+}
+
+same_secret <- function(
+  given,
+  token
+) {
+  given <- charToRaw(
+    given
+  )
+  token <- charToRaw(
+    token
+  )
+  length(
+    given
+  ) ==
+    length(
+      token
+    ) &&
+    all(
+      xor(
+        given,
+        token
+      ) ==
+        as.raw(
+          0
+        )
     )
 }
