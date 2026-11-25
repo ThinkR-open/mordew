@@ -23,13 +23,11 @@ start_workers <- function(
       )
     )
   }
-  setup <- call(
-    "{",
-    call(
-      ".libPaths",
-      .libPaths()
-    ),
-    load
+  Sys.setenv(
+    R_LIBS = paste(
+      .libPaths(),
+      collapse = .Platform$path.sep
+    )
   )
   mirai::daemons(
     workers,
@@ -37,7 +35,7 @@ start_workers <- function(
   )
   invisible(
     mirai::everywhere(
-      setup
+      load
     )[]
   )
 }
@@ -127,6 +125,18 @@ run_in_pool <- function(
       ),
       onFulfilled = http_reply,
       onRejected = function(error) {
+        if (
+          startsWith(
+            conditionMessage(
+              error
+            ),
+            "19 |"
+          )
+        ) {
+          mirai::launch_local(
+            1
+          )
+        }
         http_reply(
           tool_failure(
             message$id,

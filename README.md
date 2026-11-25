@@ -1361,9 +1361,15 @@ and the fourth is busy at 0.01 s. Observed on 2026-11-25 (one run,
 Claude Code): faced with a busy error, the model retries once at once,
 then tells the user to ask again later, without making up an answer.
 
-Not handled yet: a worker that stops is not replaced, so the pool runs
-with one worker less; nor are cancellation, progress, sessions and SSE
-streams, authentication, or per-tool limits.
+A worker that stops, killed or crashed during a call, is replaced at
+once: the replacement takes the front's library paths through `R_LIBS`
+and loads the package on its first call. On 2026-11-25, three calls that
+stopped their worker on a two-worker pool, then two 1-second calls at
+once: both ended at 1.12 s, so the pool had kept its two workers.
+
+Not handled yet: a worker that ignores the interrupt at its timeout
+(compiled code), cancellation, progress, sessions and SSE streams,
+authentication, and per-tool limits.
 
 ### Asynchronous execution: production requirements
 
@@ -1653,7 +1659,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
 - [ ] `inst/mordew/config.yml` in the package template: transport, port, workers, limits, audit log
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
-- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`). Left: a timeout per tool, replacing a worker that stops (the pool runs with one worker less today), and resource limits
+- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`). A worker that stops is replaced. Left: a timeout per tool, stopping a worker that ignores the interrupt at its timeout (compiled code), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
 - [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker

@@ -88,14 +88,9 @@ test_that("http_app() runs a tool call in a worker and answers with a promise", 
   local_dev_package(
     whoami_package()
   )
-  start_workers(
+  local_workers(
     1,
     "runlog"
-  )
-  withr::defer(
-    mirai::daemons(
-      0
-    )
   )
   namespace <- asNamespace(
     "runlog"
@@ -151,14 +146,9 @@ test_that("start_workers() loads an installed package in the workers", {
       "runlog"
     )
   )
-  start_workers(
+  local_workers(
     1,
     "runlog"
-  )
-  withr::defer(
-    mirai::daemons(
-      0
-    )
   )
 
   response <- in_worker(
@@ -259,14 +249,9 @@ test_that("handle_http() stops a tool call that runs too long", {
       )
     )
   )
-  start_workers(
+  local_workers(
     1,
     "runlog"
-  )
-  withr::defer(
-    mirai::daemons(
-      0
-    )
   )
   pool <- new_pool(
     "runlog",
@@ -323,14 +308,9 @@ test_that("handle_http() answers when the worker running a tool stops", {
       )
     )
   )
-  start_workers(
+  local_workers(
     1,
     "runlog"
-  )
-  withr::defer(
-    mirai::daemons(
-      0
-    )
   )
 
   response <- wait_for(
@@ -390,14 +370,9 @@ test_that("handle_http() queues a call until a worker is free, then times its ru
   local_dev_package(
     nap_package()
   )
-  start_workers(
+  local_workers(
     1,
     "runlog"
-  )
-  withr::defer(
-    mirai::daemons(
-      0
-    )
   )
   pool <- new_pool(
     "runlog",
@@ -463,5 +438,80 @@ test_that("handle_http() queues a call until a worker is free, then times its ru
       0,
       0
     )
+  )
+})
+
+test_that("handle_http() replaces a worker that stops", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_install(
+    local_tool_package(
+      tools = c(
+        "#' Quit",
+        "#'",
+        "#' Stops R.",
+        "#'",
+        "#' @mcpTool",
+        "#' @mcpReturns text",
+        "stop_r <- function() {",
+        "  quit(save = \"no\", status = 1)",
+        "}",
+        "",
+        "#' Who am I",
+        "#'",
+        "#' Gives the process ID of the R process that runs the tool.",
+        "#'",
+        "#' @mcpTool",
+        "#' @mcpReturns text",
+        "whoami <- function() {",
+        "  as.character(Sys.getpid())",
+        "}"
+      )
+    )
+  )
+  withr::defer(
+    unloadNamespace(
+      "runlog"
+    )
+  )
+  local_workers(
+    1,
+    "runlog"
+  )
+  pool <- new_pool(
+    "runlog",
+    1,
+    10,
+    0
+  )
+  call_tool_over_http <- function(name) {
+    wait_for(
+      handle_http(
+        http_request(
+          tool_call_body(
+            name
+          )
+        ),
+        server_identity(
+          "runlog"
+        ),
+        pool = pool
+      )
+    )
+  }
+
+  call_tool_over_http(
+    "stop_r"
+  )
+  response <- call_tool_over_http(
+    "whoami"
+  )
+
+  expect_match(
+    tool_text(
+      response
+    ),
+    "^[0-9]+$"
   )
 })
