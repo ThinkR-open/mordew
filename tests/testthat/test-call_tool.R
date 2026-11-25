@@ -193,6 +193,9 @@ test_that("call_tool() stops with the error of the MCP Inspector", {
 
 test_that("call_tool() gets the same result through the MCP Inspector", {
   skip_on_cran()
+  skip_on_os(
+    "windows"
+  )
   skip_if_not_installed(
     "processx"
   )
