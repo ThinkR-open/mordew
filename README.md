@@ -827,6 +827,26 @@ spike above).
 package, with the full path of the current `Rscript`: a desktop app may
 not find `Rscript` on its `PATH`.
 
+Over HTTP, the server runs on its own and clients connect to its URL:
+
+```r
+# in a dedicated R process: 127.0.0.1:8000, 4 workers, 60-second calls
+runlog::run_mcp_server(
+  transport = "http"
+)
+```
+
+```bash
+claude mcp add --transport http runlog http://127.0.0.1:8000/mcp
+```
+
+It follows the Streamable HTTP transport of MCP 2025-11-25, without
+sessions or SSE streams: a POST gets a JSON response, a notification 202,
+a GET 405 (no stream offered); an `Origin` other than `localhost` gets 403
+(against DNS rebinding), and another `MCP-Protocol-Version` 400. It
+listens on `127.0.0.1` only by default, as the specification recommends
+for a local server: there is no authentication yet.
+
 ### A Claude Code session restricted to the server
 
 Claude Code has no `--mcp-only` flag, but a few flags give the same result,
@@ -1322,6 +1342,23 @@ flowchart LR
 **A + B.** Several replicas, each with its own worker pool, for large
 deployments.
 
+`run_mcp_server(transport = "http")` implements B with httpuv and mirai,
+on the lessons of the [spike](#spike-an-asynchronous-http-front). The
+front answers `initialize`, `ping` and `tools/list` itself, so that they
+never wait behind a tool, and hands each `tools/call` to a worker,
+answering with a promise. The workers load the package before the server
+serves. At most one call runs per worker: a call beyond that gets a
+"busy, retry later" error at once, and since nothing queues, mirai's
+timeout counts the run time only. A call that times out, or whose worker
+stops, gets an `isError` result. Measured on 2026-11-25 with a tool that
+sleeps 2 seconds: four calls on four workers end at 2.05 s and a `ping`
+sent meanwhile at 0.02 s; with two workers and a 1-second timeout, a third
+call is busy at 0.01 s and the first two time out at 1.01 s.
+
+Not handled yet: a worker that stops is not replaced, so the pool runs
+with one worker less; nor are cancellation, progress, sessions and SSE
+streams, authentication, or per-tool limits.
+
 ### Asynchronous execution: production requirements
 
 - Non-blocking handler: the HTTP front never runs a tool itself.
@@ -1607,12 +1644,12 @@ resources or prompts yet: nothing in this cut has to break to add them.
 
 ### Phase 3: production
 
-- [ ] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
+- [x] `run_mcp_server()` over HTTP, shipped together with asynchronous execution: non-blocking front and a mirai worker pool (architecture B)
 - [ ] `inst/mordew/config.yml` in the package template: transport, port, workers, limits, audit log
 - [ ] Worker pool configuration: size, memory, data loaded at start-up
-- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits
+- [ ] Per-call timeouts with worker recycling (`@mcpLimit seconds`), and resource limits. Done: one timeout for every call (`run_mcp_server(timeout = 60)`). Left: a timeout per tool, replacing a worker that stops (the pool runs with one worker less today), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it (seen in `dev/evals.R`)
-- [ ] Back-pressure: bounded queue and a "busy, retry later" error
+- [x] Back-pressure: at most one call per worker, and a "busy, retry later" error beyond, at once
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
 - [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases
