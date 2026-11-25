@@ -9,3 +9,11 @@ test_that("longest_runs is exposed with a stable schema", {
     "longest_runs"
   )
 })
+
+test_that("longest_runs answers extreme arguments", {
+  skip_on_cran()
+  mordew::expect_hostile_safe(
+    "longest_runs",
+    list()
+  )
+})

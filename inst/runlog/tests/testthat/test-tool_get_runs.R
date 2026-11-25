@@ -9,3 +9,11 @@ test_that("get_runs is exposed with a stable schema", {
     "get_runs"
   )
 })
+
+test_that("get_runs answers extreme arguments", {
+  skip_on_cran()
+  mordew::expect_hostile_safe(
+    "get_runs",
+    list()
+  )
+})

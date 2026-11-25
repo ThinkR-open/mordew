@@ -1099,8 +1099,17 @@ than the longest answer. `assert_pass_rate()` stops when a case passes in
 less than 80% of its runs: a rate per case, so that a case that always
 fails cannot hide among the others.
 
-**Security tests** feed hostile arguments to each tool: injection strings,
-huge values, wrong types, paths outside the allowed scope.
+**Security tests** feed hostile arguments to each tool. Wrong types and
+values outside the schema never reach it: validation rejects them first,
+for every tool. What the schema accepts does reach it, so
+`expect_hostile_safe()`, which `add_tool()` writes in the tests of each
+tool, starts from valid arguments and replaces one at a time by each
+extreme value its schema accepts: an empty or a 100,000-character string,
+the bounds of a number, or the largest numbers when it has none. Every
+call must get an answer, success or `isError`: a server that stops or
+hangs fails the test. A success can still leak data, which no generic
+test can judge: paths outside the allowed scope are kept out by a
+`pattern` on the argument and by OS-level isolation in production.
 
 **Resources and prompts** get the same contract tests: every URI resolves,
 templates reject invalid parameters, MIME types and sizes are as
@@ -1119,7 +1128,8 @@ request headers, error codes.
 
 Available helpers: `call_tool()`, `expect_tool_error()`,
 `expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
-`partial()`, `run_evals()`, `assert_pass_rate()`, `check_tools()`. Planned:
+`partial()`, `run_evals()`, `assert_pass_rate()`, `check_tools()`,
+`expect_hostile_safe()`. Planned:
 `expect_structured_output()`, `read_resource()`, `expect_resource()`,
 `get_prompt()`, `expect_prompt()`, `simulate_elicitation()`, `expect_task()`,
 `expect_conformance()`.
@@ -1546,7 +1556,8 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Keep the evals apart from the developer's Claude Code configuration: a local session still reads `~/.claude/CLAUDE.md` and auto memory. `--bare` skips them, but ignores a subscription login
 - [x] `check_tools()`: static analysis of the code of every function of the package, tools and the helpers they call, for the calls through which an argument could become code (`eval()`, `parse()`, `source()`, `system()` and similar). The package template runs it in a test, so `R CMD check` fails on such a call. A lint for honest mistakes: it does not look for calls built at run time
 - [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
-- [ ] Hostile-argument test generator
+- [x] Hostile-argument test generator: `expect_hostile_safe()` calls a tool with each extreme value its schema accepts (strings and numbers for now) and expects an answer to every call; `add_tool()` writes it in the tests of each tool
+- [ ] Extreme values for arrays and objects in `expect_hostile_safe()`
 - [x] `run_dev(client = "claude")`: prints the command of a Claude Code session restricted to the development server, to paste in a terminal
 - [ ] Launch that session from `run_dev(client = "claude")` when the R console is itself a terminal, as in VS Code with vscode-R. To test first: `system("claude")` from the console, and `isatty(stdin())` to tell it from Positron, whose console is not a terminal
 - [x] Document the other ways to try tools: `call_tool()`, an MCP inspector, a restricted Claude Code session

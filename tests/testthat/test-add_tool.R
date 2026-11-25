@@ -77,6 +77,33 @@ test_that("add_tool() snapshots the schema of the tool in its tests", {
   )
 })
 
+test_that("add_tool() tests the tool against extreme arguments", {
+  path <- tempfile()
+  create_mordew(
+    path
+  )
+
+  add_tool(
+    "summarise_runs",
+    pkg = path
+  )
+
+  expect_match(
+    paste(
+      readLines(
+        file.path(
+          path,
+          "tests",
+          "testthat",
+          "test-tool_summarise_runs.R"
+        )
+      ),
+      collapse = "\n"
+    ),
+    'mordew::expect_hostile_safe\\(\\s*"summarise_runs"'
+  )
+})
+
 test_that("add_tool() refuses an existing tool", {
   path <- tempfile()
   create_mordew(

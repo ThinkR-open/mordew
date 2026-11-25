@@ -59,18 +59,8 @@ install_source <- function(
 }
 
 local_tool_package <- function(
-  env = parent.frame()
-) {
-  path <- file.path(
-    withr::local_tempfile(
-      .local_envir = env
-    ),
-    "runlog"
-  )
-  create_mordew(
-    path
-  )
-  tools <- c(
+  env = parent.frame(),
+  tools = c(
     "#' Echo the text",
     "#'",
     "#' Sends the text back.",
@@ -93,6 +83,16 @@ local_tool_package <- function(
     "fail_always <- function() {",
     "  stop(\"No runs today.\")",
     "}"
+  )
+) {
+  path <- file.path(
+    withr::local_tempfile(
+      .local_envir = env
+    ),
+    "runlog"
+  )
+  create_mordew(
+    path
   )
   writeLines(
     tools,
