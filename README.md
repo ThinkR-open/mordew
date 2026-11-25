@@ -8,13 +8,13 @@
 
 > Build, test and ship MCP servers as R packages.
 
-**Status: early development**, phase 2 of the
-[roadmap](#roadmap-and-task-list): the tools-only MVP is built, not yet
-released. For now, this README is the design document: it records the
-rationale, the target architecture, the known pitfalls, the open
-questions and the full task list. Once the MVP ships, it will be cut
-down to a user-facing README and the design material will move to
-`dev/design/`.
+**Status: proof of concept**, not yet released. Tools are served over
+stdio and HTTP, tested at three levels, and deploy to Docker and Posit
+Connect; the [roadmap](#roadmap-and-task-list) says what is done and what
+is only planned. For now, this README is also the design document: it
+records the rationale, the target architecture, the known pitfalls, the
+open questions and the task list. Sections describe the target design;
+what is not built yet is marked as planned.
 
 ---
 
@@ -52,7 +52,7 @@ mordew::run_dev(
 # dev/02_dev.R: creates dev/evals.R and a CI workflow that runs it
 mordew::use_evals()
 
-# run the MCP server (stdio by default)
+# run the MCP server: stdio by default, transport = "http" for several users
 runlog::run_mcp_server()
 ```
 
@@ -98,12 +98,12 @@ conventions and the path to production.
 `{mordew}` **is**:
 
 - an opinionated framework where one MCP server is one R package
-- scaffolding: `create_mordew()`, `add_tool()`, `add_resource()`, `add_prompt()`, `dev/` scripts
-- support for the whole MCP specification: tools, resources and prompts, plus structured output, elicitation, completion, progress, cancellation and the tasks extension
+- scaffolding: `create_mordew()`, `add_tool()`, `use_evals()`, `dev/` scripts; `add_resource()` and `add_prompt()` are planned
+- tools today; the rest of the MCP specification as a direction: resources and prompts, structured output, elicitation, completion, progress, cancellation and the tasks extension
 - a roxygen roclet that turns documentation into a tool registry
-- a testing toolkit covering three levels: unit, contract, behaviour
-- runtime helpers: its own thin MCP protocol layer, asynchronous execution, audit log, limits
-- deployment helpers: Docker, Kubernetes, Posit Connect
+- a testing toolkit covering three levels: unit, contract, behaviour, plus security
+- runtime helpers: its own thin MCP protocol layer, over stdio and HTTP, with a worker pool and limits; an audit log is planned
+- deployment helpers: Docker and Posit Connect; Kubernetes is planned
 
 `{mordew}` **is not**:
 
@@ -123,14 +123,15 @@ model, safe rendering, scaling Shiny sessions), and its dependencies
 `{mordew}`. So `{mordew}` stops at the MCP server.
 
 - **To try tools during development**: `mordew::run_dev()` opens an
-  ellmer chat in the R console, connected to the package's MCP server
-  (see [Development loop](#development-loop-run_dev)). The other ways to
+  ellmer chat in the R console, or gives the command of a Claude Code
+  session, connected to the package's MCP server (see [Development
+  loop](#development-loop-run_dev)). The other ways to
   try them, with or without a model, are in [Trying the
   tools](#trying-the-tools).
 - **To give users a chat**: build it as its own application, for example
   a golem app using shinychat and ellmer, that connects to the `{mordew}`
   server through MCP. Everything the server enforces (validation, limits,
-  asynchronous execution, audit log) then applies to the chat too. The
+  the worker pool) then applies to the chat too. The
   section [Clients we build ourselves](#clients-we-build-ourselves) lists
   what such a chat must get right.
 
@@ -174,8 +175,8 @@ them.
 | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ----------------------------- |
 | **Package convention**: `create_mordew()`, `add_tool()`, `dev/` scripts                                | An MCP server is developed, versioned, reviewed and installed like any package.                     | No                            |
 | **Three-level testing**: the function, the MCP contract, the model's behaviour                         | Proves that the tool computes correctly, is exposed correctly, and is called correctly.             | Level 1 only                  |
-| **Production without Posit Connect**: Dockerfile, Kubernetes, auth, multi-user, asynchronous execution | Production R often runs in containers, outside Posit Connect, and must serve several users at once. | No, it has to be done by hand |
-| **Audit log** of every tool call                                                                       | Traceability is required in regulated environments.                                                 | No                            |
+| **Production without Posit Connect**: Dockerfile, a shared token, multi-user, asynchronous execution; Kubernetes planned | Production R often runs in containers, outside Posit Connect, and must serve several users at once. | No, it has to be done by hand |
+| **Audit log** of every tool call (planned)                                                             | Traceability is required in regulated environments.                                                 | No                            |
 | **Return conventions**: data frame → table, plot → image, errors the model can act on                  | Keeps the model's context small and answers usable.                                                 | No                            |
 | **Restricted client configurations** (`mcp_client_config()`)                                           | Generates the most restricted setup each client allows, and says when it is only partial.           | No                            |
 
@@ -255,35 +256,38 @@ update, not a regeneration.
 
 ### Anatomy of a `{mordew}` package
 
+What `create_mordew()`, `add_tool()`, `use_evals()`, `add_dockerfile()`
+and `add_connect()` generate:
+
 ```
 runlog/
 ├── DESCRIPTION
 ├── NAMESPACE
-├── data/
-│   └── runs.rda                 # fake running log used by the tools
 ├── R/
 │   ├── tool_summarise_runs.R    # one file per tool
-│   ├── resource_runs.R          # one file per resource
-│   ├── prompt_weekly_review.R   # one file per prompt
 │   ├── run.R                    # run_mcp_server()
 │   └── mordew_registry.R        # generated by the roclet, do not edit
 ├── inst/
 │   └── mordew/
-│       ├── config.yml           # transport, port, workers, limits, audit log
-│       ├── instructions.md      # server instructions sent to clients
-│       └── prompts/
-│           └── weekly_review.md # prompt template
+│       └── instructions.md      # server instructions sent to clients
 ├── tests/
+│   ├── testthat.R
 │   └── testthat/
-│       ├── test-tool_summarise_runs.R  # unit tests, schema snapshot
-│       └── test-contract.R      # round-trips through call_tool()
-├── evals/                       # behavioural evals, not run on CRAN
+│       ├── test-tool_summarise_runs.R  # unit, schema snapshot, extreme arguments
+│       └── test-check_tools.R          # no call that can run code
 ├── dev/
 │   ├── 01_start.R
 │   ├── 02_dev.R
-│   └── 03_deploy.R
-└── Dockerfile
+│   ├── 03_deploy.R
+│   └── evals.R                  # behavioural evals, not run by R CMD check
+├── .github/workflows/evals.yaml # runs dev/evals.R, started by hand
+├── Dockerfile
+└── _server.yml                  # Posit Connect
 ```
+
+Planned: one file per resource and per prompt in `R/`, prompt templates
+in `inst/mordew/prompts/`, and `inst/mordew/config.yml` for the
+transport, port, workers, limits and audit log.
 
 ### Writing a tool
 
@@ -331,7 +335,7 @@ tag name at `_`, `.` or `-`.
 | `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
 | `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
 | `@mcpClosedWorld`                 | `openWorldHint: false`: the tool does not reach external entities.                                                                                                         |
-| `@mcpLimit rows <n>`              | Maximum number of rows a `table` returns, and an error on any other kind; the default is 50. A `seconds` limit comes with the timeouts (phase 3).                          |
+| `@mcpLimit rows <n>`              | Maximum number of rows a `table` returns, and an error on any other kind; the default is 50. A per-tool `seconds` limit is planned; over HTTP, `run_mcp_server(timeout = )` caps every call. |
 | `@mcpConfirm <message>`           | Confirmation handled before the tool runs: the user confirms through elicitation, or the function is never called. `{param}` placeholders interpolate validated arguments. |
 | `@mcpElicit <param>`              | Asks the user for the parameter when the model omits it, instead of failing the call.                                                                                      |
 | `@mcpResource <uri>`              | Exposes the function as a resource; a URI with `{parameters}` makes it a resource template.                                                                                |
@@ -492,38 +496,38 @@ keeps serving clients that still speak 2025-11-25. The MVP speaks
 [spike](#spike-a-stdio-server-without-mcptools)); 2026-07-28 comes in
 phase 4. "Production ready" means covering everything a server can
 offer, not only tools. That coverage is the 1.0 target, not the first
-release: the MVP ships tools over stdio only, and the
+release: the proof of concept ships tools, over stdio and HTTP, and the
 [roadmap](#roadmap-and-task-list) gives each feature its phase.
 
 | Feature                          | What it is                                                            | In `{mordew}`                                               |
 | -------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Tools                            | Functions the model calls                                             | Core: one R function per tool                               |
-| Resources and resource templates | Data the client can read                                              | `add_resource()`, `@mcpResource`                           |
-| Prompts                          | Templates the user picks                                              | `add_prompt()`, `@mcpPrompt`                               |
+| Resources and resource templates | Data the client can read                                              | Planned: `add_resource()`, `@mcpResource`                  |
+| Prompts                          | Templates the user picks                                              | Planned: `add_prompt()`, `@mcpPrompt`                      |
 | Tool title and annotations       | Display name, read-only, destructive, idempotent, open-world hints    | roxygen title and annotation tags                           |
-| Structured output                | `outputSchema` and `structuredContent`                                | `@mcpOutput`                                               |
+| Structured output                | `outputSchema` and `structuredContent`                                | Planned: `@mcpOutput`                                      |
 | Error reporting                  | Tool errors as `isError` results, protocol errors with standard codes | Built in                                                    |
-| Elicitation                      | The server asks the user for input during a call, through the client  | `@mcpConfirm`, `@mcpElicit`; `elicit()` for dynamic cases |
-| Completion                       | Suggested values for prompt and resource-template arguments           | Automatic for enums, `@mcpComplete`                        |
-| Progress                         | Progress notifications during a long call                             | `mordew::report_progress()`                                 |
-| Cancellation                     | The client stops a call                                               | Stops the worker running it                                 |
+| Elicitation                      | The server asks the user for input during a call, through the client  | Planned: `@mcpConfirm`, `@mcpElicit`; `elicit()`           |
+| Completion                       | Suggested values for prompt and resource-template arguments           | Planned: automatic for enums, `@mcpComplete`               |
+| Progress                         | Progress notifications during a long call                             | Planned: `mordew::report_progress()`                        |
+| Cancellation                     | The client stops a call                                               | Planned: stops the worker running it                        |
 | Change notifications             | `subscriptions/listen`: lists changed, resource updated               | Later: the registry is static                               |
-| `server/discover`                | Required: versions, capabilities, identity                            | Built in, identity from the package                         |
-| Cacheable results                | Required `ttlMs` and `cacheScope` on lists and resource reads         | Built in, set per item                                      |
-| Request headers                  | `Mcp-Method` and `Mcp-Name` on every HTTP request                     | Validated; lets a gateway authorise per tool                |
-| Trace context                    | OpenTelemetry `traceparent` in `_meta`                                | Server spans join the client's trace                        |
-| Tasks (extension)                | Long-running calls with polling and durable handles                   | `@mcpTask`, see [Tasks](#tasks-long-running-calls)         |
+| `server/discover`                | Required: versions, capabilities, identity                            | Planned, identity from the package                          |
+| Cacheable results                | Required `ttlMs` and `cacheScope` on lists and resource reads         | Planned, set per item                                       |
+| Request headers                  | `Mcp-Method` and `Mcp-Name` on every HTTP request                     | Planned: validated, lets a gateway authorise per tool       |
+| Trace context                    | OpenTelemetry `traceparent` in `_meta`                                | Planned: server spans join the client's trace               |
+| Tasks (extension)                | Long-running calls with polling and durable handles                   | Planned: `@mcpTask`, see [Tasks](#tasks-long-running-calls) |
 | MCP Apps (extension)             | Interactive UI rendered inline in the conversation                    | `@mcpApp`, later                                           |
 | Skills over MCP (extension)      | Structured instructions for agent workflows                           | `inst/mordew/skills/`, later                                |
 | Sampling, Roots, Logging         | Deprecated in 2026-07-28                                              | Not implemented: logs go to stderr and OpenTelemetry        |
 
-Other requirements of the 2026-07-28 revision that `{mordew}` handles: a
+Other requirements of the 2026-07-28 revision that `{mordew}` will handle: a
 `resultType` on every result, `serverInfo` in each result's `_meta`,
 tools listed in a deterministic order, and per-request log levels.
 
 #### Elicitation
 
-A tool can ask the user for missing information or a confirmation,
+Planned, like completion, progress and cancellation below. A tool can ask the user for missing information or a confirmation,
 through the client. The two common cases are declared in roxygen and
 handled by `{mordew}` **before the tool runs**:
 
@@ -627,12 +631,12 @@ stops the worker running the call, then recycles it.
   deployment](#scaling-an-http-deployment).
 - **State.** Tools must be stateless by default, so that any process can
   answer any call. When a multi-step analysis (load, filter, model) needs
-  state, it lives outside the R process (database, Redis, files), behind
-  handles (`"dataset_1"`) with a time-to-live, isolated per session.
-- **Configuration.** golem-style `inst/mordew/config.yml`: transport,
+  state, it will live outside the R process (database, Redis, files),
+  behind handles (`"dataset_1"`) with a time-to-live, isolated per session.
+- **Configuration**, planned. golem-style `inst/mordew/config.yml`: transport,
   port, worker pool, limits, audit log location. The model and the
   system prompt belong to the client, not to the server.
-- **Observability.** OpenTelemetry tracing of each tool call, building on
+- **Observability**, planned. OpenTelemetry tracing of each tool call, building on
   the instrumentation already present in ellmer and mcplite, and joining
   the client's trace through the `traceparent` field of `_meta`. MCP's
   own logging is deprecated: logs go to stderr and OpenTelemetry.
@@ -844,7 +848,7 @@ claude mcp add --transport http runlog http://127.0.0.1:8000/mcp
 
 It follows the Streamable HTTP transport of MCP 2025-11-25, without
 sessions or SSE streams: a POST gets a JSON response, a notification 202,
-a GET 405 (no stream offered); an `Origin` other than `localhost` gets 403
+a GET on the MCP endpoint 405 (no stream offered); an `Origin` other than `localhost` gets 403
 (against DNS rebinding), and another `MCP-Protocol-Version` 400. It
 listens on `127.0.0.1` only by default, as the specification recommends
 for a local server.
@@ -867,8 +871,7 @@ identity, no expiry, and no discovery for clients that only speak
 OAuth. `{mordew}` does not plan OAuth: a deployment that needs it puts a
 gateway that handles it in front of the server.
 
-`GET /health`
-answers `200` with `{"status":"ok"}` from the front, even when every
+`GET /health` answers `200` with `{"status":"ok"}` from the front, even when every
 worker is busy (0.02 s while four 2-second calls ran, on 2026-11-25): it
 is the probe for load balancers, Docker and Kubernetes.
 
@@ -1002,7 +1005,7 @@ mordew::run_dev(
 ```
 
 In both cases, the stdio server runs the development version of the
-package (`Rscript --no-init-file -e "pkgload::load_all(quiet = TRUE); run_mcp_server()"`);
+package (`Rscript --no-init-file -e "pkgload::load_all(<path>, quiet = TRUE); <package>::run_mcp_server()"`);
 with `client = "claude"`, `run_dev()` first writes a temporary MCP
 configuration that starts it. Then:
 
@@ -1026,9 +1029,9 @@ Claude Code is a full-screen terminal interface, so it cannot run inside
 the R console itself, and neither Positron nor VS Code lets R code run a
 command in a terminal: neither implements `rstudioapi::terminal*()`
 (checked in their source code on 2026-11-25). The command is printed
-rather than launched. For a one-off question from R,
-`claude -p "question" --output-format json`, with the same flags, returns
-the answer and the tool calls, which can also feed quick evals.
+rather than launched. For a one-off question from R, `claude -p`, with
+the same flags, returns the answer and the tool calls: that is how
+`run_evals()` asks its questions, with `--output-format stream-json`.
 
 ellmer itself has no provider that drives the `claude` CLI: its Anthropic
 provider calls the API. Third-party packages that reuse a Claude
@@ -1197,21 +1200,25 @@ call must get an answer, success or `isError`: a server that stops or
 hangs fails the test. A success can still leak data, which no generic
 test can judge: paths outside the allowed scope are kept out by a
 `pattern` on the argument and by OS-level isolation in production.
+`check_tools()`, which the package template runs in a test, reads the
+code of every function of the package and flags the calls through which
+an argument could become code (`eval()`, `parse()`, `source()`,
+`system()` and similar).
 
-**Resources and prompts** get the same contract tests: every URI resolves,
-templates reject invalid parameters, MIME types and sizes are as
-declared, prompt arguments match their documentation, and rendered
-prompts are snapshotted.
+Planned, with the features they test:
 
-**The other features** get contract tests too: structured content
-validated against its output schema, elicitation flows (an
-`InputRequiredResult`, then a retry with the answer), completion
-suggestions, progress notifications, cancellation, and task life cycles
-(handle, polling, update, result, expiry).
-
-**Specification conformance** is tested for both 2026-07-28 and
-2025-11-25 clients: `server/discover`, `resultType`, cacheable results,
-request headers, error codes.
+- **Resources and prompts** get the same contract tests: every URI
+  resolves, templates reject invalid parameters, MIME types and sizes are
+  as declared, prompt arguments match their documentation, and rendered
+  prompts are snapshotted.
+- **The other features** get contract tests too: structured content
+  validated against its output schema, elicitation flows (an
+  `InputRequiredResult`, then a retry with the answer), completion
+  suggestions, progress notifications, cancellation, and task life cycles
+  (handle, polling, update, result, expiry).
+- **Specification conformance** is tested for both 2026-07-28 and
+  2025-11-25 clients: `server/discover`, `resultType`, cacheable results,
+  request headers, error codes.
 
 Available helpers: `call_tool()`, `expect_tool_error()`,
 `expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
@@ -1258,16 +1265,16 @@ kept away.
 | Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar calls in tool code.                                                                                                     |
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
-| Runaway calls                         | Per-call timeouts and resource limits.                                                                                                                                                                                                       |
-| Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a redaction hook, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation. In `dev/evals.R` (2026-11-24), the model got 107 of 174 rows truncated at 50 by asking again for each type of run. |
+| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; per-tool timeouts and resource limits are planned.                                                                                                              |
+| Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a planned redaction hook, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation. In `dev/evals.R` (2026-11-24), the model got 107 of 174 rows truncated at 50 by asking again for each type of run. |
 | Unauthorised access to an HTTP server | A shared bearer token, required off localhost; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
-| No traceability                       | Audit log of every call (below).                                                                                                                                                                                                             |
+| No traceability                       | Planned: an audit log of every call (below).                                                                                                                                                                                                 |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
-| Resources exposing too much           | Resources are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
-| Secrets requested from users          | Elicitation never asks for passwords, tokens or other secrets; declared messages are linted by `check_tools()`.                                                                                                                              |
-| Replayed or tampered `requestState`   | `requestState` transits through the client, which can replay or alter it. `{mordew}` binds it to the validated arguments (hash) and authenticates it (HMAC); a retry whose state does not verify is rejected.                                |
-| Access to someone else's task         | Task handles are unguessable and checked against the caller on every `tasks/get` and `tasks/update`.                                                                                                                                         |
-| Interactive UIs (MCP Apps)            | Self-contained HTML, no remote resources, so that a widget cannot leak data.                                                                                                                                                                 |
+| Resources exposing too much           | Planned, with resources: they are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
+| Secrets requested from users          | Planned, with elicitation: it never asks for passwords, tokens or other secrets; declared messages are linted by `check_tools()`.                                                                                                                              |
+| Replayed or tampered `requestState`   | Planned, with elicitation: `requestState` transits through the client, which can replay or alter it. `{mordew}` binds it to the validated arguments (hash) and authenticates it (HMAC); a retry whose state does not verify is rejected.                                |
+| Access to someone else's task         | Planned, with tasks: handles are unguessable and checked against the caller on every `tasks/get` and `tasks/update`.                                                                                                                                         |
+| Interactive UIs (MCP Apps)            | Planned, with MCP Apps: self-contained HTML, no remote resources, so that a widget cannot leak data.                                                                                                                                                                 |
 
 ### Clients we build ourselves
 
@@ -1306,7 +1313,7 @@ Three risks remain:
 
 ### Audit log
 
-One JSON line per tool call, append-only: timestamp, session ID, user
+Planned. One JSON line per tool call, append-only: timestamp, session ID, user
 (when authenticated), client, tool, arguments, result size and hash,
 duration and status. Storing full results is optional because it is a
 privacy trade-off.
@@ -1319,7 +1326,7 @@ privacy trade-off.
 | --------------------- | --------- | -------------------------------------------------------------------------------------------------- |
 | Local, desktop client | stdio     | `Rscript --no-init-file -e "pkg::run_mcp_server()"`, snippet from `mcp_client_config()`            |
 | Docker                | HTTP      | `add_dockerfile()`, built on [dockerfiler](https://github.com/ThinkR-open/dockerfiler) as in golem |
-| Kubernetes            | HTTP      | example manifests: probes, replicas, secrets                                                       |
+| Kubernetes            | HTTP      | planned: example manifests with probes, replicas, secrets                                          |
 | Posit Connect         | HTTP      | `add_connect()` writes `_server.yml` with `engine: mordew`; `rsconnect::deployAPI(".", contentCategory = "mcp")` |
 
 ### Posit Connect
@@ -1424,8 +1431,8 @@ stopped their worker on a two-worker pool, then two 1-second calls at
 once: both ended at 1.12 s, so the pool had kept its two workers.
 
 Not handled yet: a worker that ignores the interrupt at its timeout
-(compiled code), cancellation, progress, sessions and SSE streams,
-authentication, and per-tool limits.
+(compiled code), cancellation, progress, sessions and SSE streams, and
+per-tool limits.
 
 ### Asynchronous execution: production requirements
 
@@ -1445,6 +1452,9 @@ authentication, and per-tool limits.
   new request.
 - Every call stays in the audit log with its queue time, run time and
   status.
+
+The proof of concept covers the first four (one timeout for every call,
+and a worker that stops is replaced); the others are planned.
 
 ### Spike: an asynchronous HTTP front
 
@@ -1471,9 +1481,10 @@ What the spike shows:
 - **mirai's `.timeout` counts the time spent in the queue.** With 8
   calls on 4 workers, calls 5 to 8 waited 2 seconds for a worker, then
   were cancelled after 1 second of work. The per-call limit must start
-  when the worker starts the call (for instance with `setTimeLimit()` in
-  the worker), and the queue needs a bound of its own: the in-flight
-  limit.
+  when the worker starts the call, and the queue needs a bound of its
+  own: the in-flight limit. `setTimeLimit()` in the worker turned out not
+  to interrupt a `Sys.sleep()`, so the package holds the queue in the
+  front instead and hands a call to mirai only when a worker is free.
 - **Cancellation is best effort.** mirai interrupts the worker: with one
   worker, a 10-second `Sys.sleep()` stopped at once and the next call
   ran. But after four cancellations at the same moment, one task kept
@@ -1495,7 +1506,7 @@ client over HTTP, and memory per worker.
 
 ### Tasks: long-running calls
 
-Some R computations take minutes: fitting a model on a season of runs,
+Planned. Some R computations take minutes: fitting a model on a season of runs,
 rendering a report. Holding an HTTP request open that long breaks on
 proxy timeouts and lost connections. The tasks extension of the
 specification solves this: the call returns a **task handle** at once,
@@ -1537,7 +1548,7 @@ Production requirements for tasks:
 - **Algorithm**: least connections rather than round-robin, because call
   durations vary widely and each process (or worker) runs one call at a
   time.
-- **Health check**: on `{mordew}`'s dedicated health endpoint.
+- **Health check**: on `GET /health`, which `{mordew}`'s front answers.
 - **Timeouts**: align the proxy timeouts with the longest tool. nginx's
   `proxy_read_timeout` defaults to 60 seconds; a longer tool ends in a 504.
 - **Host and Origin**: the proxy must forward the original `Host` and
@@ -1552,47 +1563,51 @@ Production requirements for tasks:
 ### Containers
 
 `add_dockerfile()` builds on
-[dockerfiler](https://github.com/ThinkR-open/dockerfiler)
-(`dock_from_desc()`, `dock_from_renv()`), the same way golem does. The
-generated Dockerfile:
+[dockerfiler](https://github.com/ThinkR-open/dockerfiler)'s
+`dock_from_desc()`, the same way golem does: it installs the package's
+dependencies, then the package, and adds what a server needs:
 
-- starts from `rocker/r-ver`, pinned to the R version of `renv.lock`
-- installs the system dependencies computed from the package dependencies
-- restores the R dependencies with renv, then installs the package
-- runs as a non-root user
-- exposes the port and starts the server on `0.0.0.0`
+- a non-root user, `mordew`
+- the port, 8080 by default
+- a health check that reads `GET /health` with base R, so the image needs
+  no curl
+- a start on `0.0.0.0`, which needs `MORDEW_TOKEN`: without it, the
+  container stops at once and says why
 
-Sketch of what it could generate for `runlog`:
+What it adds for `runlog`, after the lines from dockerfiler:
 
 ```dockerfile
-# R version taken from renv.lock
-ARG R_VERSION
-FROM rocker/r-ver:${R_VERSION}
-
-# system dependencies computed from the package dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl libcurl4-openssl-dev libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# reproducible R dependencies
-COPY renv.lock /tmp/renv.lock
-RUN R -e "install.packages('renv'); renv::restore(lockfile = '/tmp/renv.lock')"
-
-# the package itself
-COPY runlog_*.tar.gz /tmp/
-RUN R CMD INSTALL /tmp/runlog_*.tar.gz
-
-# never run as root
 RUN useradd --create-home mordew
 USER mordew
-
 EXPOSE 8080
-# mordew's health endpoint, answered by the front
-HEALTHCHECK CMD curl -fsS http://127.0.0.1:8080/health || exit 1
+HEALTHCHECK CMD Rscript -e 'readLines("http://127.0.0.1:8080/health", warn = FALSE)'
 CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0', port = 8080)"]
 ```
 
-**Image variants.** The function arguments below are a planned API.
+```bash
+docker build -t runlog .
+docker run -e MORDEW_TOKEN=... -p 8080:8080 runlog
+```
+
+Checked on 2026-11-25 with an image of `runlog`, `{mordew}` installed
+from a local archive: without a token, the container stopped and said
+why; with one, a request without the token got a 401 and a request with
+it the tool's answer, the server ran as `mordew`, and Docker reported the
+container healthy. Three things learned on the way:
+
+- **System requirements.** dockerfiler computes them with pak, which must
+  resolve every dependency: until `{mordew}` is on CRAN, that takes
+  `Remotes: ThinkR-open/mordew` and a public repository. Without them,
+  `add_dockerfile(sysreqs = FALSE, extra_sysreqs = "zlib1g-dev")` gives
+  httpuv what it needs to compile.
+- **A failed install does not fail the build** with dockerfiler 0.2.5: in
+  `R -e`, it is only a warning, and the image lacks the package. Recent
+  dockerfiler versions turn these warnings into errors.
+- **The package's `Suggests` are installed too**, though a server does not
+  need them.
+
+**Image variants**, planned. `add_dockerfile()` writes the worker pool
+image; the other two are a direction.
 
 | Image                   | Transport | Starts                                                              | For                                           |
 | ----------------------- | --------- | ------------------------------------------------------------------- | --------------------------------------------- |
@@ -1600,7 +1615,7 @@ CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.
 | MCP server, worker pool | HTTP      | `run_mcp_server(transport = "http", host = "0.0.0.0", workers = 4)` | architecture B, one container                 |
 | stdio                   | stdio     | `run_mcp_server()`                                                  | desktop clients, through `docker run -i --rm` |
 
-**stdio in Docker.** An MCP client can start a container instead of a
+**stdio in Docker**, planned. An MCP client can start a container instead of a
 local R process. This ships an R-based MCP server to people who do not
 have R installed:
 
@@ -1615,7 +1630,7 @@ have R installed:
 }
 ```
 
-**docker-compose.** A generated `docker-compose.yml` runs the MCP server
+**docker-compose**, planned. A generated `docker-compose.yml` runs the MCP server
 (replicas or worker pool) and a reverse proxy together, to test the whole
 architecture locally before deploying it.
 
@@ -1629,8 +1644,8 @@ architecture locally before deploying it.
   checklist).
 - **Secrets and model API keys** come from environment variables or a
   secret store, never baked into the image.
-- **Configuration** through environment variables that override
-  `inst/mordew/config.yml`.
+- **Configuration** through environment variables: `MORDEW_TOKEN`
+  today, overriding the planned `inst/mordew/config.yml` later.
 - **stdout is reserved for the protocol in stdio mode.** The server
   diverts what a tool prints to stderr, but anything written to stdout
   before it starts (a `.Rprofile`, a noisy `.onLoad()`) corrupts the
@@ -1645,7 +1660,8 @@ architecture locally before deploying it.
 ## Relationship with golem
 
 - Same philosophy: a package, `dev/` scripts, conventions over configuration.
-- Same tooling where possible: dockerfiler, attachment, config.
+- Same tooling where possible: dockerfiler today; attachment and config
+  to consider.
 - Possible bridges, to explore: a chat built as a golem app that connects
   to `{mordew}` servers through MCP, or a `golem::add_mcp()` exposing an app's
   business logic as an MCP server.
@@ -1671,7 +1687,7 @@ comes after is a direction, not a commitment.
 ### Phase 1: tools-only MVP
 
 Tools over stdio, with the contract tests: the differentiator. No HTTP
-(it ships with asynchronous execution, in the production phase), no
+(it came with asynchronous execution, in phase 3), no
 resources or prompts yet: nothing in this cut has to break to add them.
 
 - [x] Set up the `{mordew}` package: DESCRIPTION, testthat 3rd edition, air (formatting), GitHub Actions `R-CMD-check`, pkgdown
@@ -1718,7 +1734,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [x] Back-pressure: at most one call per worker, a bounded queue in the front (`queue = 8`), and a "busy, retry later" error at once when it is full
 - [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
 - [x] Authentication for the HTTP transport, first step: a shared bearer token (`MORDEW_TOKEN`), required to serve off localhost, with `GET /health` left open
-- [ ] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`
+- [x] `add_dockerfile()` with dockerfiler: an image that serves the package over HTTP with its worker pool, as a non-root user, on `0.0.0.0` with `MORDEW_TOKEN`, probed on `/health`. Checked with a local `{mordew}` archive; a build from GitHub needs the repository public
 - [ ] `add_connect()` for Posit Connect: written (`_server.yml` with `engine: mordew`, and `launch_server()`), checked by calling `launch_server()` locally; left to deploy on a real Connect
 
 ### Later, beyond the proof of concept
@@ -1795,13 +1811,16 @@ tried by others.
    only).
 5. **State model**: stateless only, or handles with a session object store.
 6. **One package.** Runtime `Imports` stay minimal — what
-   `run_mcp_server()` executes; the development and testing tooling (testthat)
-   lives in `Suggests`, installed on a development machine with
-   `mordew::install_dev_deps()`, the golem pattern. Split only if a
-   future helper would drag a heavy dependency into `Imports`.
+   `run_mcp_server()` executes: jsonlite for the protocol, httpuv, mirai
+   and promises for HTTP. The development and testing tooling (testthat,
+   pkgload, processx, dockerfiler…) lives in `Suggests`, installed on a
+   development machine with `mordew::install_dev_deps()`, the golem
+   pattern. Split only if a future helper would drag a heavy dependency
+   into `Imports`.
 7. **Bridges with golem**.
-8. **Default architecture for HTTP**: replicas (A), worker pool (B), or
-   both by default.
+8. **Default architecture for HTTP: the worker pool (B).**
+   `run_mcp_server(transport = "http")` runs one, and replicas of it
+   behind a load balancer (A + B) stay possible.
 9. **A generated package depends on `{mordew}` at runtime**, as golem
    apps depend on golem. The deciding argument is security: validation,
    limits and serialisation
@@ -1809,9 +1828,10 @@ tried by others.
    through an update of `{mordew}`, never through regenerating and
    re-releasing each package. The generated registry stays declarative
    data; everything that executes is imported. The costs are accepted:
-   `{mordew}` must be on CRAN before any package built with it, and
+   `{mordew}` must be on CRAN before any package built with it is, and
    every user installs `{mordew}`'s dependencies, kept small by the
-   tools-only MVP.
+   tools-only MVP. Until then, a package installs it from GitHub with
+   `Remotes: ThinkR-open/mordew`.
 
    A `{mordew}` package should pass `R CMD check --as-cran`:
    evals and `dev/` in `.Rbuildignore`, round-trip tests through a
@@ -1840,7 +1860,7 @@ tried by others.
 | Maintenance cost                   | Open source means issues, support and upgrades.                                                                                                                               | Keep the scope small and the protocol layer thin, welcome contributors early.                                                                                                                  |
 | Unclear adoption                   | Real use cases still have to be collected.                                                                                                                                    | Build the prototype on real use cases before the first release.                                                                                                                                |
 | Flaky, costly evals                | Models are not deterministic, and every eval run costs tokens.                                                                                                                | Thresholds, several runs per case, a separate CI job.                                                                                                                                          |
-| A blocking server in production    | A process that runs tools itself runs one call at a time; one slow call blocks every user.                                                                                    | Asynchronous execution is a production requirement: mirai worker pool (B), replicas behind a load balancer (A), timeouts and back-pressure.                                                    |
+| A blocking server in production    | A process that runs tools itself runs one call at a time; one slow call blocks every user.                                                                                    | Asynchronous execution over HTTP: a mirai worker pool (B), with a timeout per call and a bounded queue; replicas behind a load balancer (A) on top.                                            |
 
 ---
 
