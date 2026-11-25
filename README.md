@@ -1003,11 +1003,15 @@ claude mcp add --transport http runlog https://connect.example.com/content/<guid
 
 Connect authenticates the clients itself, with its API keys, and strips
 the `Authorization` header before the request reaches the server: the
-server runs without a token there. Not yet deployed on a real Connect:
-checked by calling `launch_server("_server.yml", host, port)` on a copy
-of `runlog`, as Connect does. Until `{mordew}` is on
-CRAN, Connect installs it from GitHub, which takes
-`Remotes: ThinkR-open/mordew` in the package's `DESCRIPTION`.
+server runs without a token there. Checked on Connect 2026.06.1 with a
+`{mordew}` package: `initialize`, `tools/list` and `tools/call` over
+`/mcp`. rsconnect 1.6.0 creates the content, then fails to upload the
+bundle with a 404; 1.12.0 deploys it. Until `{mordew}` is on CRAN,
+Connect installs it from GitHub, which takes
+`Remotes: ThinkR-open/mordew` in the package's `DESCRIPTION`, and
+`{mordew}` installed from GitHub (`pak::pak("ThinkR-open/mordew")`)
+where you deploy: rsconnect records each dependency as it is installed
+there.
 
 ### When a single process is enough
 
