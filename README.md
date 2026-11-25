@@ -1357,7 +1357,9 @@ Measured on 2026-11-25 with a tool that sleeps 2 seconds: four calls on
 four workers end at 2.05 s and a `ping` sent meanwhile at 0.02 s. With
 two workers, a one-place queue, a 1.5-second timeout and four 1-second
 calls: two end at 1.04 s, the queued one at 2.04 s without timing out,
-and the fourth is busy at 0.01 s.
+and the fourth is busy at 0.01 s. Observed on 2026-11-25 (one run,
+Claude Code): faced with a busy error, the model retries once at once,
+then tells the user to ask again later, without making up an answer.
 
 Not handled yet: a worker that stops is not replaced, so the pool runs
 with one worker less; nor are cancellation, progress, sessions and SSE
