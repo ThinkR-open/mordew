@@ -863,7 +863,8 @@ claude mcp add --transport http runlog http://server:8000/mcp --header "Authoriz
 A shared token suits an internal deployment. It is not the OAuth 2.1
 authorization of the MCP specification: one secret for every user, no
 identity, no expiry, and no discovery for clients that only speak
-OAuth; that comes next.
+OAuth. `{mordew}` does not plan OAuth: a deployment that needs it puts a
+gateway that handles it in front of the server.
 
 `GET /health`
 answers `200` with `{"status":"ok"}` from the front, even when every
@@ -1258,7 +1259,7 @@ kept away.
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
 | Runaway calls                         | Per-call timeouts and resource limits.                                                                                                                                                                                                       |
 | Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, a redaction hook, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation. In `dev/evals.R` (2026-11-24), the model got 107 of 174 rows truncated at 50 by asking again for each type of run. |
-| Unauthorised access to an HTTP server | A shared bearer token today, required off localhost; authentication following the MCP authorization specification (OAuth 2.1) next, or a reverse proxy in front of the server. |
+| Unauthorised access to an HTTP server | A shared bearer token, required off localhost; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
 | No traceability                       | Audit log of every call (below).                                                                                                                                                                                                             |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
 | Resources exposing too much           | Resources are read-only and size-limited. Template parameters are validated like tool arguments: a `{file}` or `{path}` parameter must never allow `../` or absolute paths.                                                                  |
@@ -1695,7 +1696,6 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] Generated `docker-compose.yml`: MCP server and reverse proxy
 - [ ] Container defaults: `0.0.0.0` binding, non-root user, health check, configuration through environment variables
 - [x] Authentication for the HTTP transport, first step: a shared bearer token (`MORDEW_TOKEN`), required to serve off localhost, with `GET /health` left open
-- [ ] OAuth 2.1 authorization following the MCP specification: Protected Resource Metadata (`/.well-known/oauth-protected-resource`), a 401 with `WWW-Authenticate: Bearer resource_metadata=...`, and access tokens checked for signature, expiry and audience, never passed through
 - [ ] Audit log, with queue time and run time
 - [ ] Session-scoped object store, if the prototype shows it is needed
 - [ ] OpenTelemetry tracing
