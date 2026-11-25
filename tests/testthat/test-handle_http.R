@@ -111,3 +111,22 @@ test_that("handle_http() refuses another protocol version", {
     200L
   )
 })
+
+test_that("handle_http() answers GET /health with 200", {
+  expect_identical(
+    handle_http(
+      http_request(
+        "",
+        method = "GET",
+        path = "/health"
+      )
+    ),
+    list(
+      status = 200L,
+      headers = list(
+        "Content-Type" = "application/json"
+      ),
+      body = '{"status":"ok"}'
+    )
+  )
+})

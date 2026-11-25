@@ -267,4 +267,14 @@ test_that("a generated package serves its tools to a client over HTTP", {
     )$result$content[[1]]$text,
     "trail é"
   )
+  expect_identical(
+    curl::curl_fetch_memory(
+      paste0(
+        "http://127.0.0.1:",
+        port,
+        "/health"
+      )
+    )$status_code,
+    200L
+  )
 })

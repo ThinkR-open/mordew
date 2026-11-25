@@ -26,6 +26,19 @@ test_that("http_app() reads the headers httpuv receives", {
   )
 })
 
+test_that("http_app() reads the path httpuv receives", {
+  expect_identical(
+    http_app()$call(
+      rook_request(
+        "",
+        method = "GET",
+        path = "/health"
+      )
+    )$status,
+    200L
+  )
+})
+
 test_that("serve_http() starts the workers, then runs the app with httpuv", {
   local_mocked_bindings(
     start_workers = function(

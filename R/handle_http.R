@@ -5,6 +5,33 @@ handle_http <- function(
   envir,
   pool = NULL
 ) {
+  if (
+    !local_origin(
+      request$headers$origin
+    )
+  ) {
+    return(
+      http_response(
+        403L
+      )
+    )
+  }
+  if (
+    identical(
+      request$path,
+      "/health"
+    )
+  ) {
+    return(
+      http_response(
+        200L,
+        list(
+          "Content-Type" = "application/json"
+        ),
+        '{"status":"ok"}'
+      )
+    )
+  }
   refusal <- http_refusal(
     request
   )
@@ -45,17 +72,6 @@ handle_http <- function(
 http_refusal <- function(
   request
 ) {
-  if (
-    !local_origin(
-      request$headers$origin
-    )
-  ) {
-    return(
-      http_response(
-        403L
-      )
-    )
-  }
   if (request$method != "POST") {
     return(
       http_response(

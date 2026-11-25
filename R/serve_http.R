@@ -9,6 +9,7 @@ http_app <- function(
       handle_http(
         list(
           method = req$REQUEST_METHOD,
+          path = req$PATH_INFO,
           headers = as.list(
             req$HEADERS
           ),

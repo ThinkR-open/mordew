@@ -846,7 +846,10 @@ sessions or SSE streams: a POST gets a JSON response, a notification 202,
 a GET 405 (no stream offered); an `Origin` other than `localhost` gets 403
 (against DNS rebinding), and another `MCP-Protocol-Version` 400. It
 listens on `127.0.0.1` only by default, as the specification recommends
-for a local server: there is no authentication yet.
+for a local server: there is no authentication yet. `GET /health`
+answers `200` with `{"status":"ok"}` from the front, even when every
+worker is busy (0.02 s while four 2-second calls ran, on 2026-11-25): it
+is the probe for load balancers, Docker and Kubernetes.
 
 ### A Claude Code session restricted to the server
 
@@ -1531,7 +1534,7 @@ RUN useradd --create-home mordew
 USER mordew
 
 EXPOSE 8080
-# dedicated health endpoint, planned in mordew
+# mordew's health endpoint, answered by the front
 HEALTHCHECK CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0', port = 8080)"]
 ```
@@ -1665,7 +1668,7 @@ resources or prompts yet: nothing in this cut has to break to add them.
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
 - [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live
 - [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases
-- [ ] Dedicated health endpoint for load balancers and Kubernetes probes
+- [x] Dedicated health endpoint for load balancers and Kubernetes probes: `GET /health`, answered by the front
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation
 - [ ] Check that tools keep no in-memory state (a contract test)
