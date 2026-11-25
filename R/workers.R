@@ -42,10 +42,112 @@ start_workers <- function(
   )
 }
 
+new_pool <- function(
+  package,
+  workers,
+  timeout
+) {
+  list2env(
+    list(
+      package = package,
+      workers = workers,
+      timeout = timeout,
+      in_flight = 0
+    )
+  )
+}
+
+pool_call <- function(
+  pool,
+  message,
+  text,
+  server
+) {
+  if (pool$in_flight >= pool$workers) {
+    return(
+      http_reply(
+        tool_failure(
+          message$id,
+          "The server is busy: retry later."
+        )
+      )
+    )
+  }
+  pool$in_flight <- pool$in_flight + 1
+  promises::finally(
+    promises::then(
+      in_worker(
+        text,
+        pool$package,
+        server,
+        pool$timeout
+      ),
+      onFulfilled = http_reply,
+      onRejected = function(error) {
+        http_reply(
+          tool_failure(
+            message$id,
+            worker_failure(
+              error,
+              pool$timeout
+            )
+          )
+        )
+      }
+    ),
+    onFinally = function() {
+      pool$in_flight <- pool$in_flight - 1
+    }
+  )
+}
+
+worker_failure <- function(
+  error,
+  timeout
+) {
+  if (
+    startsWith(
+      conditionMessage(
+        error
+      ),
+      "5 |"
+    )
+  ) {
+    return(
+      paste0(
+        "The tool did not finish within ",
+        timeout,
+        " seconds."
+      )
+    )
+  }
+  paste0(
+    "The worker running the tool stopped: ",
+    conditionMessage(
+      error
+    )
+  )
+}
+
+tool_failure <- function(
+  id,
+  text
+) {
+  rpc_response(
+    id,
+    list(
+      result = error_result(
+        text
+      )
+    )
+  )
+}
+
 in_worker <- function(
   text,
   package,
-  server
+  server,
+  timeout
 ) {
   mirai::mirai(
     worker_respond(
@@ -56,7 +158,8 @@ in_worker <- function(
     worker_respond = worker_respond,
     text = text,
     package = package,
-    server = server
+    server = server,
+    .timeout = timeout * 1000
   )
 }
 
@@ -76,7 +179,7 @@ worker_respond <- function(
   )
 }
 
-is_tool_call <- function(
+tool_call_message <- function(
   text
 ) {
   message <- tryCatch(
@@ -88,11 +191,15 @@ is_tool_call <- function(
       NULL
     }
   )
-  is.list(
+  if (
+    is.list(
+      message
+    ) &&
+      identical(
+        message$method,
+        "tools/call"
+      )
+  ) {
     message
-  ) &&
-    identical(
-      message$method,
-      "tools/call"
-    )
+  }
 }

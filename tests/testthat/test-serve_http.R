@@ -61,7 +61,8 @@ test_that("serve_http() starts the workers, then runs the app with httpuv", {
       "127.0.0.1",
       8000,
       "mordew",
-      4
+      4,
+      60
     ),
     list(
       host = "127.0.0.1",

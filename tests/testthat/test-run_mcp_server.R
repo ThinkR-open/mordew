@@ -77,13 +77,15 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       host,
       port,
       package,
-      workers
+      workers,
+      timeout
     ) {
       list(
         host = host,
         port = port,
         package = package,
-        workers = workers
+        workers = workers,
+        timeout = timeout
       )
     }
   )
@@ -97,7 +99,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       host = "127.0.0.1",
       port = 8000,
       package = "mordew",
-      workers = 4
+      workers = 4,
+      timeout = 60
     )
   )
 })

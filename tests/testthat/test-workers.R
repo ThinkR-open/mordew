@@ -42,8 +42,11 @@ wait_for <- function(
   value <- NULL
   promises::then(
     promise,
-    function(result) {
+    onFulfilled = function(result) {
       value <<- result
+    },
+    onRejected = function(error) {
+      value <<- error
     }
   )
   deadline <- Sys.time() + 30
@@ -105,7 +108,11 @@ test_that("http_app() runs a tool call in a worker and answers with a promise", 
       ),
       namespace$mordew_registry,
       namespace,
-      "runlog"
+      new_pool(
+        "runlog",
+        1,
+        60
+      )
     )$call(
       rook_request(
         tool_call_body(
@@ -160,7 +167,8 @@ test_that("start_workers() loads an installed package in the workers", {
     "runlog",
     server_identity(
       "runlog"
-    )
+    ),
+    60
   )[]
 
   expect_false(
@@ -179,8 +187,165 @@ test_that("handle_http() answers a body that is not JSON in the front, with work
       http_request(
         "not json"
       ),
-      package = "runlog"
+      pool = new_pool(
+        "runlog",
+        1,
+        60
+      )
     )$status,
     400L
+  )
+})
+
+tool_text <- function(
+  response
+) {
+  jsonlite::fromJSON(
+    response$body
+  )$result$content$text
+}
+
+test_that("handle_http() answers busy when every worker runs a call", {
+  pool <- new_pool(
+    "runlog",
+    1,
+    60
+  )
+  pool$in_flight <- 1
+
+  expect_identical(
+    tool_text(
+      handle_http(
+        http_request(
+          tool_call_body(
+            "whoami"
+          )
+        ),
+        pool = pool
+      )
+    ),
+    "The server is busy: retry later."
+  )
+})
+
+test_that("handle_http() stops a tool call that runs too long", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_dev_package(
+    local_tool_package(
+      tools = c(
+        "#' Wait",
+        "#'",
+        "#' Waits for some seconds.",
+        "#'",
+        "#' @param seconds Seconds to wait.",
+        "#'",
+        "#' @mcpTool",
+        "#' @mcpType seconds type_number(min = 0)",
+        "#' @mcpReturns text",
+        "nap <- function(seconds) {",
+        "  Sys.sleep(seconds)",
+        "  \"Done.\"",
+        "}"
+      )
+    )
+  )
+  start_workers(
+    1,
+    "runlog"
+  )
+  withr::defer(
+    mirai::daemons(
+      0
+    )
+  )
+  pool <- new_pool(
+    "runlog",
+    1,
+    1
+  )
+
+  response <- wait_for(
+    handle_http(
+      http_request(
+        tool_call_body(
+          "nap",
+          list(
+            seconds = 10
+          )
+        )
+      ),
+      server_identity(
+        "runlog"
+      ),
+      pool = pool
+    )
+  )
+
+  expect_identical(
+    tool_text(
+      response
+    ),
+    "The tool did not finish within 1 seconds."
+  )
+  expect_identical(
+    pool$in_flight,
+    0
+  )
+})
+
+test_that("handle_http() answers when the worker running a tool stops", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_dev_package(
+    local_tool_package(
+      tools = c(
+        "#' Quit",
+        "#'",
+        "#' Stops R.",
+        "#'",
+        "#' @mcpTool",
+        "#' @mcpReturns text",
+        "stop_r <- function() {",
+        "  quit(save = \"no\", status = 1)",
+        "}"
+      )
+    )
+  )
+  start_workers(
+    1,
+    "runlog"
+  )
+  withr::defer(
+    mirai::daemons(
+      0
+    )
+  )
+
+  response <- wait_for(
+    handle_http(
+      http_request(
+        tool_call_body(
+          "stop_r"
+        )
+      ),
+      server_identity(
+        "runlog"
+      ),
+      pool = new_pool(
+        "runlog",
+        1,
+        60
+      )
+    )
+  )
+
+  expect_match(
+    tool_text(
+      response
+    ),
+    "^The worker running the tool stopped"
   )
 })

@@ -3,7 +3,7 @@ handle_http <- function(
   server,
   registry,
   envir,
-  package = NULL
+  pool = NULL
 ) {
   refusal <- http_refusal(
     request
@@ -13,22 +13,22 @@ handle_http <- function(
       refusal
     )
   }
-  if (
+  message <- if (
     !is.null(
-      package
-    ) &&
-      is_tool_call(
-        request$body
-      )
+      pool
+    )
   ) {
+    tool_call_message(
+      request$body
+    )
+  }
+  if (!is.null(message)) {
     return(
-      promises::then(
-        in_worker(
-          request$body,
-          package,
-          server
-        ),
-        http_reply
+      pool_call(
+        pool,
+        message,
+        request$body,
+        server
       )
     )
   }

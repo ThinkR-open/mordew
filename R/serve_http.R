@@ -2,7 +2,7 @@ http_app <- function(
   server,
   registry,
   envir,
-  package = NULL
+  pool = NULL
 ) {
   list(
     call = function(req) {
@@ -19,7 +19,7 @@ http_app <- function(
         server,
         registry,
         envir,
-        package
+        pool
       )
     }
   )
@@ -29,7 +29,8 @@ serve_http <- function(
   host,
   port,
   package,
-  workers
+  workers,
+  timeout
 ) {
   start_workers(
     workers,
@@ -52,7 +53,11 @@ serve_http <- function(
       ),
       namespace$mordew_registry,
       namespace,
-      package
+      new_pool(
+        package,
+        workers,
+        timeout
+      )
     )
   )
 }
