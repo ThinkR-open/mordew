@@ -1121,16 +1121,20 @@ docker run -e MORDEW_TOKEN=... -p 8080:8080 runlog
 
 Three things to know:
 
-- **System requirements.** dockerfiler computes them with pak, which must
-  resolve every dependency: until `{mordew}` is on CRAN, that takes
-  `Remotes: ThinkR-open/mordew` and a public repository. Without them,
-  `add_dockerfile(sysreqs = FALSE, extra_sysreqs = "zlib1g-dev")` gives
-  httpuv what it needs to compile.
-- **A failed install does not fail the build** with dockerfiler 0.2.5: in
-  `R -e`, it is only a warning, and the image lacks the package. Recent
-  dockerfiler versions turn these warnings into errors.
+- **System requirements.** dockerfiler computes them with pak, which
+  does not find `{mordew}` while it is not on CRAN, with or without
+  `Remotes: ThinkR-open/mordew`: `add_dockerfile()` stops with "Can't
+  find package called mordew".
+  `add_dockerfile(sysreqs = FALSE, extra_sysreqs = "zlib1g-dev")` skips
+  that computation and gives httpuv what it needs to compile.
+- **A failed install fails the build** with dockerfiler 1.0.0, which runs
+  every install with `options(warn = 2)`. With 0.2.5, it is only a
+  warning, and the image lacks the package.
 - **The package's `Suggests` are installed too**, though a server does not
-  need them.
+  need them. `pkgload` pulls `fs`, which needs libuv: without the computed
+  system requirements, `fs` fails to install, which stops the build with
+  dockerfiler 1.0.0 (seen on arm64), and leaves the image without `fs`,
+  `pkgload` and `testthat` with 0.2.5.
 
 ### Container checklist
 
