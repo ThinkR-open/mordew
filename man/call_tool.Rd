@@ -29,7 +29,8 @@ tested.}
 \item{client}{MCP client that calls the tool: \code{"mordew"}, its own, or
 \code{"inspector"}, the MCP Inspector run through \code{npx}, which needs Node.js. A
 client written by others checks that the server is understood beyond
-\code{{mordew}}'s own reading of the protocol.}
+\code{{mordew}}'s own reading of the protocol. \code{"inspector"} is not supported
+on Windows yet.}
 }
 \value{
 The tool result: a list with \code{content} and \code{isError}.

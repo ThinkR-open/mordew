@@ -795,11 +795,16 @@ MCP Inspector, the reference client of the MCP project, run with `npx`
 in its CLI mode, pinned to the version checked. The server and
 `{mordew}`'s client share one reading of the protocol, so a mistake in it
 would pass unnoticed between them: a client written by others catches it.
-Both clients give the same result shape, so a test can compare them:
+Both clients give the same result shape, so a test can compare them.
+`client = "inspector"` is not supported on Windows yet, hence the
+`skip_on_os()`:
 
 ```r
 test_that("summarise_runs answers the same through the MCP Inspector", {
   skip_on_cran()
+  skip_on_os(
+    "windows"
+  )
   args <- list(
     year = 2025
   )

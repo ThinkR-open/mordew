@@ -275,3 +275,21 @@ test_that("call_tool() gets the same result through the MCP Inspector", {
     )
   )
 })
+
+test_that("call_tool() refuses the MCP Inspector on Windows", {
+  local_mocked_bindings(
+    on_windows = function() {
+      TRUE
+    }
+  )
+
+  expect_error(
+    call_tool(
+      "echo",
+      package = "runlog",
+      client = "inspector"
+    ),
+    "The MCP Inspector client is not supported on Windows yet.",
+    fixed = TRUE
+  )
+})

@@ -68,9 +68,13 @@ rscript <- function() {
     ),
     paste0(
       "Rscript",
-      if (.Platform$OS.type == "windows") ".exe"
+      if (on_windows()) ".exe"
     )
   )
+}
+
+on_windows <- function() {
+  .Platform$OS.type == "windows"
 }
 
 request_tool <- function(

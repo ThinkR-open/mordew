@@ -16,7 +16,8 @@
 #' @param client MCP client that calls the tool: `"mordew"`, its own, or
 #'   `"inspector"`, the MCP Inspector run through `npx`, which needs Node.js. A
 #'   client written by others checks that the server is understood beyond
-#'   `{mordew}`'s own reading of the protocol.
+#'   `{mordew}`'s own reading of the protocol. `"inspector"` is not supported
+#'   on Windows yet.
 #'
 #' @return The tool result: a list with `content` and `isError`.
 #'
@@ -85,6 +86,12 @@ inspector_call <- function(
   args,
   package
 ) {
+  if (on_windows()) {
+    stop(
+      "The MCP Inspector client is not supported on Windows yet.",
+      call. = FALSE
+    )
+  }
   run <- processx::run(
     "npx",
     c(

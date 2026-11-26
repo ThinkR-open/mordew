@@ -38,6 +38,8 @@
 * The `dev/03_deploy.R` of a new package checks the package with
   `devtools::check()`, then writes the Dockerfile with the system requirements
   given by hand, until dockerfiler computes them with `Remotes`.
+* `call_tool(client = "inspector")` stops on Windows with a message that says
+  it is not supported there yet, instead of "Command 'npx' not found" (#15).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
