@@ -8,6 +8,8 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("collate", "namespace", "rd", "mordew::registry_roclet"))
 Imports:
     mordew
+Remotes:
+    ThinkR-open/mordew
 Suggests:
     pkgload,
     processx,

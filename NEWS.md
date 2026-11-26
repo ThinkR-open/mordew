@@ -25,6 +25,8 @@
 * Over HTTP, a request whose `Content-Length` is over 4 MB gets a `413` on
   its headers, before its body is read (#11).
 * `add_dockerfile()` adds `^Dockerfile$` to `.Rbuildignore` (#5).
+* The `DESCRIPTION` of a new package has `Remotes: ThinkR-open/mordew`, so
+  that it installs `{mordew}` from GitHub until `{mordew}` is on CRAN (#6).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

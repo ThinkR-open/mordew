@@ -280,3 +280,24 @@ test_that("create_mordew() refuses an invalid package name before writing", {
     )
   )
 })
+
+test_that("create_mordew() says where to install mordew from", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  expect_identical(
+    trimws(
+      read.dcf(
+        file.path(
+          path,
+          "DESCRIPTION"
+        ),
+        "Remotes"
+      )[[1]]
+    ),
+    "ThinkR-open/mordew"
+  )
+})

@@ -1007,8 +1007,9 @@ server runs without a token there. Checked on Connect 2026.06.1 with a
 `{mordew}` package: `initialize`, `tools/list` and `tools/call` over
 `/mcp`. rsconnect 1.6.0 creates the content, then fails to upload the
 bundle with a 404; 1.12.0 deploys it. Until `{mordew}` is on CRAN,
-Connect installs it from GitHub, which takes
-`Remotes: ThinkR-open/mordew` in the package's `DESCRIPTION`, and
+Connect installs it from GitHub, which takes the
+`Remotes: ThinkR-open/mordew` that `create_mordew()` writes in the
+package's `DESCRIPTION`, and
 `{mordew}` installed from GitHub (`pak::pak("ThinkR-open/mordew")`)
 where you deploy: rsconnect records each dependency as it is installed
 there.
@@ -1281,8 +1282,8 @@ tried by others.
   registry stays declarative data; everything that executes is
   imported. The costs are accepted: `{mordew}` must be on CRAN before
   any package built with it is, and every user installs `{mordew}`'s
-  dependencies. Until then, a package installs it from GitHub with
-  `Remotes: ThinkR-open/mordew`.
+  dependencies. Until then, a package installs it from GitHub with the
+  `Remotes: ThinkR-open/mordew` that `create_mordew()` writes.
 
   A `{mordew}` package should pass `R CMD check --as-cran`: evals and
   `dev/` in `.Rbuildignore`, round-trip tests through a subprocess
