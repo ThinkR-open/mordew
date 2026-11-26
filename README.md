@@ -160,10 +160,8 @@ The Python side carries two lessons:
    to [its README](https://github.com/PrefectHQ/fastmcp),
    some version of FastMCP powers 70% of MCP servers, all languages
    combined.
-2. **Frameworks get absorbed.** FastMCP 1.0 was merged into the official
-   MCP Python SDK in 2024. Posit could do the same in R, so `{mordew}`
-   keeps its protocol layer thin and coordinates with the mcptools
-   maintainers rather than working against them.
+2. **The framework and the SDK can be one package.** FastMCP 1.0 was
+   merged into the official MCP Python SDK in 2024.
 
 ---
 
@@ -481,8 +479,6 @@ timeout only applies to the answer.
 The cost: following the specification becomes `{mordew}`'s work (see
 [Risks](#risks)), and Posit Connect needs `{mordew}`'s own engine rather
 than mcptools' `engine: mcptools` (see [Posit Connect](#posit-connect)).
-Contributing to mcptools stays a goal: what `{mordew}` builds and
-mcptools lacks can be proposed upstream.
 
 ### Connecting external clients
 
@@ -1170,7 +1166,8 @@ Three things to know:
 Phases 0 to 3, the proof of concept, are built: tools over stdio and
 HTTP, the testing toolkit, and deployment to Docker and Posit Connect.
 What is left to publish it comes first; what follows is a direction,
-not a commitment.
+not a commitment. The aim is to make `{mordew}` an MCP SDK as well as a
+framework.
 
 ### Publish the proof of concept
 
@@ -1213,7 +1210,7 @@ tried by others.
 - [ ] Extreme values for arrays and objects in `expect_hostile_safe()`
 - [ ] A way to allow a reviewed call in `check_tools()`, such as `system2()` with fixed arguments, once a real tool needs one
 
-### Phase 4: specification coverage and conformance
+### Phase 4: specification coverage, conformance and SDK
 
 - [ ] `add_resource()` and `add_prompt()`: resource and prompt files, prompt template in `inst/mordew/prompts/`, test files
 - [ ] Handlers for `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list` and `prompts/get`
@@ -1228,7 +1225,9 @@ tried by others.
 - [ ] Completion: automatic for enums, `@mcpComplete` for dynamic values
 - [ ] OpenTelemetry trace context propagation from `_meta`
 - [ ] Conformance test suite for both revisions, with `expect_conformance()`
-- [ ] Contribute these changes to mcptools where its maintainers agree
+- [ ] Export a public SDK API, kept stable from then on: a server built from a registry rather than a package, over stdio and HTTP (the HTTP workers read the registry from the package today)
+- [ ] Declare tools in code as well as with roxygen
+- [ ] Export the stdio client
 
 ### Phase 5: extensions
 
@@ -1243,6 +1242,8 @@ tried by others.
 - [ ] `runlog`, a demo package built with `{mordew}` on a fake running log (distance, elevation gain, pace, surface), in its own repository
 - [ ] Hex sticker
 - [ ] Blog post and conference talk
+- [ ] A stable release on CRAN
+- [ ] Ask the MCP SDK Working Group to list `{mordew}` as an official SDK
 
 ---
 
@@ -1295,7 +1296,7 @@ tried by others.
 
 | Risk                               | Why it is serious                                                                                                                                                             | Mitigation                                                                                                                                                                                     |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overlap with Posit's tooling       | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK.                                            | Coordinate with the mcptools maintainers and contribute upstream; focus on what mcptools does not cover (project structure, testing, production outside Connect).                              |
+| Overlap with Posit's tooling       | Posit maintains the whole stack (ellmer, mcptools, shinychat, Connect), and FastMCP 1.0 was absorbed into the official Python SDK.                                            | Focus on what mcptools does not cover (project structure, testing, production outside Connect).                                                                                                |
 | The MCP specification changes fast | [Posit describes MCP](https://tidyverse.org/blog/2025/07/mcptools-0-1-0/) as a recent and rapidly evolving framework, and following it is `{mordew}`'s own work, since it ships its own protocol layer. | Keep the protocol layer thin, and test it through a client written by others, the MCP Inspector. |
 | Maintenance cost                   | Open source means issues, support and upgrades.                                                                                                                               | Keep the scope small and the protocol layer thin, welcome contributors early.                                                                                                                  |
 | Unclear adoption                   | Real use cases still have to be collected.                                                                                                                                    | Build the prototype on real use cases before the first release.                                                                                                                                |
