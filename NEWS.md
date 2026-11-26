@@ -1,3 +1,9 @@
+# mordew 0.0.0.9024
+
+* Over HTTP, the worker pool also reads the method and the id of a message by
+  their exact names, for the calls it sends to a worker and for its busy and
+  timeout answers (#9).
+
 # mordew 0.0.0.9023
 
 * A `text` result sends a character vector as one string, one element per

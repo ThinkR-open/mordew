@@ -515,3 +515,54 @@ test_that("handle_http() replaces a worker that stops", {
     "^[0-9]+$"
   )
 })
+
+test_that("the worker pool reads the fields of a message by their exact names", {
+  pool <- new_pool(
+    "runlog",
+    1,
+    60,
+    1
+  )
+  pool$in_flight <- 1
+  pool$waiting <- list(
+    function() {
+      NULL
+    }
+  )
+  answer <- function(
+    ...
+  ) {
+    jsonlite::fromJSON(
+      handle_http(
+        http_request(
+          as.character(
+            json_line(
+              list(
+                jsonrpc = "2.0",
+                ...,
+                params = list(
+                  name = "whoami"
+                )
+              )
+            )
+          )
+        ),
+        pool = pool
+      )$body
+    )
+  }
+
+  expect_identical(
+    answer(
+      id = 1,
+      methodx = "tools/call"
+    )$error$code,
+    -32600L
+  )
+  expect_null(
+    answer(
+      idx = 9,
+      method = "tools/call"
+    )$id
+  )
+})
