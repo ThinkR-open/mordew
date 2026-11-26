@@ -223,3 +223,54 @@ test_that("handle_http() reads the headers by their exact names", {
     200L
   )
 })
+
+test_that("handle_http() answers 404 on a path that is neither /mcp nor /health", {
+  expect_identical(
+    vapply(
+      c(
+        "/",
+        "/anything/else"
+      ),
+      function(path) {
+        handle_http(
+          http_request(
+            path = path
+          )
+        )$status
+      },
+      integer(1),
+      USE.NAMES = FALSE
+    ),
+    c(
+      404L,
+      404L
+    )
+  )
+  expect_identical(
+    handle_http(
+      http_request(
+        "",
+        method = "GET",
+        path = "/anything/else"
+      )
+    )$status,
+    404L
+  )
+})
+
+test_that("handle_http() answers 405 on /health for another method than GET", {
+  expect_identical(
+    handle_http(
+      http_request(
+        path = "/health"
+      )
+    ),
+    list(
+      status = 405L,
+      headers = list(
+        Allow = "GET"
+      ),
+      body = ""
+    )
+  )
+})

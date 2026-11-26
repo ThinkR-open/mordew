@@ -20,6 +20,8 @@
 * The registry roclet writes non-ASCII characters as `\U{...}` escapes, so
   that a package documented in another language than English passes
   `R CMD check` (#4).
+* Over HTTP, a path other than `/mcp` and `/health` gets a `404`, and
+  another method than `GET` on `/health` a `405` (#10).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

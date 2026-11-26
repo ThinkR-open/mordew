@@ -65,6 +65,16 @@ reply_from_headers <- function(
       "/health"
     )
   ) {
+    if (request$method != "GET") {
+      return(
+        http_response(
+          405L,
+          list(
+            Allow = "GET"
+          )
+        )
+      )
+    }
     return(
       http_response(
         200L,
@@ -72,6 +82,18 @@ reply_from_headers <- function(
           "Content-Type" = "application/json"
         ),
         '{"status":"ok"}'
+      )
+    )
+  }
+  if (
+    !identical(
+      request$path,
+      "/mcp"
+    )
+  ) {
+    return(
+      http_response(
+        404L
       )
     )
   }

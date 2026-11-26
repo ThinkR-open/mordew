@@ -526,7 +526,8 @@ claude mcp add --transport http runlog http://127.0.0.1:8000/mcp
 
 It follows the Streamable HTTP transport of MCP 2025-11-25, without
 sessions or SSE streams: a POST gets a JSON response, a notification 202,
-a GET on the MCP endpoint 405 (no stream offered); an `Origin` other than `localhost` gets 403
+a GET on the MCP endpoint 405 (no stream offered), a path other than
+`/mcp` and `/health` 404; an `Origin` other than `localhost` gets 403
 (against DNS rebinding), and another `MCP-Protocol-Version` 400. It
 listens on `127.0.0.1` only by default, as the specification recommends
 for a local server.
@@ -540,7 +541,7 @@ instead, or the network may be private. Serving on another host than
 `127.0.0.1`, `localhost` or `::1` without one prints a warning at
 start-up, so that an open server does not go unnoticed.
 
-The 403, 401, 405 and 400 above are settled on the headers: the server
+The 403, 404, 401, 405 and 400 above are settled on the headers: the server
 answers when they arrive, and never reads the body of a request it
 refuses.
 
@@ -557,7 +558,7 @@ gateway that handles it in front of the server.
 
 `GET /health` answers `200` with `{"status":"ok"}` from the front, even when every
 worker is busy: it is the probe for load balancers, Docker and
-Kubernetes.
+Kubernetes. Another method on `/health` gets a 405.
 
 ### A Claude Code session restricted to the server
 
