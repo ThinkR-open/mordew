@@ -23,7 +23,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
     curl,
-    dockerfiler,
+    dockerfiler (>= 1.0.0),
     ellmer,
     ggplot2,
     later,

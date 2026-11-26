@@ -1126,18 +1126,26 @@ Three things to know:
 
 - **System requirements.** dockerfiler computes them with pak, which
   does not find `{mordew}` while it is not on CRAN, with or without
-  `Remotes: ThinkR-open/mordew`: `add_dockerfile()` stops with "Can't
-  find package called mordew".
-  `add_dockerfile(sysreqs = FALSE, extra_sysreqs = "zlib1g-dev")` skips
-  that computation and gives httpuv what it needs to compile.
-- **A failed install fails the build** with dockerfiler 1.0.0, which runs
-  every install with `options(warn = 2)`. With 0.2.5, it is only a
-  warning, and the image lacks the package.
+  `Remotes: ThinkR-open/mordew`
+  ([dockerfiler#122](https://github.com/ThinkR-open/dockerfiler/issues/122)):
+  `add_dockerfile()` stops with "Can't find package called mordew".
+  Until then, give them by hand, as the list pak computes for a package
+  made with `create_mordew()`:
+
+  ```r
+  mordew::add_dockerfile(
+    sysreqs = FALSE,
+    extra_sysreqs = c("cmake", "libuv1-dev", "make", "zlib1g-dev")
+  )
+  ```
+
+  With it, the image of such a package builds with every dependency
+  installed, and serves (checked on arm64 with dockerfiler 1.0.0).
+- **A failed install fails the build**: `add_dockerfile()` needs
+  dockerfiler 1.0.0 or later, which runs every install with
+  `options(warn = 2)`.
 - **The package's `Suggests` are installed too**, though a server does not
-  need them. `pkgload` pulls `fs`, which needs libuv: without the computed
-  system requirements, `fs` fails to install, which stops the build with
-  dockerfiler 1.0.0 (seen on arm64), and leaves the image without `fs`,
-  `pkgload` and `testthat` with 0.2.5.
+  need them: `pkgload` pulls `fs`, which needs `libuv1-dev`.
 
 ### Container checklist
 

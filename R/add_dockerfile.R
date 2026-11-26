@@ -17,6 +17,17 @@ add_dockerfile <- function(
   port = 8080,
   ...
 ) {
+  if (
+    utils::packageVersion(
+      "dockerfiler"
+    ) <
+      "1.0.0"
+  ) {
+    stop(
+      "add_dockerfile() needs dockerfiler 1.0.0 or later, whose image ",
+      "build fails when a package does not install."
+    )
+  }
   dockerfile <- dockerfiler::dock_from_desc(
     file.path(
       pkg,

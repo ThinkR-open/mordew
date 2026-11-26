@@ -30,6 +30,8 @@
 * The Dockerfile of `add_dockerfile()` starts the server with
   `mordew::run_mcp_server("<package>", ...)`, so that the container starts
   whatever arguments the package's own `run_mcp_server()` takes (#18).
+* `add_dockerfile()` needs dockerfiler 1.0.0 or later, whose image build fails
+  when a package does not install; with 0.2.5, the image lacked it (#19).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
