@@ -149,9 +149,11 @@ table_text <- function(
     do.call(
       paste,
       c(
-        lapply(
-          shown,
-          markdown_cell
+        unname(
+          lapply(
+            shown,
+            markdown_cell
+          )
         ),
         sep = " | "
       )

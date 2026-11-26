@@ -172,6 +172,30 @@ test_that("tool_result() escapes pipes in table cells", {
   )
 })
 
+test_that("tool_result() keeps the rows of a table with paste() argument names as columns", {
+  expect_equal(
+    tool_result(
+      data.frame(
+        sep = 1:2,
+        collapse = c(
+          "x",
+          "y"
+        )
+      ),
+      "table"
+    )$content[[1]]$text,
+    paste(
+      "Rows: 2. Columns: 2.",
+      "",
+      "| sep | collapse |",
+      "| --- | --- |",
+      "| 1 | x |",
+      "| 2 | y |",
+      sep = "\n"
+    )
+  )
+})
+
 test_that("tool_result() sends a recorded plot as an 800x600 PNG at 96 dpi", {
   grDevices::pdf(
     NULL
