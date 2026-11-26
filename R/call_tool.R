@@ -108,7 +108,11 @@ inspector_call <- function(
         )
       )
     ),
-    error_on_status = FALSE
+    error_on_status = FALSE,
+    env = c(
+      "current",
+      NODE_DISABLE_COMPILE_CACHE = "1"
+    )
   )
   if (run$status != 0) {
     stop(

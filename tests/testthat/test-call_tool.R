@@ -113,6 +113,54 @@ test_that("call_tool() reads the result of the MCP Inspector", {
   )
 })
 
+test_that("call_tool() runs the MCP Inspector without Node's compile cache", {
+  skip_on_os(
+    "windows"
+  )
+  skip_if_not_installed(
+    "processx"
+  )
+  local_dev_package()
+  record <- withr::local_tempdir()
+  local_fake_command(
+    "npx",
+    c(
+      paste(
+        "echo \"$NODE_DISABLE_COMPILE_CACHE\" >",
+        shQuote(
+          file.path(
+            record,
+            "cache"
+          )
+        )
+      ),
+      print_fixture(
+        "inspector-call.json"
+      )
+    )
+  )
+
+  call_tool(
+    "fastest_runs",
+    list(
+      n = 3,
+      type = "interval"
+    ),
+    package = "runlog",
+    client = "inspector"
+  )
+
+  expect_identical(
+    readLines(
+      file.path(
+        record,
+        "cache"
+      )
+    ),
+    "1"
+  )
+})
+
 test_that("call_tool() starts the server from the MCP Inspector", {
   skip_on_os(
     "windows"

@@ -32,6 +32,9 @@
   whatever arguments the package's own `run_mcp_server()` takes (#18).
 * `add_dockerfile()` needs dockerfiler 1.0.0 or later, whose image build fails
   when a package does not install; with 0.2.5, the image lacked it (#19).
+* `call_tool(client = "inspector")` runs `npx` without Node's compile cache,
+  which left `node-compile-cache` in the temporary directory, and a note in
+  `R CMD check` (#16).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
