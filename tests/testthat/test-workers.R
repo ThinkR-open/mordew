@@ -75,7 +75,8 @@ test_that("worker_respond() answers a message with the tools of the package", {
       "runlog",
       server_identity(
         "runlog"
-      )
+      ),
+      .libPaths()
     )$result$content[[1]]$text,
     "trail"
   )

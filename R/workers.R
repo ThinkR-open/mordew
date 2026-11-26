@@ -212,16 +212,19 @@ in_worker <- function(
   server,
   timeout
 ) {
+  libs <- .libPaths()
   mirai::mirai(
     worker_respond(
       text,
       package,
-      server
+      server,
+      libs
     ),
     worker_respond = worker_respond,
     text = text,
     package = package,
     server = server,
+    libs = libs,
     .timeout = timeout * 1000
   )
 }
@@ -229,8 +232,12 @@ in_worker <- function(
 worker_respond <- function(
   text,
   package,
-  server
+  server,
+  libs
 ) {
+  .libPaths(
+    libs
+  )
   namespace <- asNamespace(
     package
   )
