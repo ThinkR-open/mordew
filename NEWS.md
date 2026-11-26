@@ -2,6 +2,8 @@
 
 * A `text` result sends a character vector as one string, one element per
   line: MCP takes a single string (#1).
+* `run_mcp_server(token = NULL)` serves without a token, as `token = ""`
+  does (#8).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

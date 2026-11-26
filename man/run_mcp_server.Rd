@@ -38,7 +38,8 @@ later" error at once.}
 
 \item{token}{Secret that every HTTP request but \code{GET /health} must send
 as \verb{Authorization: Bearer <token>}, or get a 401. Taken from the
-\code{MORDEW_TOKEN} environment variable by default. Serving on another host
+\code{MORDEW_TOKEN} environment variable by default; \code{NULL} or \code{""} serves
+without a token. Serving on another host
 than \verb{127.0.0.1}, \code{localhost} or \verb{::1} without one prints a warning.}
 }
 \description{

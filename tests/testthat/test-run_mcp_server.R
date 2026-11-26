@@ -141,6 +141,33 @@ test_that("run_mcp_server() takes the token from MORDEW_TOKEN", {
   )
 })
 
+test_that("run_mcp_server() serves without a token when token is NULL", {
+  local_mocked_bindings(
+    serve_http = function(
+      host,
+      port,
+      package,
+      workers,
+      timeout,
+      queue,
+      token
+    ) {
+      token
+    }
+  )
+  withr::local_envvar(
+    MORDEW_TOKEN = "s3cret"
+  )
+
+  expect_null(
+    run_mcp_server(
+      "mordew",
+      transport = "http",
+      token = NULL
+    )
+  )
+})
+
 test_that("run_mcp_server() warns when it serves beyond this machine without a token", {
   local_mocked_bindings(
     serve_http = function(

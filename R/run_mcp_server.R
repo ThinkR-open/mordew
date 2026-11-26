@@ -24,7 +24,8 @@
 #'   later" error at once.
 #' @param token Secret that every HTTP request but `GET /health` must send
 #'   as `Authorization: Bearer <token>`, or get a 401. Taken from the
-#'   `MORDEW_TOKEN` environment variable by default. Serving on another host
+#'   `MORDEW_TOKEN` environment variable by default; `NULL` or `""` serves
+#'   without a token. Serving on another host
 #'   than `127.0.0.1`, `localhost` or `::1` without one prints a warning.
 #'
 #' @export
@@ -52,7 +53,7 @@ run_mcp_server <- function(
     ) ==
       "http"
   ) {
-    if (!nzchar(token)) {
+    if (identical(token, "")) {
       token <- NULL
     }
     if (
