@@ -15,6 +15,26 @@ test_that("tool_result() sends a text value as text content", {
   )
 })
 
+test_that("tool_result() sends a character vector as one text, one element per line", {
+  expect_equal(
+    tool_result(
+      c(
+        "first",
+        "second"
+      ),
+      "text"
+    )$content[[1]]$text,
+    "first\nsecond"
+  )
+  expect_equal(
+    tool_result(
+      character(0),
+      "text"
+    )$content[[1]]$text,
+    ""
+  )
+})
+
 test_that("tool_result() sends an error as an isError result", {
   expect_equal(
     tool_result(

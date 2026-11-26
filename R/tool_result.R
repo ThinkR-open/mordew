@@ -39,7 +39,10 @@ tool_result <- function(
     content = switch(
       returns,
       text = text_content(
-        value
+        paste(
+          value,
+          collapse = "\n"
+        )
       ),
       json = text_content(
         as.character(

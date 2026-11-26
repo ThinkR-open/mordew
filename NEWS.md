@@ -1,5 +1,8 @@
 # mordew 0.0.0.9023
 
+* A `text` result sends a character vector as one string, one element per
+  line: MCP takes a single string (#1).
+
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
   columns and rows (#3).

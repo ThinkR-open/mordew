@@ -379,7 +379,7 @@ to use the tool, when not to, and give units and formats.
 
 | R value                   | Sent to the model as                                                         |
 | ------------------------- | ---------------------------------------------------------------------------- |
-| `character`               | text content                                                                 |
+| `character`               | text content, one element per line                                           |
 | `data.frame`              | markdown table with dimensions, truncated to `@mcpLimit rows` (default 50)   |
 | `ggplot` or recorded plot | PNG image content, 800×600 at 96 dpi                                         |
 | `list`                    | JSON                                                                         |
