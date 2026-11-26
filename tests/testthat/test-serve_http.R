@@ -155,3 +155,42 @@ test_that("serve_http() asks for the token", {
     401L
   )
 })
+
+test_that("http_app() refuses a body larger than 4 MB on its headers", {
+  request <- function(
+    length
+  ) {
+    request <- rook_request(
+      headers = c(
+        "content-type" = "application/json",
+        "content-length" = length
+      )
+    )
+    request$rook.input$read <- function() {
+      stop(
+        "The body was read."
+      )
+    }
+    request
+  }
+
+  expect_identical(
+    http_app()$onHeaders(
+      request(
+        "4194305"
+      )
+    ),
+    list(
+      status = 413L,
+      headers = list(),
+      body = ""
+    )
+  )
+  expect_null(
+    http_app()$onHeaders(
+      request(
+        "4194304"
+      )
+    )
+  )
+})

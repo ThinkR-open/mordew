@@ -133,6 +133,14 @@ reply_from_headers <- function(
       )
     )
   }
+  size <- request$headers[["content-length"]]
+  if (!is.null(size) && as.numeric(size) > 4 * 1024^2) {
+    return(
+      http_response(
+        413L
+      )
+    )
+  }
 }
 
 http_reply <- function(
