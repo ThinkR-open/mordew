@@ -102,6 +102,43 @@ test_that("create_mordew() adds the dev scripts", {
   )
 })
 
+test_that("create_mordew() checks the package before deploying it", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  calls <- as.list(
+    parse(
+      file.path(
+        path,
+        "dev",
+        "03_deploy.R"
+      )
+    )
+  )
+  expect_identical(
+    deparse(
+      calls[[1]]
+    ),
+    "devtools::check()"
+  )
+  expect_false(
+    Find(
+      function(call) {
+        identical(
+          call[[1]],
+          quote(
+            mordew::add_dockerfile
+          )
+        )
+      },
+      calls
+    )$sysreqs
+  )
+})
+
 test_that("create_mordew() keeps dev/ out of the build", {
   path <- tempfile()
 

@@ -35,6 +35,9 @@
 * `call_tool(client = "inspector")` runs `npx` without Node's compile cache,
   which left `node-compile-cache` in the temporary directory, and a note in
   `R CMD check` (#16).
+* The `dev/03_deploy.R` of a new package checks the package with
+  `devtools::check()`, then writes the Dockerfile with the system requirements
+  given by hand, until dockerfiler computes them with `Remotes`.
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
