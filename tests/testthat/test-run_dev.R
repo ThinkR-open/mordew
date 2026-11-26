@@ -171,7 +171,7 @@ test_that("run_dev() gives the command of a Claude Code session on the developme
   )
 
   config <- sub(
-    ".* --mcp-config ([^ ]+) .*",
+    ".* --mcp-config \"?([^ \"]+)\"? .*",
     "\\1",
     command
   )
