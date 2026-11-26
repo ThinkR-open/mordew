@@ -373,7 +373,9 @@ description becomes its `description`, read by the model; and each
 `@param` becomes a parameter description. Roxygen sends the paragraphs
 after the description to `@details`: they stay in the R help, and the
 model never reads them. **These texts are prompts**: they should say when
-to use the tool, when not to, and give units and formats.
+to use the tool, when not to, and give units and formats. The roclet
+stops on a tool without title or description, and on `@mcpTool` on an
+object that is not a function.
 
 ### Return conventions
 

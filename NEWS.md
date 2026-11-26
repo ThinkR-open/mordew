@@ -14,6 +14,9 @@
 * The server reads the fields of a message, of its `params` and the HTTP
   headers by their exact names: a message with `idx` but no `id` stays a
   notification (#9).
+* The registry roclet stops on a tool without title, which clients got as
+  `"title": null`, and on `@mcpTool` on an object that is not a function
+  (#14).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

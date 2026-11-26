@@ -106,6 +106,17 @@ tool_entry <- function(
   block
 ) {
   fun <- block$object$alias
+  if (
+    !is.function(
+      block$object$value
+    )
+  ) {
+    stop(
+      "`",
+      fun,
+      "` is not a function: only a function can be a tool."
+    )
+  }
   name <- roxygen2::block_get_tag_value(
     block,
     "mcpTool"
@@ -123,6 +134,17 @@ tool_entry <- function(
       "`",
       name,
       "` is not a valid tool name: use 1 to 128 characters among A-Z a-z 0-9 _ - ."
+    )
+  }
+  title <- roxygen2::block_get_tag(
+    block,
+    "title"
+  )$raw
+  if (is.null(title)) {
+    stop(
+      "`",
+      fun,
+      "` has no title: clients show it to users."
     )
   }
   description <- roxygen2::block_get_tag(
@@ -159,10 +181,7 @@ tool_entry <- function(
   }
   tool <- list(
     name = name,
-    title = roxygen2::block_get_tag(
-      block,
-      "title"
-    )$raw,
+    title = title,
     description = description,
     inputSchema = tool_input_schema(
       block,

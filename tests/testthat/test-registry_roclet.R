@@ -694,3 +694,35 @@ test_that("a parameter description stops at its text", {
     "Four-digit year."
   )
 })
+
+test_that("a tool without title is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' @description Number of runs per year.
+      #' @mcpTool
+      #' @mcpReturns text
+      summarise_runs <- function() NULL
+      "
+    ),
+    "`summarise_runs` has no title"
+  )
+})
+
+test_that("a tool tag on an object that is not a function is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Runs
+      #'
+      #' Number of runs.
+      #' @mcpTool
+      #' @mcpReturns text
+      runs <- 12
+      "
+    ),
+    "`runs` is not a function"
+  )
+})
