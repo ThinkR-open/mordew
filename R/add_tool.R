@@ -10,6 +10,18 @@ add_tool <- function(
   name,
   pkg = "."
 ) {
+  if (
+    make.names(
+      name
+    ) !=
+      name
+  ) {
+    stop(
+      "`",
+      name,
+      "` is not a syntactic name: it becomes the name of the tool's function."
+    )
+  }
   tool <- file.path(
     pkg,
     "R",

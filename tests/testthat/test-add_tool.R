@@ -156,3 +156,31 @@ test_that("add_tool() adds a tool the registry roclet registers", {
     "summarise_runs"
   )
 })
+
+test_that("add_tool() refuses a name that is not syntactic before writing", {
+  path <- file.path(
+    tempfile(),
+    "runlog"
+  )
+  create_mordew(
+    path
+  )
+
+  expect_error(
+    add_tool(
+      "my-tool",
+      pkg = path
+    ),
+    "`my-tool` is not a syntactic name",
+    fixed = TRUE
+  )
+  expect_false(
+    file.exists(
+      file.path(
+        path,
+        "R",
+        "tool_my-tool.R"
+      )
+    )
+  )
+})

@@ -9,6 +9,8 @@
 * `add_mcp_client_config()` and `add_connect()` add their line to
   `.gitignore` and `.Rbuildignore` on a line of its own, also when the file
   does not end with a newline (#12).
+* `create_mordew()` refuses a name that is not a valid package name, and
+  `add_tool()` a name that is not syntactic, before writing anything (#13).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

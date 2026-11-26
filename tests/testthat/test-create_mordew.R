@@ -260,3 +260,23 @@ test_that("create_mordew() suggests what call_tool() needs", {
     )
   )
 })
+
+test_that("create_mordew() refuses an invalid package name before writing", {
+  path <- file.path(
+    tempfile(),
+    "my-server"
+  )
+
+  expect_error(
+    create_mordew(
+      path
+    ),
+    "`my-server` is not a valid package name",
+    fixed = TRUE
+  )
+  expect_false(
+    dir.exists(
+      path
+    )
+  )
+})

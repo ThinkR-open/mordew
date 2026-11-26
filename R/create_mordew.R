@@ -15,6 +15,19 @@ create_mordew <- function(
   overwrite = FALSE
 ) {
   if (
+    !grepl(
+      "^[A-Za-z][A-Za-z0-9.]*[A-Za-z0-9]$",
+      package_name
+    )
+  ) {
+    stop(
+      "`",
+      package_name,
+      "` is not a valid package name: it needs at least two letters, digits",
+      " or dots, starting with a letter and not ending with a dot."
+    )
+  }
+  if (
     dir.exists(
       path
     ) &&
