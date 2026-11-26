@@ -1,3 +1,9 @@
+# mordew 0.0.0.9025
+
+* Over HTTP, each tool call gives the workers the libraries of the server,
+  `.libPaths()`: on Windows, they did not find a package installed in a
+  library added with `.libPaths()`.
+
 # mordew 0.0.0.9024
 
 * Over HTTP, the worker pool also reads the method and the id of a message by
