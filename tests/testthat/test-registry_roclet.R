@@ -726,3 +726,38 @@ test_that("a tool tag on an object that is not a function is an error", {
     "`runs` is not a function"
   )
 })
+
+test_that("the registry is written in ASCII and sources back to the same strings", {
+  registry <- list(
+    summarise_runs = list(
+      description = "Répète le texte \U0001f3c3."
+    )
+  )
+  file <- write_registry(
+    registry
+  )
+  env <- new.env()
+  sys.source(
+    file,
+    envir = env
+  )
+
+  expect_true(
+    all(
+      utf8ToInt(
+        paste(
+          readLines(
+            file,
+            encoding = "UTF-8"
+          ),
+          collapse = ""
+        )
+      ) <
+        128
+    )
+  )
+  expect_identical(
+    env$mordew_registry,
+    registry
+  )
+})

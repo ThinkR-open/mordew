@@ -420,8 +420,10 @@ roclet_output.roclet_registry <- function(
       "",
       paste(
         "mordew_registry <-",
-        as_code(
-          results
+        ascii_code(
+          as_code(
+            results
+          )
         )
       )
     ),
@@ -430,6 +432,26 @@ roclet_output.roclet_registry <- function(
       "R",
       "mordew_registry.R"
     )
+  )
+}
+
+ascii_code <- function(
+  code
+) {
+  points <- utf8ToInt(
+    code
+  )
+  chars <- intToUtf8(
+    points,
+    multiple = TRUE
+  )
+  chars[points > 127] <- sprintf(
+    "\\U{%x}",
+    points[points > 127]
+  )
+  paste(
+    chars,
+    collapse = ""
   )
 }
 

@@ -17,6 +17,9 @@
 * The registry roclet stops on a tool without title, which clients got as
   `"title": null`, and on `@mcpTool` on an object that is not a function
   (#14).
+* The registry roclet writes non-ASCII characters as `\U{...}` escapes, so
+  that a package documented in another language than English passes
+  `R CMD check` (#4).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
