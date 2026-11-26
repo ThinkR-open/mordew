@@ -57,4 +57,11 @@ add_dockerfile <- function(
       "Dockerfile"
     )
   )
+  add_line(
+    file.path(
+      pkg,
+      ".Rbuildignore"
+    ),
+    "^Dockerfile$"
+  )
 }

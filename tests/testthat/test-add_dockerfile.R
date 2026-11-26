@@ -25,3 +25,25 @@ test_that("add_dockerfile() writes a Dockerfile that serves the package over HTT
     )
   )
 })
+
+test_that("add_dockerfile() keeps the Dockerfile out of the build", {
+  skip_if_not_installed(
+    "dockerfiler"
+  )
+  path <- local_runlog()
+
+  add_dockerfile(
+    path,
+    sysreqs = FALSE
+  )
+
+  expect_contains(
+    readLines(
+      file.path(
+        path,
+        ".Rbuildignore"
+      )
+    ),
+    "^Dockerfile$"
+  )
+})

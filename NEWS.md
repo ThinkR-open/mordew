@@ -24,6 +24,7 @@
   another method than `GET` on `/health` a `405` (#10).
 * Over HTTP, a request whose `Content-Length` is over 4 MB gets a `413` on
   its headers, before its body is read (#11).
+* `add_dockerfile()` adds `^Dockerfile$` to `.Rbuildignore` (#5).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
