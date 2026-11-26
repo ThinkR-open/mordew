@@ -44,7 +44,7 @@ test_that("expect_hostile_safe() fails on a tool that hangs on an extreme value"
         "#' @mcpType seconds type_number(min = 0)",
         "#' @mcpReturns text",
         "nap <- function(seconds) {",
-        "  Sys.sleep(seconds)",
+        "  Sys.sleep(min(seconds, 60))",
         "  \"Done.\"",
         "}"
       )
