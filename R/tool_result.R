@@ -136,7 +136,9 @@ table_text <- function(
   )
   lines <- c(
     paste(
-      names(table),
+      markdown_cell(
+        names(table)
+      ),
       collapse = " | "
     ),
     paste(
@@ -178,10 +180,15 @@ markdown_cell <- function(
   column
 ) {
   gsub(
-    "|",
-    "\\|",
-    as.character(
-      column
+    "\n",
+    " ",
+    gsub(
+      "|",
+      "\\|",
+      as.character(
+        column
+      ),
+      fixed = TRUE
     ),
     fixed = TRUE
   )

@@ -172,6 +172,26 @@ test_that("tool_result() escapes pipes in table cells", {
   )
 })
 
+test_that("tool_result() escapes pipes in column names and newlines in table cells", {
+  expect_equal(
+    tool_result(
+      data.frame(
+        `a|b` = "x\ny",
+        check.names = FALSE
+      ),
+      "table"
+    )$content[[1]]$text,
+    paste(
+      "Rows: 1. Columns: 1.",
+      "",
+      "| a\\|b |",
+      "| --- |",
+      "| x y |",
+      sep = "\n"
+    )
+  )
+})
+
 test_that("tool_result() keeps the rows of a table with paste() argument names as columns", {
   expect_equal(
     tool_result(

@@ -1,3 +1,9 @@
+# mordew 0.0.0.9023
+
+* A `table` result escapes `|` in column names, and replaces newlines with
+  spaces in column names and cells, so that the Markdown table keeps its
+  columns and rows (#3).
+
 # mordew 0.0.0.9022
 
 * A `table` result keeps one row per row of the data frame when a column is
