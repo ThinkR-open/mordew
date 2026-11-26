@@ -27,6 +27,9 @@
 * `add_dockerfile()` adds `^Dockerfile$` to `.Rbuildignore` (#5).
 * The `DESCRIPTION` of a new package has `Remotes: ThinkR-open/mordew`, so
   that it installs `{mordew}` from GitHub until `{mordew}` is on CRAN (#6).
+* The Dockerfile of `add_dockerfile()` starts the server with
+  `mordew::run_mcp_server("<package>", ...)`, so that the container starts
+  whatever arguments the package's own `run_mcp_server()` takes (#18).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

@@ -1102,7 +1102,9 @@ dependencies, then the package, and adds what a server needs:
 - the port, 8080 by default
 - a health check that reads `GET /health` with base R, so the image needs
   no curl
-- a start on `0.0.0.0`, with the token of `MORDEW_TOKEN`; without one,
+- a start on `0.0.0.0` through `mordew::run_mcp_server()`, whatever the
+  package's own `run_mcp_server()` takes, with the token of
+  `MORDEW_TOKEN`; without one,
   for instance behind a proxy that authenticates, it warns at start-up
 
 What it adds for `runlog`, after the lines from dockerfiler:
@@ -1112,7 +1114,7 @@ RUN useradd --create-home mordew
 USER mordew
 EXPOSE 8080
 HEALTHCHECK CMD Rscript -e 'readLines("http://127.0.0.1:8080/health", warn = FALSE)'
-CMD ["Rscript", "-e", "runlog::run_mcp_server(transport = 'http', host = '0.0.0.0', port = 8080)"]
+CMD ["Rscript", "-e", "mordew::run_mcp_server('runlog', transport = 'http', host = '0.0.0.0', port = 8080)"]
 ```
 
 ```bash

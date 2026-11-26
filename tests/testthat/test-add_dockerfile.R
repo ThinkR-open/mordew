@@ -21,7 +21,7 @@ test_that("add_dockerfile() writes a Dockerfile that serves the package over HTT
       "USER mordew",
       "EXPOSE 8080",
       "HEALTHCHECK CMD Rscript -e 'readLines(\"http://127.0.0.1:8080/health\", warn = FALSE)'",
-      "CMD [\"Rscript\", \"-e\", \"runlog::run_mcp_server(transport = 'http', host = '0.0.0.0', port = 8080)\"]"
+      "CMD [\"Rscript\", \"-e\", \"mordew::run_mcp_server('runlog', transport = 'http', host = '0.0.0.0', port = 8080)\"]"
     )
   )
 })

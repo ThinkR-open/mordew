@@ -42,11 +42,11 @@ add_dockerfile <- function(
   )
   dockerfile$CMD(
     paste0(
-      "[\"Rscript\", \"-e\", \"",
+      "[\"Rscript\", \"-e\", \"mordew::run_mcp_server('",
       package_name(
         pkg
       ),
-      "::run_mcp_server(transport = 'http', host = '0.0.0.0', port = ",
+      "', transport = 'http', host = '0.0.0.0', port = ",
       port,
       ")\"]"
     )
