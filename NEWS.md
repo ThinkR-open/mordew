@@ -4,6 +4,8 @@
   line: MCP takes a single string (#1).
 * `run_mcp_server(token = NULL)` serves without a token, as `token = ""`
   does (#8).
+* `expect_hostile_safe()` stops on a tool the package does not have, as
+  `expect_tool_schema()` does, instead of passing without a call (#7).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

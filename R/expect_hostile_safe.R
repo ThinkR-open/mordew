@@ -19,6 +19,10 @@ expect_hostile_safe <- function(
   package = testthat::testing_package(),
   timeout = 30
 ) {
+  tool_definition(
+    tool,
+    package
+  )
   client <- start_server(
     package
   )

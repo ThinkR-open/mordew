@@ -11,6 +11,25 @@ expect_tool_schema <- function(
   tool,
   package = testthat::testing_package()
 ) {
+  schema <- jsonlite::prettify(
+    json_line(
+      tool_definition(
+        tool,
+        package
+      )
+    )
+  )
+  testthat::expect_snapshot(
+    cat(
+      schema
+    )
+  )
+}
+
+tool_definition <- function(
+  tool,
+  package
+) {
   definition <- asNamespace(
     package
   )$mordew_registry[[tool]]$tool
@@ -24,14 +43,5 @@ expect_tool_schema <- function(
       call. = FALSE
     )
   }
-  schema <- jsonlite::prettify(
-    json_line(
-      definition
-    )
-  )
-  testthat::expect_snapshot(
-    cat(
-      schema
-    )
-  )
+  definition
 }

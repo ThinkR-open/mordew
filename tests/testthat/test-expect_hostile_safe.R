@@ -15,6 +15,18 @@ test_that("expect_hostile_safe() passes on a tool that answers extreme values", 
   )
 })
 
+test_that("expect_hostile_safe() refuses an unknown tool", {
+  local_dev_package()
+
+  expect_error(
+    expect_hostile_safe(
+      "nope",
+      package = "runlog"
+    ),
+    "`runlog` has no tool named `nope`."
+  )
+})
+
 test_that("expect_hostile_safe() fails on a tool that hangs on an extreme value", {
   skip_if_not_installed(
     "processx"
