@@ -76,20 +76,19 @@ add_line <- function(
   file,
   line
 ) {
-  if (
-    !file.exists(
+  lines <- if (file.exists(file)) {
+    readLines(
+      file,
+      warn = FALSE
+    )
+  }
+  if (!line %in% lines) {
+    writeLines(
+      c(
+        lines,
+        line
+      ),
       file
-    ) ||
-      !line %in%
-        readLines(
-          file
-        )
-  ) {
-    cat(
-      line,
-      file = file,
-      sep = "\n",
-      append = TRUE
     )
   }
 }

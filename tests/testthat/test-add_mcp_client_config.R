@@ -81,3 +81,27 @@ test_that("add_mcp_client_config() keeps the configuration out of git, once", {
     "/runlog.json"
   )
 })
+
+test_that("add_line() adds its line on a line of its own", {
+  file <- withr::local_tempfile()
+  cat(
+    "docs",
+    file = file
+  )
+
+  expect_no_warning(
+    add_line(
+      file,
+      "/runlog.json"
+    )
+  )
+  expect_identical(
+    readLines(
+      file
+    ),
+    c(
+      "docs",
+      "/runlog.json"
+    )
+  )
+})

@@ -6,6 +6,9 @@
   does (#8).
 * `expect_hostile_safe()` stops on a tool the package does not have, as
   `expect_tool_schema()` does, instead of passing without a call (#7).
+* `add_mcp_client_config()` and `add_connect()` add their line to
+  `.gitignore` and `.Rbuildignore` on a line of its own, also when the file
+  does not end with a newline (#12).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its
