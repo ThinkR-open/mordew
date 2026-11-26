@@ -713,3 +713,91 @@ test_that("handle_message() does not answer a notification", {
     )
   )
 })
+
+test_that("handle_message() reads the fields of a message by their exact names", {
+  summarise_runs <- function(
+    surface
+  ) {
+    paste0(
+      "12 runs on ",
+      surface,
+      "."
+    )
+  }
+  call <- function(
+    params
+  ) {
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = params
+      ),
+      registry = summarise_runs_registry(),
+      envir = environment()
+    )
+  }
+
+  expect_null(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        idx = 9,
+        method = "ping"
+      )
+    )
+  )
+  expect_identical(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        methodx = "ping"
+      )
+    )$error$code,
+    -32600
+  )
+  expect_identical(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        paramsx = list(
+          name = "summarise_runs"
+        )
+      ),
+      registry = summarise_runs_registry()
+    )$error$message,
+    "Invalid params"
+  )
+  expect_identical(
+    call(
+      list(
+        namex = "summarise_runs"
+      )
+    )$error$message,
+    "Invalid params"
+  )
+  expect_true(
+    call(
+      list(
+        name = "summarise_runs",
+        argumentsx = list(
+          surface = "trail"
+        )
+      )
+    )$result$isError
+  )
+  expect_true(
+    call(
+      list(
+        name = "summarise_runs",
+        argumentsx = list(
+          "trail"
+        )
+      )
+    )$result$isError
+  )
+})

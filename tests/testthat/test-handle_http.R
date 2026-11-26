@@ -199,3 +199,27 @@ test_that("handle_http() keeps GET /health open with a token", {
     200L
   )
 })
+
+test_that("handle_http() reads the headers by their exact names", {
+  expect_identical(
+    handle_http(
+      http_request(
+        headers = list(
+          authorizationx = "Bearer s3cret"
+        )
+      ),
+      token = "s3cret"
+    )$status,
+    401L
+  )
+  expect_identical(
+    handle_http(
+      http_request(
+        headers = list(
+          originx = "http://evil.example"
+        )
+      )
+    )$status,
+    200L
+  )
+})

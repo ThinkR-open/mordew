@@ -11,6 +11,9 @@
   does not end with a newline (#12).
 * `create_mordew()` refuses a name that is not a valid package name, and
   `add_tool()` a name that is not syntactic, before writing anything (#13).
+* The server reads the fields of a message, of its `params` and the HTTP
+  headers by their exact names: a message with `idx` but no `id` stays a
+  notification (#9).
 
 * A `table` result escapes `|` in column names, and replaces newlines with
   spaces in column names and cells, so that the Markdown table keeps its

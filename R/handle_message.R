@@ -11,22 +11,22 @@ handle_message <- function(
       )
     )
   }
-  if (is.null(message$id)) {
+  if (is.null(message[["id"]])) {
     return(
       NULL
     )
   }
-  if (!is.character(message$method)) {
+  if (!is.character(message[["method"]])) {
     return(
       invalid_request(
-        message$id
+        message[["id"]]
       )
     )
   }
   rpc_response(
-    message$id,
+    message[["id"]],
     switch(
-      message$method,
+      message[["method"]],
       initialize = list(
         result = list(
           protocolVersion = "2025-11-25",
@@ -55,7 +55,7 @@ handle_message <- function(
         )
       ),
       "tools/call" = tools_call(
-        message$params,
+        message[["params"]],
         registry,
         envir
       ),
@@ -63,7 +63,7 @@ handle_message <- function(
         -32601,
         paste0(
           "Method not found: ",
-          message$method
+          message[["method"]]
         )
       )
     )
@@ -77,8 +77,9 @@ tools_call <- function(
 ) {
   if (
     !is.list(params) ||
-      !is.character(params$name) ||
-      (length(params$arguments) > 0 && is.null(names(params$arguments)))
+      !is.character(params[["name"]]) ||
+      (length(params[["arguments"]]) > 0 &&
+        is.null(names(params[["arguments"]])))
   ) {
     return(
       rpc_error(
@@ -87,20 +88,20 @@ tools_call <- function(
       )
     )
   }
-  entry <- registry[[params$name]]
+  entry <- registry[[params[["name"]]]]
   if (is.null(entry)) {
     return(
       rpc_error(
         -32602,
         paste0(
           "Unknown tool: ",
-          params$name
+          params[["name"]]
         )
       )
     )
   }
   arguments <- as.list(
-    params$arguments
+    params[["arguments"]]
   )
   list(
     result = tryCatch(

@@ -50,7 +50,7 @@ reply_from_headers <- function(
 ) {
   if (
     !local_origin(
-      request$headers$origin
+      request$headers[["origin"]]
     )
   ) {
     return(
@@ -80,7 +80,7 @@ reply_from_headers <- function(
       token
     ) &&
       !authorized(
-        request$headers$authorization,
+        request$headers[["authorization"]],
         token
       )
   ) {
