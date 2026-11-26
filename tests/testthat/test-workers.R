@@ -161,10 +161,15 @@ test_that("start_workers() loads an installed package in the workers", {
     ),
     60
   )[]
+  pid <- response$result$content[[1]]$text
 
+  expect_match(
+    pid,
+    "^[0-9]+$"
+  )
   expect_false(
     identical(
-      response$result$content[[1]]$text,
+      pid,
       as.character(
         Sys.getpid()
       )
