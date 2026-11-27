@@ -8,6 +8,9 @@ goes into this package. Code the developer cannot explain does not go in.
 - Before implementing a new concept (MCP protocol, R structure, design
   choice…): explain it, and check understanding before writing any code.
 - Move in small guided steps, not big delivered blocks.
+- Print in the message every piece of code that changes (tests, R/,
+  docs), as a diff or excerpt: the developer does not see the edits. Never
+  ask about code that is not printed in the same message.
 - After each implementation, ask the developer to restate what the code does
   and why this choice. If they can't, go back to the explanation before
   moving on.
