@@ -2,7 +2,8 @@ handle_message <- function(
   message,
   server,
   registry,
-  envir
+  envir,
+  resources
 ) {
   if (!is.list(message) || is.null(names(message))) {
     return(
@@ -31,7 +32,8 @@ handle_message <- function(
         result = list(
           protocolVersion = "2025-11-25",
           capabilities = list(
-            tools = empty_object()
+            tools = empty_object(),
+            resources = empty_object()
           ),
           serverInfo = server[c(
             "name",
@@ -45,14 +47,24 @@ handle_message <- function(
       ),
       "tools/list" = list(
         result = list(
-          tools = unname(
-            lapply(
-              registry,
-              `[[`,
-              "tool"
-            )
+          tools = definitions(
+            registry,
+            "tool"
           )
         )
+      ),
+      "resources/list" = list(
+        result = list(
+          resources = definitions(
+            resources,
+            "resource"
+          )
+        )
+      ),
+      "resources/read" = resources_read(
+        message[["params"]],
+        resources,
+        envir
       ),
       "tools/call" = tools_call(
         message[["params"]],
@@ -131,6 +143,66 @@ tools_call <- function(
           entry$returns
         )
       }
+    )
+  )
+}
+
+resources_read <- function(
+  params,
+  resources,
+  envir
+) {
+  if (
+    !is.list(params) ||
+      !is.character(params[["uri"]])
+  ) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid params"
+      )
+    )
+  }
+  entry <- resources[[params[["uri"]]]]
+  if (is.null(entry)) {
+    return(
+      rpc_error(
+        -32002,
+        paste0(
+          "Resource not found: ",
+          params[["uri"]]
+        )
+      )
+    )
+  }
+  list(
+    result = list(
+      contents = list(
+        c(
+          entry$resource[c(
+            "uri",
+            "mimeType"
+          )],
+          text = do.call(
+            entry$fun,
+            list(),
+            envir = envir
+          )
+        )
+      )
+    )
+  )
+}
+
+definitions <- function(
+  entries,
+  field
+) {
+  unname(
+    lapply(
+      entries,
+      `[[`,
+      field
     )
   )
 }

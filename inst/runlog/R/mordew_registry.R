@@ -169,3 +169,5 @@ mordew_registry <- list(
     returns = "table"
   )
 )
+
+mordew_resources <- list()

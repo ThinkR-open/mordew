@@ -10,7 +10,7 @@ test_that("a tagged function becomes a tool named after it", {
       #' @mcpReturns text
       summarise_runs <- function() NULL
       "
-    ),
+    )$tools,
     list(
       summarise_runs = list(
         fun = "summarise_runs",
@@ -41,7 +41,7 @@ test_that("@mcpTool can rename the tool", {
       #' @mcpReturns text
       summarise_runs <- function() NULL
       "
-    )$run_summary,
+    )$tools$run_summary,
     list(
       fun = "summarise_runs",
       tool = list(
@@ -90,7 +90,7 @@ test_that("a function without @mcpTool is not a tool", {
       #' Helper
       helper <- function() NULL
       "
-    ),
+    )$tools,
     "summarise_runs"
   )
 })
@@ -132,7 +132,7 @@ test_that("the title and description keep their markdown", {
       #' @md
       summarise_runs <- function() NULL
       "
-    )$summarise_runs$tool[
+    )$tools$summarise_runs$tool[
       c(
         "title",
         "description"
@@ -172,7 +172,7 @@ test_that("@mcpReturns sets what the tool returns", {
       #' @mcpReturns table
       summarise_runs <- function() NULL
       "
-    )$summarise_runs$returns,
+    )$tools$summarise_runs$returns,
     "table"
   )
 })
@@ -223,7 +223,10 @@ write_registry <- function(
   )
   roxygen2::roclet_output(
     registry_roclet(),
-    registry,
+    list(
+      tools = registry,
+      resources = list()
+    ),
     base_path = path
   )
   file.path(
@@ -253,7 +256,9 @@ test_that("the registry is written one element per line", {
       "    fun = \"summarise_runs\",",
       "    returns = \"text\"",
       "  )",
-      ")"
+      ")",
+      "",
+      "mordew_resources <- list()"
     )
   )
 })
@@ -323,7 +328,7 @@ test_that("annotation tags declare the safe side", {
       #' @mcpReadOnly
       summarise_runs <- function() NULL
       "
-    )$summarise_runs$tool$annotations,
+    )$tools$summarise_runs$tool$annotations,
     list(
       readOnlyHint = TRUE,
       openWorldHint = FALSE
@@ -346,7 +351,7 @@ test_that("redundant annotation tags next to @mcpReadOnly are accepted", {
       #' @mcpIdempotent
       summarise_runs <- function() NULL
       "
-    )$summarise_runs$tool$annotations,
+    )$tools$summarise_runs$tool$annotations,
     list(
       readOnlyHint = TRUE,
       destructiveHint = FALSE,
@@ -369,7 +374,7 @@ test_that("a tool without annotation tags sends no annotations", {
           #' @mcpReturns text
           summarise_runs <- function() NULL
           "
-        )$summarise_runs$tool
+        )$tools$summarise_runs$tool
       )
   )
 })
@@ -387,7 +392,7 @@ test_that("@mcpLimit rows caps the rows of a table tool", {
       #' @mcpLimit rows 500
       summarise_runs <- function() NULL
       "
-    )$summarise_runs$limit,
+    )$tools$summarise_runs$limit,
     list(
       rows = 500L
     )
@@ -408,7 +413,7 @@ test_that("a tool without @mcpLimit has no limit", {
           #' @mcpReturns table
           summarise_runs <- function() NULL
           "
-        )$summarise_runs
+        )$tools$summarise_runs
       )
   )
 })
@@ -490,7 +495,7 @@ test_that("@mcpType and @param build the inputSchema", {
       #' @md
       summarise_runs <- function(surface, year) NULL
       "
-    )$summarise_runs$tool$inputSchema,
+    )$tools$summarise_runs$tool$inputSchema,
     list(
       type = "object",
       properties = list(
@@ -667,7 +672,7 @@ test_that("a parameter with a default value and required = FALSE is optional", {
       #' @mcpType year type_integer(required = FALSE)
       summarise_runs <- function(surface, year = 2024) NULL
       "
-    )$summarise_runs$tool$inputSchema$required,
+    )$tools$summarise_runs$tool$inputSchema$required,
     list(
       "surface"
     )
@@ -690,7 +695,7 @@ test_that("a parameter description stops at its text", {
       #' @mcpReturns text
       summarise_runs <- function(year) NULL
       "
-    )$summarise_runs$tool$inputSchema$properties$year$description,
+    )$tools$summarise_runs$tool$inputSchema$properties$year$description,
     "Four-digit year."
   )
 })
@@ -759,5 +764,32 @@ test_that("the registry is written in ASCII and sources back to the same strings
   expect_identical(
     env$mordew_registry,
     registry
+  )
+})
+
+test_that("a function tagged @mcpResource becomes a resource keyed by its URI", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      surfaces <- function() NULL
+      "
+    )$resources,
+    list(
+      "runlog://surfaces" = list(
+        fun = "surfaces",
+        resource = list(
+          uri = "runlog://surfaces",
+          name = "surfaces",
+          title = "Surfaces",
+          description = "The surfaces a run can be on.",
+          mimeType = "text/plain"
+        )
+      )
+    )
   )
 })

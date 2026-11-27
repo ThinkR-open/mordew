@@ -84,6 +84,10 @@ test_that("handle_message() answers initialize with 2025-11-25 and the server id
           tools = structure(
             list(),
             names = character()
+          ),
+          resources = structure(
+            list(),
+            names = character()
           )
         ),
         serverInfo = list(
@@ -139,6 +143,184 @@ test_that("handle_message() lists the tools of the registry as an array", {
         tools = list(
           summarise_runs,
           list_runs
+        )
+      )
+    )
+  )
+})
+
+test_that("handle_message() lists no resources when there are none", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/list"
+      ),
+      resources = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      result = list(
+        resources = list()
+      )
+    )
+  )
+})
+
+test_that("handle_message() lists the resources as an array", {
+  runs <- list(
+    uri = "runlog://runs",
+    name = "runs",
+    description = "Every run of the log.",
+    mimeType = "text/markdown"
+  )
+  surfaces <- list(
+    uri = "runlog://surfaces",
+    name = "surfaces",
+    description = "The surfaces a run can be on.",
+    mimeType = "text/plain"
+  )
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/list"
+      ),
+      resources = list(
+        "runlog://runs" = list(
+          fun = "runs",
+          resource = runs
+        ),
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = surfaces
+        )
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      result = list(
+        resources = list(
+          runs,
+          surfaces
+        )
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers an unknown resource with a JSON-RPC error", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://shoes"
+        )
+      ),
+      resources = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32002,
+        message = "Resource not found: runlog://shoes"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a resource read without a uri as invalid params", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          urix = "runlog://surfaces"
+        )
+      ),
+      resources = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a resource read whose params are not an object as invalid params", {
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = "runlog://surfaces"
+      ),
+      resources = list()
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32602,
+        message = "Invalid params"
+      )
+    )
+  )
+})
+
+test_that("handle_message() reads a resource and sends its text", {
+  surfaces <- function() {
+    "road, trail, track"
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "text/plain"
+          )
+        )
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      result = list(
+        contents = list(
+          list(
+            uri = "runlog://surfaces",
+            mimeType = "text/plain",
+            text = "road, trail, track"
+          )
         )
       )
     )
