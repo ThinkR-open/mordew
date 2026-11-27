@@ -124,7 +124,7 @@ test_that("create_mordew() checks the package before deploying it", {
     ),
     "devtools::check()"
   )
-  expect_false(
+  expect_identical(
     Find(
       function(call) {
         identical(
@@ -135,7 +135,10 @@ test_that("create_mordew() checks the package before deploying it", {
         )
       },
       calls
-    )$sysreqs
+    ),
+    quote(
+      mordew::add_dockerfile()
+    )
   )
 })
 

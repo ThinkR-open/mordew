@@ -48,13 +48,13 @@ test_that("add_dockerfile() keeps the Dockerfile out of the build", {
   )
 })
 
-test_that("add_dockerfile() refuses a dockerfiler older than 1.0.0", {
+test_that("add_dockerfile() refuses a dockerfiler older than 1.0.1", {
   local_mocked_bindings(
     packageVersion = function(
       pkg
     ) {
       package_version(
-        "0.2.5"
+        "1.0.0"
       )
     },
     .package = "utils"
@@ -64,7 +64,7 @@ test_that("add_dockerfile() refuses a dockerfiler older than 1.0.0", {
     add_dockerfile(
       tempfile()
     ),
-    "add_dockerfile() needs dockerfiler 1.0.0 or later",
+    "add_dockerfile() needs dockerfiler 1.0.1 or later",
     fixed = TRUE
   )
 })

@@ -1127,28 +1127,12 @@ docker build -t runlog .
 docker run -e MORDEW_TOKEN=... -p 8080:8080 runlog
 ```
 
-Three things to know:
+Two things to know:
 
-- **System requirements.** dockerfiler computes them with pak, which
-  does not find `{mordew}` while it is not on CRAN, with or without
-  `Remotes: ThinkR-open/mordew`
-  ([dockerfiler#122](https://github.com/ThinkR-open/dockerfiler/issues/122)):
-  `add_dockerfile()` stops with "Can't find package called mordew".
-  Until then, give them by hand, as the list pak computes for a package
-  made with `create_mordew()`:
-
-  ```r
-  mordew::add_dockerfile(
-    sysreqs = FALSE,
-    extra_sysreqs = c("cmake", "libuv1-dev", "make", "zlib1g-dev")
-  )
-  ```
-
-  With it, the image of such a package builds with every dependency
-  installed, and serves (checked on arm64 with dockerfiler 1.0.0).
-- **A failed install fails the build**: `add_dockerfile()` needs
-  dockerfiler 1.0.0 or later, which runs every install with
-  `options(warn = 2)`.
+- **`add_dockerfile()` needs dockerfiler 1.0.1 or later.** It computes
+  the system requirements with pak, `{mordew}` from `Remotes` included,
+  and runs every install with `options(warn = 2)`, so a failed install
+  fails the build.
 - **The package's `Suggests` are installed too**, though a server does not
   need them: `pkgload` pulls `fs`, which needs `libuv1-dev`.
 
@@ -1198,7 +1182,7 @@ instance.
 - [x] Deploy a package made with `{mordew}` on a real Posit Connect, and connect a client to it
 - [x] Turn on the `R-CMD-check` and `format-check` workflows
 - [ ] Run the evals workflow on a real CI job: the `claude` CLI on the runner, and a missing `ANTHROPIC_API_KEY` secret, are untested
-- [ ] Build a Docker image with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
+- [x] Build a Docker image with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
 
 ### Before each release
 

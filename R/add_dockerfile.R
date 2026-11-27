@@ -21,11 +21,12 @@ add_dockerfile <- function(
     utils::packageVersion(
       "dockerfiler"
     ) <
-      "1.0.0"
+      "1.0.1"
   ) {
     stop(
-      "add_dockerfile() needs dockerfiler 1.0.0 or later, whose image ",
-      "build fails when a package does not install."
+      "add_dockerfile() needs dockerfiler 1.0.1 or later, whose image ",
+      "build fails when a package does not install, and which computes ",
+      "the system requirements of a package listed in Remotes."
     )
   }
   dockerfile <- dockerfiler::dock_from_desc(

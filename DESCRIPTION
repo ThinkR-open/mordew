@@ -1,6 +1,6 @@
 Package: mordew
 Title: Build, Test and Ship 'MCP' Servers as R Packages
-Version: 0.0.0.9026
+Version: 0.0.0.9027
 Authors@R: c(
     person("Colin", "Fay", , "contact@colinfay.me", role = c("cre", "aut"),
            comment = c(ORCID = "0000-0001-7343-1846")),
@@ -23,7 +23,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Suggests: 
     curl,
-    dockerfiler (>= 1.0.0),
+    dockerfiler (>= 1.0.1),
     ellmer,
     ggplot2,
     later,
@@ -32,6 +32,8 @@ Suggests:
     testthat (>= 3.0.0),
     roxygen2,
     withr
+Remotes:
+    ThinkR-open/dockerfiler
 Config/testthat/edition: 3
 Config/Needs/website: ThinkR-open/golemversetemplate
 RoxygenNote: 7.3.3

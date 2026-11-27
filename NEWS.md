@@ -1,3 +1,9 @@
+# mordew 0.0.0.9027
+
+* `add_dockerfile()` needs dockerfiler 1.0.1 or later, which computes the
+  system requirements of a package listed in `Remotes`: the
+  `dev/03_deploy.R` of `create_mordew()` no longer gives them by hand.
+
 # mordew 0.0.0.9025
 
 * Over HTTP, each tool call gives the workers the libraries of the server,
