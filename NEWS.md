@@ -1,3 +1,9 @@
+# mordew 0.0.0.9029
+
+* `add_resource()` creates the file of a resource and its test file, with
+  the URI `<package>://<name>`, as `add_tool()` does for a tool; the
+  `dev/02_dev.R` of `create_mordew()` calls it.
+
 # mordew 0.0.0.9028
 
 * Resources: a function tagged `@mcpResource <uri>` becomes a resource that

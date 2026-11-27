@@ -341,3 +341,38 @@ test_that("create_mordew() says where to install mordew from", {
     "ThinkR-open/mordew"
   )
 })
+
+test_that("create_mordew() adds a resource in the dev script", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  expect_identical(
+    Find(
+      function(call) {
+        identical(
+          call[[1]],
+          quote(
+            mordew::add_resource
+          )
+        )
+      },
+      as.list(
+        parse(
+          file.path(
+            path,
+            "dev",
+            "02_dev.R"
+          )
+        )
+      )
+    ),
+    quote(
+      mordew::add_resource(
+        name = "name_of_resource"
+      )
+    )
+  )
+})

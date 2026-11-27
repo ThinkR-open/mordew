@@ -10,37 +10,11 @@ add_tool <- function(
   name,
   pkg = "."
 ) {
-  if (
-    make.names(
-      name
-    ) !=
-      name
-  ) {
-    stop(
-      "`",
-      name,
-      "` is not a syntactic name: it becomes the name of the tool's function."
-    )
-  }
-  tool <- file.path(
+  tool <- function_file(
+    name,
     pkg,
-    "R",
-    paste0(
-      "tool_",
-      name,
-      ".R"
-    )
+    "tool"
   )
-  if (
-    file.exists(
-      tool
-    )
-  ) {
-    stop(
-      tool,
-      " already exists."
-    )
-  }
   fill_template(
     system.file(
       "templates",
