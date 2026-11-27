@@ -1194,9 +1194,9 @@ framework.
 Checks rather than code: each needs the repository public or a real
 instance.
 
-- [ ] Open the repository
-- [ ] Deploy `runlog` on a real Posit Connect, and connect a client to it
-- [ ] Turn on the `R-CMD-check` and `format-check` workflows
+- [x] Open the repository
+- [x] Deploy a package made with `{mordew}` on a real Posit Connect, and connect a client to it
+- [x] Turn on the `R-CMD-check` and `format-check` workflows
 - [ ] Run the evals workflow on a real CI job: the `claude` CLI on the runner, and a missing `ANTHROPIC_API_KEY` secret, are untested
 - [ ] Build a Docker image with `Remotes: ThinkR-open/mordew`, its system requirements computed by pak
 
