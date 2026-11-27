@@ -194,3 +194,62 @@ test_that("http_app() refuses a body larger than 4 MB on its headers", {
     )
   )
 })
+
+test_that("http_app() passes the resources to the request", {
+  expect_identical(
+    http_app(
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces"
+          )
+        )
+      )
+    )$call(
+      rook_request(
+        '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+      )
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"result":{"resources":[{"uri":"runlog://surfaces","name":"surfaces"}]}}'
+  )
+})
+
+test_that("serve_http() serves the resources of the package", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request(
+          '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+        )
+      )$body
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "mordew",
+      4,
+      60,
+      8,
+      NULL
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"resources":[]}}'
+  )
+})

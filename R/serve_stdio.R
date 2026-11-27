@@ -3,7 +3,8 @@ serve_stdio <- function(
   output,
   server,
   registry,
-  envir
+  envir,
+  resources
 ) {
   repeat {
     line <- readLines(
@@ -18,7 +19,8 @@ serve_stdio <- function(
       line,
       server,
       registry,
-      envir
+      envir,
+      resources
     )
     if (is.null(response)) {
       next
@@ -40,7 +42,8 @@ respond <- function(
   text,
   server,
   registry,
-  envir
+  envir,
+  resources
 ) {
   message <- tryCatch(
     jsonlite::fromJSON(
@@ -70,7 +73,8 @@ respond <- function(
       message,
       server,
       registry,
-      envir
+      envir,
+      resources
     )
   )
 }

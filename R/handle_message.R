@@ -175,22 +175,57 @@ resources_read <- function(
       )
     )
   }
-  list(
-    result = list(
-      contents = list(
-        c(
-          entry$resource[c(
-            "uri",
-            "mimeType"
-          )],
-          text = do.call(
-            entry$fun,
-            list(),
-            envir = envir
+  resource_result(
+    entry,
+    envir
+  )
+}
+
+resource_result <- function(
+  entry,
+  envir
+) {
+  tryCatch(
+    {
+      value <- do.call(
+        entry$fun,
+        list(),
+        envir = envir
+      )
+      if (!is.character(value)) {
+        stop(
+          "The resource returns text, but returned class ",
+          class(value)[[1]],
+          "."
+        )
+      }
+      list(
+        result = list(
+          contents = list(
+            c(
+              entry$resource[c(
+                "uri",
+                "mimeType"
+              )],
+              text = paste(
+                value,
+                collapse = "\n"
+              )
+            )
           )
         )
       )
-    )
+    },
+    error = function(
+      error
+    ) {
+      rpc_error(
+        -32603,
+        conditionMessage(
+          error
+        )
+      )
+    }
   )
 }
 

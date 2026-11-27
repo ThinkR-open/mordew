@@ -1,6 +1,8 @@
 #' Roclet generating the tool registry
 #'
-#' Turns the `@mcpTool` functions of a package into its tool registry.
+#' Turns the `@mcpTool` functions of a package into its tool registry,
+#' `mordew_registry`, and its `@mcpResource` functions into
+#' `mordew_resources`.
 #' Enable it in the package's `DESCRIPTION` with
 #' `Roxygen: list(roclets = c("collate", "namespace", "rd", "mordew::registry_roclet"))`.
 #'
@@ -99,14 +101,12 @@ roclet_process.roclet_registry <- function(
       entry <- tool_entry(
         block
       )
-      if (entry$tool$name %in% names(registry)) {
-        stop(
-          "Two tools are named `",
-          entry$tool$name,
-          "`."
-        )
-      }
-      registry[[entry$tool$name]] <- entry
+      registry <- add_entry(
+        registry,
+        entry$tool$name,
+        entry,
+        "Two tools are named"
+      )
     }
     if (
       roxygen2::block_has_tags(
@@ -117,7 +117,12 @@ roclet_process.roclet_registry <- function(
       entry <- resource_entry(
         block
       )
-      resources[[entry$resource$uri]] <- entry
+      resources <- add_entry(
+        resources,
+        entry$resource$uri,
+        entry,
+        "Two resources have the URI"
+      )
     }
   }
   list(
@@ -126,10 +131,31 @@ roclet_process.roclet_registry <- function(
   )
 }
 
+add_entry <- function(
+  entries,
+  key,
+  entry,
+  duplicate
+) {
+  if (key %in% names(entries)) {
+    stop(
+      duplicate,
+      " `",
+      key,
+      "`."
+    )
+  }
+  entries[[key]] <- entry
+  entries
+}
+
 resource_entry <- function(
   block
 ) {
-  fun <- block$object$alias
+  fun <- block_fun(
+    block,
+    "resource"
+  )
   list(
     fun = fun,
     resource = list(
@@ -138,21 +164,49 @@ resource_entry <- function(
         "mcpResource"
       ),
       name = fun,
-      title = roxygen2::block_get_tag(
+      title = required_tag(
         block,
-        "title"
-      )$raw,
-      description = roxygen2::block_get_tag(
+        fun,
+        "title",
+        "clients show it to users."
+      ),
+      description = required_tag(
         block,
-        "description"
-      )$raw,
+        fun,
+        "description",
+        "clients use it to tell the model what the resource holds."
+      ),
       mimeType = "text/plain"
     )
   )
 }
 
-tool_entry <- function(
-  block
+required_tag <- function(
+  block,
+  fun,
+  tag,
+  reason
+) {
+  value <- roxygen2::block_get_tag(
+    block,
+    tag
+  )$raw
+  if (is.null(value)) {
+    stop(
+      "`",
+      fun,
+      "` has no ",
+      tag,
+      ": ",
+      reason
+    )
+  }
+  value
+}
+
+block_fun <- function(
+  block,
+  kind
 ) {
   fun <- block$object$alias
   if (
@@ -163,9 +217,21 @@ tool_entry <- function(
     stop(
       "`",
       fun,
-      "` is not a function: only a function can be a tool."
+      "` is not a function: only a function can be a ",
+      kind,
+      "."
     )
   }
+  fun
+}
+
+tool_entry <- function(
+  block
+) {
+  fun <- block_fun(
+    block,
+    "tool"
+  )
   name <- roxygen2::block_get_tag_value(
     block,
     "mcpTool"
@@ -185,28 +251,18 @@ tool_entry <- function(
       "` is not a valid tool name: use 1 to 128 characters among A-Z a-z 0-9 _ - ."
     )
   }
-  title <- roxygen2::block_get_tag(
+  title <- required_tag(
     block,
-    "title"
-  )$raw
-  if (is.null(title)) {
-    stop(
-      "`",
-      fun,
-      "` has no title: clients show it to users."
-    )
-  }
-  description <- roxygen2::block_get_tag(
+    fun,
+    "title",
+    "clients show it to users."
+  )
+  description <- required_tag(
     block,
-    "description"
-  )$raw
-  if (is.null(description)) {
-    stop(
-      "`",
-      fun,
-      "` has no description: the model reads it to choose the tool."
-    )
-  }
+    fun,
+    "description",
+    "the model reads it to choose the tool."
+  )
   returns <- roxygen2::block_get_tag_value(
     block,
     "mcpReturns"

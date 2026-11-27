@@ -109,6 +109,15 @@ local_tool_package <- function(
     "#' @mcpReturns text",
     "fail_always <- function() {",
     "  stop(\"No runs today.\")",
+    "}",
+    "",
+    "#' Surfaces",
+    "#'",
+    "#' The surfaces a run can be on.",
+    "#'",
+    "#' @mcpResource runlog://surfaces",
+    "surfaces <- function() {",
+    "  \"road, trail, track\"",
     "}"
   )
 ) {

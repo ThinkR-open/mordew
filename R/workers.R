@@ -245,11 +245,12 @@ worker_respond <- function(
     text,
     server,
     namespace$mordew_registry,
-    namespace
+    namespace,
+    namespace$mordew_resources
   )
 }
 
-tool_call_message <- function(
+worker_message <- function(
   text
 ) {
   message <- tryCatch(
@@ -265,10 +266,14 @@ tool_call_message <- function(
     is.list(
       message
     ) &&
-      identical(
-        message[["method"]],
-        "tools/call"
-      )
+      is.character(
+        message[["method"]]
+      ) &&
+      message[["method"]] %in%
+        c(
+          "tools/call",
+          "resources/read"
+        )
   ) {
     message
   }

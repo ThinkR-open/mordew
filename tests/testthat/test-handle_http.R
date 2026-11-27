@@ -274,3 +274,23 @@ test_that("handle_http() answers 405 on /health for another method than GET", {
     )
   )
 })
+
+test_that("handle_http() passes the resources to the request", {
+  expect_identical(
+    handle_http(
+      http_request(
+        '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+      ),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces"
+          )
+        )
+      )
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"result":{"resources":[{"uri":"runlog://surfaces","name":"surfaces"}]}}'
+  )
+})

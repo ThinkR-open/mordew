@@ -3,7 +3,8 @@ http_app <- function(
   registry,
   envir,
   pool = NULL,
-  token = NULL
+  token = NULL,
+  resources
 ) {
   list(
     onHeaders = function(req) {
@@ -27,7 +28,8 @@ http_app <- function(
         registry,
         envir,
         pool,
-        token
+        token,
+        resources
       )
     }
   )
@@ -81,7 +83,8 @@ serve_http <- function(
         timeout,
         queue
       ),
-      token
+      token,
+      namespace$mordew_resources
     )
   )
 }

@@ -7,7 +7,9 @@
 registry_roclet()
 }
 \description{
-Turns the \verb{@mcpTool} functions of a package into its tool registry.
+Turns the \verb{@mcpTool} functions of a package into its tool registry,
+\code{mordew_registry}, and its \verb{@mcpResource} functions into
+\code{mordew_resources}.
 Enable it in the package's \code{DESCRIPTION} with
 \code{Roxygen: list(roclets = c("collate", "namespace", "rd", "mordew::registry_roclet"))}.
 }

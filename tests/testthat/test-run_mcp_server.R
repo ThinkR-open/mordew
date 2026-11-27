@@ -14,7 +14,10 @@ test_that("run_mcp_server() serves the tools of an installed package", {
     showWarnings = FALSE
   )
   writeLines(
-    'mordew_registry <- list(echo = list(fun = "echo"))',
+    c(
+      'mordew_registry <- list(echo = list(fun = "echo"))',
+      'mordew_resources <- list("runlog://surfaces" = list(fun = "surfaces"))'
+    ),
     file.path(
       path,
       "R",
@@ -35,12 +38,14 @@ test_that("run_mcp_server() serves the tools of an installed package", {
       output,
       server,
       registry,
-      envir
+      envir,
+      resources
     ) {
       list(
         server = server,
         registry = registry,
-        envir = envir
+        envir = envir,
+        resources = resources
       )
     }
   )
@@ -67,6 +72,14 @@ test_that("run_mcp_server() serves the tools of an installed package", {
     served$envir,
     asNamespace(
       "runlog"
+    )
+  )
+  expect_equal(
+    served$resources,
+    list(
+      "runlog://surfaces" = list(
+        fun = "surfaces"
+      )
     )
   )
 })
@@ -255,6 +268,16 @@ test_that("a generated package serves its tools to a client over stdio", {
     )$result$content[[1]]$text,
     "trail"
   )
+  expect_equal(
+    client_request(
+      client,
+      "resources/read",
+      list(
+        uri = "runlog://surfaces"
+      )
+    )$result$contents[[1]]$text,
+    "road, trail, track"
+  )
 })
 
 test_that("a generated package serves its tools to a client over HTTP", {
@@ -353,6 +376,29 @@ test_that("a generated package serves its tools to a client over HTTP", {
       )
     )$result$content[[1]]$text,
     "trail é"
+  )
+  expect_equal(
+    post(
+      list(
+        jsonrpc = "2.0",
+        id = 2,
+        method = "resources/list"
+      )
+    )$result$resources[[1]]$uri,
+    "runlog://surfaces"
+  )
+  expect_equal(
+    post(
+      list(
+        jsonrpc = "2.0",
+        id = 3,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      )
+    )$result$contents[[1]]$text,
+    "road, trail, track"
   )
   expect_identical(
     curl::curl_fetch_memory(

@@ -793,3 +793,69 @@ test_that("a function tagged @mcpResource becomes a resource keyed by its URI", 
     )
   )
 })
+
+test_that("a resource without title is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' @description The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      surfaces <- function() NULL
+      "
+    ),
+    "`surfaces` has no title"
+  )
+})
+
+test_that("a resource without description is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #' @mcpResource runlog://surfaces
+      surfaces <- function() NULL
+      "
+    ),
+    "`surfaces` has no description: clients use it to tell the model what the resource holds."
+  )
+})
+
+test_that("a resource tag on an object that is not a function is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      surfaces <- 'road, trail, track'
+      "
+    ),
+    "`surfaces` is not a function: only a function can be a resource."
+  )
+})
+
+test_that("two resources with the same URI are an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      surfaces <- function() NULL
+
+      #' Terrains
+      #'
+      #' The terrains a run can be on.
+      #' @mcpResource runlog://surfaces
+      terrains <- function() NULL
+      "
+    ),
+    "Two resources have the URI `runlog://surfaces`."
+  )
+})

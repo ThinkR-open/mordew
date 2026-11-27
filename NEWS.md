@@ -1,3 +1,14 @@
+# mordew 0.0.0.9028
+
+* Resources: a function tagged `@mcpResource <uri>` becomes a resource that
+  clients list with `resources/list` and read with `resources/read`, over
+  stdio and HTTP. The registry roclet writes the resources in
+  `mordew_resources`, next to `mordew_registry`, and stops on a resource
+  without title or description, on an object that is not a function, and
+  on two resources with the same URI. A resource is read as text, one
+  element of the character vector per line; an unknown URI gets the error
+  -32002, and a resource that fails or does not return text gets -32603.
+
 # mordew 0.0.0.9027
 
 * `add_dockerfile()` needs dockerfiler 1.0.1 or later, which computes the

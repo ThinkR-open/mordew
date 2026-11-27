@@ -279,3 +279,39 @@ test_that("serve_stdio() sends what a tool prints to stderr", {
     '{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"done"}]}}'
   )
 })
+
+test_that("serve_stdio() passes the resources to each request", {
+  input <- withr::local_connection(
+    textConnection(
+      '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+    )
+  )
+  path <- withr::local_tempfile()
+  output <- withr::local_connection(
+    file(
+      path,
+      "w"
+    )
+  )
+
+  serve_stdio(
+    input,
+    output,
+    resources = list(
+      "runlog://surfaces" = list(
+        fun = "surfaces",
+        resource = list(
+          uri = "runlog://surfaces",
+          name = "surfaces"
+        )
+      )
+    )
+  )
+
+  expect_equal(
+    readLines(
+      path
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"resources":[{"uri":"runlog://surfaces","name":"surfaces"}]}}'
+  )
+})

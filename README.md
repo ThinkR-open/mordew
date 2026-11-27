@@ -103,8 +103,8 @@ conventions and the path to production.
 
 - an opinionated framework where one MCP server is one R package
 - scaffolding: `create_mordew()`, `add_tool()`, `use_evals()`, `dev/` scripts
-- MCP tools: the rest of the specification (resources, prompts, elicitation, tasks…) is on the [roadmap](#roadmap-and-task-list)
-- a roxygen roclet that turns documentation into a tool registry
+- MCP tools and resources: the rest of the specification (resource templates, prompts, elicitation, tasks…) is on the [roadmap](#roadmap-and-task-list)
+- a roxygen roclet that turns documentation into a registry of tools and resources
 - a testing toolkit covering three levels: unit, contract, behaviour, plus security
 - runtime helpers: its own thin MCP protocol layer, over stdio and HTTP, with a worker pool and limits
 - deployment helpers: Docker and Posit Connect
@@ -377,6 +377,41 @@ to use the tool, when not to, and give units and formats. The roclet
 stops on a tool without title or description, and on `@mcpTool` on an
 object that is not a function.
 
+### Writing a resource
+
+A resource is data that the client reads by its URI and adds to the
+context: the user or the client application picks it, the model does
+not call it. A resource is a function without arguments, tagged with its
+URI:
+
+```r
+#' Surfaces
+#'
+#' The surfaces a run can be on, one per line.
+#'
+#' @mcpResource runlog://surfaces
+surfaces <- function() {
+  c(
+    "road",
+    "trail",
+    "track"
+  )
+}
+```
+
+The roclet writes it in `mordew_resources`, keyed by its URI, next to
+the tool registry. The roxygen title becomes the resource's `title`, the
+description its `description`, and the function's name its `name`. The
+roclet stops on a resource without title or description, on
+`@mcpResource` on an object that is not a function, and on two resources
+with the same URI.
+
+Each read calls the function. It returns a character vector, sent as
+`text/plain`, one element per line. A function that fails, or that
+returns anything else, gets a JSON-RPC error -32603 with the message; an
+unknown URI gets -32002. Over HTTP, the workers read the resources, as
+they run the tools.
+
 ### Return conventions
 
 | R value                   | Sent to the model as                                                         |
@@ -399,19 +434,20 @@ Each one comes back as an `isError` result.
 `{mordew}` speaks the **2025-11-25 revision** of the specification,
 which is what clients send today (see [Design
 decisions](#design-decisions)). It handles `initialize`, `ping`,
-`tools/list` and `tools/call`.
+`tools/list`, `tools/call`, `resources/list` and `resources/read`.
 
 | Feature                    | What it is                                                            | In `{mordew}`                                    |
 | -------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
 | Tools                      | Functions the model calls                                             | One R function per tool                          |
 | Tool title and annotations | Display name, read-only, destructive, idempotent, open-world hints    | roxygen title and annotation tags                |
+| Resources                  | Data the client reads by URI and adds to the context                  | One R function per resource, read as text        |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
-The rest of the specification is not implemented: resources, prompts,
-structured output, elicitation, completion, progress, cancellation,
-tasks, and the 2026-07-28 revision. They are on the
-[roadmap](#roadmap-and-task-list).
+The rest of the specification is not implemented: resource templates
+and subscriptions, prompts, structured output, elicitation, completion,
+progress, cancellation, tasks, and the 2026-07-28 revision. They are on
+the [roadmap](#roadmap-and-task-list).
 
 ### Runtime and process model
 
@@ -1065,9 +1101,9 @@ flowchart LR
 deployments.
 
 `run_mcp_server(transport = "http")` implements B with httpuv and
-mirai. The front answers `initialize`, `ping` and `tools/list` itself,
-so that they
-never wait behind a tool, and hands each `tools/call` to a worker,
+mirai. The front answers `initialize`, `ping`, `tools/list` and
+`resources/list` itself, so that they never wait behind a tool, and
+hands each `tools/call` and `resources/read` to a worker,
 answering with a promise. The workers load the package before the server
 serves. At most one call runs per worker; the others wait in a bounded
 queue held by the front, which hands a call to mirai only when a worker
@@ -1217,7 +1253,8 @@ tried by others.
 ### Phase 4: specification coverage, conformance and SDK
 
 - [ ] `add_resource()` and `add_prompt()`: resource and prompt files, prompt template in `inst/mordew/prompts/`, test files
-- [ ] Handlers for `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list` and `prompts/get`
+- [ ] Handlers for `resources/templates/list`, `prompts/list` and `prompts/get`
+- [ ] Resources that return a table, JSON or an image, through `@mcpReturns`
 - [ ] `read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`
 - [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels
 - [ ] Cacheable results: `ttlMs` and `cacheScope` on lists and resource reads

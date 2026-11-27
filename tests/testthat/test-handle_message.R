@@ -284,6 +284,119 @@ test_that("handle_message() answers a resource read whose params are not an obje
   )
 })
 
+test_that("handle_message() answers a resource that fails with an internal error", {
+  surfaces <- function() {
+    stop("No surfaces today.")
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "text/plain"
+          )
+        )
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32603,
+        message = "No surfaces today."
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a resource that does not return text with an internal error", {
+  surfaces <- function() {
+    data.frame(
+      surface = "road"
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "text/plain"
+          )
+        )
+      )
+    ),
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      error = list(
+        code = -32603,
+        message = "The resource returns text, but returned class data.frame."
+      )
+    )
+  )
+})
+
+test_that("handle_message() sends a resource of several lines as one text", {
+  surfaces <- function() {
+    c(
+      "road",
+      "trail",
+      "track"
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "text/plain"
+          )
+        )
+      )
+    )$result$contents[[1]][["text"]],
+    "road\ntrail\ntrack"
+  )
+})
+
 test_that("handle_message() reads a resource and sends its text", {
   surfaces <- function() {
     "road, trail, track"

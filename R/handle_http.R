@@ -4,7 +4,8 @@ handle_http <- function(
   registry,
   envir,
   pool = NULL,
-  token = NULL
+  token = NULL,
+  resources
 ) {
   reply <- reply_from_headers(
     request,
@@ -20,7 +21,7 @@ handle_http <- function(
       pool
     )
   ) {
-    tool_call_message(
+    worker_message(
       request$body
     )
   }
@@ -39,7 +40,8 @@ handle_http <- function(
       request$body,
       server,
       registry,
-      envir
+      envir,
+      resources
     )
   )
 }

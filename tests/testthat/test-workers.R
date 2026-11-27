@@ -17,6 +17,26 @@ whoami_package <- function(
   )
 }
 
+whoami_resource_package <- function(
+  env = parent.frame()
+) {
+  local_tool_package(
+    env,
+    tools = c(
+      "#' Who am I",
+      "#'",
+      "#' The process ID of the R process that reads the resource.",
+      "#'",
+      "#' @mcpResource runlog://whoami",
+      "whoami <- function() {",
+      "  as.character(Sys.getpid())",
+      "}"
+    )
+  )
+}
+
+resource_read_body <- '{"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":"runlog://whoami"}}'
+
 tool_call_body <- function(
   name,
   arguments = empty_object()
@@ -82,6 +102,29 @@ test_that("worker_respond() answers a message with the tools of the package", {
   )
 })
 
+test_that("worker_respond() reads a resource of the package", {
+  skip_if_not_installed(
+    "processx"
+  )
+  local_dev_package(
+    whoami_resource_package()
+  )
+
+  expect_identical(
+    worker_respond(
+      resource_read_body,
+      "runlog",
+      server_identity(
+        "runlog"
+      ),
+      .libPaths()
+    )$result$contents[[1]]$text,
+    as.character(
+      Sys.getpid()
+    )
+  )
+})
+
 test_that("http_app() runs a tool call in a worker and answers with a promise", {
   skip_if_not_installed(
     "mirai"
@@ -128,6 +171,58 @@ test_that("http_app() runs a tool call in a worker and answers with a promise", 
       jsonlite::fromJSON(
         response$body
       )$result$content$text,
+      as.character(
+        Sys.getpid()
+      )
+    )
+  )
+})
+
+test_that("http_app() reads a resource in a worker", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_dev_package(
+    whoami_resource_package()
+  )
+  local_workers(
+    1,
+    "runlog"
+  )
+  namespace <- asNamespace(
+    "runlog"
+  )
+
+  response <- wait_for(
+    http_app(
+      server_identity(
+        "runlog"
+      ),
+      namespace$mordew_registry,
+      namespace,
+      new_pool(
+        "runlog",
+        1,
+        60,
+        0
+      ),
+      resources = namespace$mordew_resources
+    )$call(
+      rook_request(
+        resource_read_body
+      )
+    )
+  )
+
+  expect_identical(
+    response$status,
+    200L
+  )
+  expect_false(
+    identical(
+      jsonlite::fromJSON(
+        response$body
+      )$result$contents$text,
       as.character(
         Sys.getpid()
       )
