@@ -192,13 +192,24 @@ resource_result <- function(
         list(),
         envir = envir
       )
-      if (!is.character(value)) {
+      if (
+        !has_kind(
+          value,
+          entry$returns
+        )
+      ) {
         stop(
-          "The resource returns text, but returned class ",
+          "The resource returns ",
+          entry$returns,
+          ", but returned class ",
           class(value)[[1]],
           "."
         )
       }
+      content <- kind_content(
+        value,
+        entry$returns
+      )[[1]]
       list(
         result = list(
           contents = list(
@@ -207,10 +218,13 @@ resource_result <- function(
                 "uri",
                 "mimeType"
               )],
-              text = paste(
-                value,
-                collapse = "\n"
-              )
+              if (entry$returns == "image") {
+                list(
+                  blob = content$data
+                )
+              } else {
+                content["text"]
+              }
             )
           )
         )

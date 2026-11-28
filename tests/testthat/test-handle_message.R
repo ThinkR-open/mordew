@@ -307,7 +307,8 @@ test_that("handle_message() answers a resource that fails with an internal error
             uri = "runlog://surfaces",
             name = "surfaces",
             mimeType = "text/plain"
-          )
+          ),
+          returns = "text"
         )
       )
     ),
@@ -347,7 +348,8 @@ test_that("handle_message() answers a resource that does not return text with an
             uri = "runlog://surfaces",
             name = "surfaces",
             mimeType = "text/plain"
-          )
+          ),
+          returns = "text"
         )
       )
     ),
@@ -389,7 +391,8 @@ test_that("handle_message() sends a resource of several lines as one text", {
             uri = "runlog://surfaces",
             name = "surfaces",
             mimeType = "text/plain"
-          )
+          ),
+          returns = "text"
         )
       )
     )$result$contents[[1]][["text"]],
@@ -420,7 +423,8 @@ test_that("handle_message() reads a resource and sends its text", {
             uri = "runlog://surfaces",
             name = "surfaces",
             mimeType = "text/plain"
-          )
+          ),
+          returns = "text"
         )
       )
     ),
@@ -434,6 +438,144 @@ test_that("handle_message() reads a resource and sends its text", {
             mimeType = "text/plain",
             text = "road, trail, track"
           )
+        )
+      )
+    )
+  )
+})
+
+test_that("handle_message() sends a table resource as markdown", {
+  surfaces <- function() {
+    data.frame(
+      surface = "road"
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "text/markdown"
+          ),
+          returns = "table"
+        )
+      )
+    )$result$contents,
+    list(
+      list(
+        uri = "runlog://surfaces",
+        mimeType = "text/markdown",
+        text = "Rows: 1. Columns: 1.\n\n| surface |\n| --- |\n| road |"
+      )
+    )
+  )
+})
+
+test_that("handle_message() sends a JSON resource as text", {
+  surfaces <- function() {
+    list(
+      surfaces = c(
+        "road",
+        "trail"
+      )
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://surfaces"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://surfaces" = list(
+          fun = "surfaces",
+          resource = list(
+            uri = "runlog://surfaces",
+            name = "surfaces",
+            mimeType = "application/json"
+          ),
+          returns = "json"
+        )
+      )
+    )$result$contents,
+    list(
+      list(
+        uri = "runlog://surfaces",
+        mimeType = "application/json",
+        text = '{"surfaces":["road","trail"]}'
+      )
+    )
+  )
+})
+
+test_that("handle_message() sends an image resource as a base64 PNG blob", {
+  grDevices::pdf(
+    NULL
+  )
+  grDevices::dev.control(
+    "enable"
+  )
+  graphics::plot(
+    1:3
+  )
+  plot <- grDevices::recordPlot()
+  grDevices::dev.off()
+  elevation <- function() {
+    plot
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "resources/read",
+        params = list(
+          uri = "runlog://elevation"
+        )
+      ),
+      envir = environment(),
+      resources = list(
+        "runlog://elevation" = list(
+          fun = "elevation",
+          resource = list(
+            uri = "runlog://elevation",
+            name = "elevation",
+            mimeType = "image/png"
+          ),
+          returns = "image"
+        )
+      )
+    )$result$contents,
+    list(
+      list(
+        uri = "runlog://elevation",
+        mimeType = "image/png",
+        blob = reference_png(
+          function() {
+            grDevices::replayPlot(
+              plot
+            )
+          }
         )
       )
     )

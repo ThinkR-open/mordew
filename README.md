@@ -415,11 +415,22 @@ roclet stops on a resource without title or description, on
 `@mcpResource` on an object that is not a function, and on two resources
 with the same URI.
 
-Each read calls the function. It returns a character vector, sent as
-`text/plain`, one element per line. A function that fails, or that
-returns anything else, gets a JSON-RPC error -32603 with the message; an
-unknown URI gets -32002. Over HTTP, the workers read the resources, as
-they run the tools.
+Each read calls the function. As a tool does, a resource declares what
+it returns with `@mcpReturns`, `text` by default, and its value is
+converted as a tool's is (see [Return conventions](#return-conventions)),
+under a MIME type:
+
+| `@mcpReturns`    | Sent as                                           |
+| ---------------- | ------------------------------------------------- |
+| `text` (default) | `text/plain` text, one element per line           |
+| `table`          | `text/markdown` text, the first 50 rows           |
+| `json`           | `application/json` text                           |
+| `image`          | `image/png` blob, base64                          |
+
+A function that fails, or that returns anything else than what it
+declares, gets a JSON-RPC error -32603 with the message; an unknown URI
+gets -32002. Over HTTP, the workers read the resources, as they run the
+tools.
 
 ### Return conventions
 
@@ -1267,7 +1278,7 @@ tried by others.
 
 - [ ] `add_prompt()`: prompt file, prompt template in `inst/mordew/prompts/`, test file
 - [ ] Handlers for `resources/templates/list`, `prompts/list` and `prompts/get`
-- [ ] Resources that return a table, JSON or an image, through `@mcpReturns`
+- [x] Resources that return a table, JSON or an image, through `@mcpReturns`
 - [x] `read_resource()`, `expect_resource()`
 - [ ] `get_prompt()`, `expect_prompt()`
 - [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels

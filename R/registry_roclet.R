@@ -156,6 +156,17 @@ resource_entry <- function(
     block,
     "resource"
   )
+  returns <- roxygen2::block_get_tag_value(
+    block,
+    "mcpReturns"
+  )
+  if (is.null(returns)) {
+    returns <- "text"
+  }
+  check_returns(
+    returns,
+    fun
+  )
   list(
     fun = fun,
     resource = list(
@@ -176,9 +187,38 @@ resource_entry <- function(
         "description",
         "clients use it to tell the model what the resource holds."
       ),
-      mimeType = "text/plain"
-    )
+      mimeType = c(
+        text = "text/plain",
+        table = "text/markdown",
+        image = "image/png",
+        json = "application/json"
+      )[[returns]]
+    ),
+    returns = returns
   )
+}
+
+check_returns <- function(
+  returns,
+  fun
+) {
+  if (
+    !isTRUE(
+      returns %in%
+        c(
+          "text",
+          "table",
+          "image",
+          "json"
+        )
+    )
+  ) {
+    stop(
+      "`",
+      fun,
+      "` needs `@mcpReturns` text, table, image or json."
+    )
+  }
 }
 
 required_tag <- function(
@@ -267,23 +307,10 @@ tool_entry <- function(
     block,
     "mcpReturns"
   )
-  if (
-    !isTRUE(
-      returns %in%
-        c(
-          "text",
-          "table",
-          "image",
-          "json"
-        )
-    )
-  ) {
-    stop(
-      "`",
-      fun,
-      "` needs `@mcpReturns` text, table, image or json."
-    )
-  }
+  check_returns(
+    returns,
+    fun
+  )
   tool <- list(
     name = name,
     title = title,

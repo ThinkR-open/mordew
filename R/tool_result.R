@@ -36,34 +36,46 @@ tool_result <- function(
     )
   }
   list(
-    content = switch(
+    content = kind_content(
+      value,
       returns,
-      text = text_content(
-        paste(
-          value,
-          collapse = "\n"
-        )
-      ),
-      json = text_content(
-        as.character(
-          jsonlite::toJSON(
-            value,
-            auto_unbox = TRUE,
-            digits = NA,
-            na = "null",
-            null = "null"
-          )
-        )
-      ),
-      table = text_content(
-        table_text(
-          value,
-          rows
-        )
-      ),
-      image = image_content(
-        value
+      rows
+    )
+  )
+}
+
+kind_content <- function(
+  value,
+  returns,
+  rows = NULL
+) {
+  switch(
+    returns,
+    text = text_content(
+      paste(
+        value,
+        collapse = "\n"
       )
+    ),
+    json = text_content(
+      as.character(
+        jsonlite::toJSON(
+          value,
+          auto_unbox = TRUE,
+          digits = NA,
+          na = "null",
+          null = "null"
+        )
+      )
+    ),
+    table = text_content(
+      table_text(
+        value,
+        rows
+      )
+    ),
+    image = image_content(
+      value
     )
   )
 }

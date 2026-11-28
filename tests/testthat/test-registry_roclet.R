@@ -788,9 +788,90 @@ test_that("a function tagged @mcpResource becomes a resource keyed by its URI", 
           title = "Surfaces",
           description = "The surfaces a run can be on.",
           mimeType = "text/plain"
-        )
+        ),
+        returns = "text"
       )
     )
+  )
+})
+
+test_that("@mcpReturns sets what a resource returns and its MIME type", {
+  resource_kind <- function(
+    returns
+  ) {
+    entry <- roxygen2::roc_proc_text(
+      registry_roclet(),
+      paste0(
+        "
+        #' Surfaces
+        #'
+        #' The surfaces a run can be on.
+        #' @mcpResource runlog://surfaces
+        #' @mcpReturns ",
+        returns,
+        "
+        surfaces <- function() NULL
+        "
+      )
+    )$resources[["runlog://surfaces"]]
+    c(
+      entry$returns,
+      entry$resource$mimeType
+    )
+  }
+
+  expect_identical(
+    resource_kind(
+      "text"
+    ),
+    c(
+      "text",
+      "text/plain"
+    )
+  )
+  expect_identical(
+    resource_kind(
+      "table"
+    ),
+    c(
+      "table",
+      "text/markdown"
+    )
+  )
+  expect_identical(
+    resource_kind(
+      "json"
+    ),
+    c(
+      "json",
+      "application/json"
+    )
+  )
+  expect_identical(
+    resource_kind(
+      "image"
+    ),
+    c(
+      "image",
+      "image/png"
+    )
+  )
+})
+
+test_that("an unknown return kind of a resource is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      #' @mcpReturns csv
+      surfaces <- function() NULL
+      "
+    ),
+    "`surfaces` needs `@mcpReturns` text, table, image or json."
   )
 })
 

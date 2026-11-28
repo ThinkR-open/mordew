@@ -7,6 +7,9 @@
 * `expect_resource()` reads a resource with `read_resource()` and expects
   its text to match a pattern. The test file that `add_resource()` creates
   reads the resource with it.
+* A resource declares what it returns with `@mcpReturns`, `text` by
+  default: a table is sent as `text/markdown` text, JSON as
+  `application/json` text, and an image as an `image/png` blob in base64.
 
 # mordew 0.0.0.9029
 
