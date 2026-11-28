@@ -345,8 +345,50 @@ test_that("serve_http() limits the completion requests to their rate per second"
       60,
       8,
       NULL,
-      0
+      0,
+      10
     ),
     '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
   )
 })
+
+test_that("serve_http() limits the tool calls to their rate per second", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request(
+          '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo"}}'
+        )
+      )$body
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "mordew",
+      4,
+      60,
+      8,
+      NULL,
+      10,
+      0
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Too many tool calls: retry later."}],"isError":true}}'
+  )
+})
+

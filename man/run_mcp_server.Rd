@@ -13,7 +13,8 @@ run_mcp_server(
   timeout = 60,
   queue = 8,
   token = Sys.getenv("MORDEW_TOKEN"),
-  completions = 10
+  completions = 10,
+  tool_calls = 10
 )
 }
 \arguments{
@@ -47,6 +48,10 @@ than \verb{127.0.0.1}, \code{localhost} or \verb{::1} without one prints a warni
 \item{completions}{Completion requests answered per second, over stdio
 and HTTP, as the MCP specification asks servers to limit them; the
 others get an error asking to retry later. \code{Inf} answers them all.}
+
+\item{tool_calls}{Tool calls run per second, over stdio and HTTP, as the
+MCP specification asks servers to limit them; the others get an error
+result asking to retry later. \code{Inf} runs them all.}
 }
 \description{
 Serves the tools, resources and prompts of an installed mordew package.

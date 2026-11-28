@@ -321,7 +321,8 @@ test_that("handle_http() answers the completion requests beyond its rate limit b
         '{"jsonrpc":"2.0","id":1,"method":"completion/complete"}'
       ),
       pool = list(),
-      limit = new_rate_limit(
+      limits = rate_limits(
+        0,
         0
       )
     )$body,

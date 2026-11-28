@@ -1,26 +1,43 @@
+rate_limits <- function(
+  completions,
+  tool_calls
+) {
+  list(
+    "completion/complete" = new_rate_limit(
+      completions,
+      "Too many completion requests: retry later."
+    ),
+    "tools/call" = new_rate_limit(
+      tool_calls,
+      "Too many tool calls: retry later."
+    )
+  )
+}
+
 new_rate_limit <- function(
-  per_second
+  per_second,
+  refusal
 ) {
   limit <- new.env(
     parent = emptyenv()
   )
   limit$per_second <- per_second
+  limit$refusal <- refusal
   limit$times <- numeric()
   limit
 }
 
 limited_response <- function(
   message,
-  limit
+  limits
 ) {
-  if (
-    is.null(limit) ||
-      !is.list(message) ||
-      !identical(
-        message[["method"]],
-        "completion/complete"
-      )
-  ) {
+  if (!is.list(message) || !is.character(message[["method"]])) {
+    return(
+      NULL
+    )
+  }
+  limit <- limits[[message[["method"]]]]
+  if (is.null(limit)) {
     return(
       NULL
     )
@@ -33,7 +50,7 @@ limited_response <- function(
     return(
       failure_response(
         message,
-        "Too many completion requests: retry later."
+        limit$refusal
       )
     )
   }

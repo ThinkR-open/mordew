@@ -6,7 +6,7 @@ serve_stdio <- function(
   envir,
   resources,
   prompts,
-  limit = NULL
+  limits = NULL
 ) {
   repeat {
     line <- readLines(
@@ -24,7 +24,7 @@ serve_stdio <- function(
       envir,
       resources,
       prompts,
-      limit
+      limits
     )
     if (is.null(response)) {
       next
@@ -49,7 +49,7 @@ respond <- function(
   envir,
   resources,
   prompts,
-  limit = NULL
+  limits = NULL
 ) {
   message <- tryCatch(
     jsonlite::fromJSON(
@@ -76,7 +76,7 @@ respond <- function(
   }
   limited <- limited_response(
     message,
-    limit
+    limits
   )
   if (!is.null(limited)) {
     return(

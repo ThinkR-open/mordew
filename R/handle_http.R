@@ -7,7 +7,7 @@ handle_http <- function(
   token = NULL,
   resources,
   prompts,
-  limit = NULL
+  limits = NULL
 ) {
   reply <- reply_from_headers(
     request,
@@ -30,7 +30,7 @@ handle_http <- function(
   if (!is.null(message)) {
     limited <- limited_response(
       message,
-      limit
+      limits
     )
     if (!is.null(limited)) {
       return(
@@ -56,7 +56,7 @@ handle_http <- function(
       envir,
       resources,
       prompts,
-      limit
+      limits
     )
   )
 }

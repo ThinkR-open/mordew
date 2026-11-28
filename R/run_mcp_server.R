@@ -26,6 +26,9 @@
 #' @param completions Completion requests answered per second, over stdio
 #'   and HTTP, as the MCP specification asks servers to limit them; the
 #'   others get an error asking to retry later. `Inf` answers them all.
+#' @param tool_calls Tool calls run per second, over stdio and HTTP, as the
+#'   MCP specification asks servers to limit them; the others get an error
+#'   result asking to retry later. `Inf` runs them all.
 #' @param token Secret that every HTTP request but `GET /health` must send
 #'   as `Authorization: Bearer <token>`, or get a 401. Taken from the
 #'   `MORDEW_TOKEN` environment variable by default; `NULL` or `""` serves
@@ -47,7 +50,8 @@ run_mcp_server <- function(
   token = Sys.getenv(
     "MORDEW_TOKEN"
   ),
-  completions = 10
+  completions = 10,
+  tool_calls = 10
 ) {
   namespace <- asNamespace(
     package
@@ -88,7 +92,8 @@ run_mcp_server <- function(
         timeout,
         queue,
         token,
-        completions
+        completions,
+        tool_calls
       )
     )
   }
@@ -111,8 +116,9 @@ run_mcp_server <- function(
     namespace,
     namespace$mordew_resources,
     namespace$mordew_prompts,
-    new_rate_limit(
-      completions
+    rate_limits(
+      completions,
+      tool_calls
     )
   )
 }

@@ -368,7 +368,8 @@ test_that("serve_stdio() answers the completion requests beyond its rate limit w
   serve_stdio(
     input,
     output,
-    limit = new_rate_limit(
+    limits = rate_limits(
+      0,
       0
     )
   )
