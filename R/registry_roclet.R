@@ -75,6 +75,15 @@ roxy_tag_parse.roxy_tag_mcpLimit <- function(
 }
 
 #' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpIcon <- function(
+  x
+) {
+  roxygen2::tag_words(
+    x
+  )
+}
+
+#' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpOutput <- function(
   x
 ) {
@@ -249,6 +258,10 @@ resource_entry <- function(
   if (length(variables) > 0) {
     names(resource)[[1]] <- "uriTemplate"
   }
+  resource$icons <- icons(
+    block,
+    fun
+  )
   entry <- list(
     fun = fun,
     resource = resource,
@@ -417,6 +430,10 @@ prompt_entry <- function(
       )
     )
   )
+  entry$prompt$icons <- icons(
+    block,
+    fun
+  )
   entry$complete <- completions(
     block,
     fun,
@@ -539,6 +556,10 @@ tool_entry <- function(
       fun
     )
   )
+  tool$icons <- icons(
+    block,
+    fun
+  )
   tool$outputSchema <- output_schema(
     block,
     fun,
@@ -558,6 +579,127 @@ tool_entry <- function(
     returns
   )
   entry
+}
+
+icons <- function(
+  block,
+  fun
+) {
+  tags <- roxygen2::block_get_tags(
+    block,
+    "mcpIcon"
+  )
+  if (length(tags) > 0) {
+    lapply(
+      tags,
+      function(tag) {
+        icon(
+          tag$val,
+          fun
+        )
+      }
+    )
+  }
+}
+
+icon <- function(
+  words,
+  fun
+) {
+  if (!grepl("^(https?|data):", words[[1]])) {
+    stop(
+      "`",
+      fun,
+      "`: an icon needs an http, https or data URI, not `",
+      words[[1]],
+      "`."
+    )
+  }
+  result <- list(
+    src = words[[1]]
+  )
+  for (option in words[-1]) {
+    key <- sub(
+      "=.*",
+      "",
+      option
+    )
+    if (
+      !grepl("=", option, fixed = TRUE) ||
+        !key %in%
+          c(
+            "mimeType",
+            "sizes",
+            "theme"
+          )
+    ) {
+      stop(
+        "`",
+        fun,
+        "`: `@mcpIcon` takes mimeType=, sizes= and theme=, not `",
+        option,
+        "`."
+      )
+    }
+    value <- sub(
+      "^[^=]*=",
+      "",
+      option
+    )
+    result[[key]] <- switch(
+      key,
+      mimeType = value,
+      sizes = icon_sizes(
+        value,
+        fun
+      ),
+      theme = icon_theme(
+        value,
+        fun
+      )
+    )
+  }
+  result
+}
+
+icon_sizes <- function(
+  value,
+  fun
+) {
+  sizes <- strsplit(
+    value,
+    ",",
+    fixed = TRUE
+  )[[1]]
+  wrong <- sizes[!grepl("^([0-9]+x[0-9]+|any)$", sizes)]
+  if (length(wrong) > 0) {
+    stop(
+      "`",
+      fun,
+      "`: icon sizes are WxH or any, not `",
+      wrong[[1]],
+      "`."
+    )
+  }
+  as.list(
+    sizes
+  )
+}
+
+icon_theme <- function(
+  value,
+  fun
+) {
+  if (!value %in% c("light", "dark")) {
+    stop(
+      "`",
+      fun,
+      "`: an icon theme is light or dark, not `",
+      value,
+      "`."
+    )
+  }
+  value
 }
 
 output_schema <- function(

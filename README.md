@@ -323,6 +323,7 @@ Tag specification. Tag names are camelCase, as roxygen2's own
 | `@mcpType <param> <expression>`   | The parameter's type, as an R expression (see below). Required for every parameter; naming a parameter the function does not have is an error.                             |
 | `@mcpReturns <kind>`              | Required: `text`, `table`, `image` or `json`; drives serialisation.                                                                                                        |
 | `@mcpOutput <expression>`         | A `type_object()` sent as the `outputSchema`; needs `@mcpReturns json`. The result, checked against it, is sent as `structuredContent` and as JSON text.                   |
+| `@mcpIcon <src> [options]`        | Icons for clients: an http, https or data URI, then `mimeType=`, `sizes=` (`48x48,96x96` or `any`) and `theme=` (`light` or `dark`). One tag per icon.                     |
 | `@mcpReadOnly`                    | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
 | `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
 | `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
@@ -414,7 +415,8 @@ surfaces <- function() {
 ```
 
 The roclet writes it in `mordew_resources`, keyed by its URI, next to
-the tool registry. The roxygen title becomes the resource's `title`, the
+the tool registry; `@mcpIcon` gives it icons, as it does a tool or a
+prompt. The roxygen title becomes the resource's `title`, the
 description its `description`, and the function's name its `name`. The
 roclet stops on a resource without title or description, on
 `@mcpResource` on an object that is not a function, and on two resources
@@ -548,6 +550,8 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Prompts                    | Messages the user picks, which the client sends to the model          | One R function per prompt                        |
 | Completion                 | Suggestions for prompt arguments and URI template variables           | `@mcpComplete` and a function of the package     |
 | Structured output          | Tool results as JSON, checked against a schema the tool declares      | `@mcpOutput` and `structuredContent`             |
+| Icons                      | Images that clients show for tools, resources and prompts             | `@mcpIcon`                                       |
+| Pagination                 | Lists in pages, with a cursor                                         | One page; a cursor gets -32602                   |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
@@ -1085,7 +1089,8 @@ kept away.
 | Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar direct calls in tool code: a lint, not a proof.                                                                         |
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
-| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; over stdio and HTTP, at most `run_mcp_server(completions = )` completion requests per second (10 by default). |
+| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; over stdio and HTTP, at most `run_mcp_server(tool_calls = )` tool calls and `completions = ` completion requests per second (10 each by default). |
+| Terminal codes in outputs             | Every text sent to clients loses its terminal colours (ANSI escape sequences) and the control characters other than tab and line breaks. |
 | Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation: a model can split its request to get around it. |
 | Unauthorised access to an HTTP server | A shared bearer token, or a proxy that authenticates in front, with a warning when the server is open beyond the machine; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |

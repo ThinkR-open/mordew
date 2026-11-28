@@ -1318,3 +1318,123 @@ test_that("@mcpOutput needs @mcpReturns json", {
   )
 })
 
+
+test_that("@mcpIcon gives a tool its icons", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Year summary
+      #'
+      #' Totals of one year.
+      #' @mcpTool
+      #' @mcpReturns text
+      #' @mcpIcon https://example.org/run.png mimeType=image/png sizes=48x48,96x96 theme=dark
+      #' @mcpIcon data:image/svg+xml;base64,PHN2Zz4= sizes=any
+      summarise_runs <- function() NULL
+      "
+    )$tools$summarise_runs$tool$icons,
+    list(
+      list(
+        src = "https://example.org/run.png",
+        mimeType = "image/png",
+        sizes = list(
+          "48x48",
+          "96x96"
+        ),
+        theme = "dark"
+      ),
+      list(
+        src = "data:image/svg+xml;base64,PHN2Zz4=",
+        sizes = list(
+          "any"
+        )
+      )
+    )
+  )
+})
+
+test_that("@mcpIcon gives resources and prompts their icons", {
+  registry <- roxygen2::roc_proc_text(
+    registry_roclet(),
+    "
+    #' Surfaces
+    #'
+    #' The surfaces a run can be on.
+    #' @mcpResource runlog://surfaces
+    #' @mcpIcon https://example.org/surfaces.png
+    surfaces <- function() NULL
+
+    #' Review a run
+    #'
+    #' Asks for a review of one run.
+    #' @mcpPrompt
+    #' @mcpIcon https://example.org/review.png
+    review_run <- function() NULL
+    "
+  )
+
+  expect_equal(
+    list(
+      registry$resources[["runlog://surfaces"]]$resource$icons,
+      registry$prompts$review_run$prompt$icons
+    ),
+    list(
+      list(
+        list(
+          src = "https://example.org/surfaces.png"
+        )
+      ),
+      list(
+        list(
+          src = "https://example.org/review.png"
+        )
+      )
+    )
+  )
+})
+
+test_that("an @mcpIcon that the specification does not allow is an error", {
+  icon_error <- function(
+    icon,
+    message
+  ) {
+    expect_error(
+      roxygen2::roc_proc_text(
+        registry_roclet(),
+        paste0(
+          "
+          #' Year summary
+          #'
+          #' Totals of one year.
+          #' @mcpTool
+          #' @mcpReturns text
+          #' @mcpIcon ",
+          icon,
+          "
+          summarise_runs <- function() NULL
+          "
+        )
+      ),
+      message,
+      fixed = TRUE
+    )
+  }
+
+  icon_error(
+    "ftp://example.org/run.png",
+    "`summarise_runs`: an icon needs an http, https or data URI, not `ftp://example.org/run.png`."
+  )
+  icon_error(
+    "https://example.org/run.png color=red",
+    "`summarise_runs`: `@mcpIcon` takes mimeType=, sizes= and theme=, not `color=red`."
+  )
+  icon_error(
+    "https://example.org/run.png sizes=48",
+    "`summarise_runs`: icon sizes are WxH or any, not `48`."
+  )
+  icon_error(
+    "https://example.org/run.png theme=blue",
+    "`summarise_runs`: an icon theme is light or dark, not `blue`."
+  )
+})

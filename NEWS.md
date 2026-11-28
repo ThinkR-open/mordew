@@ -1,3 +1,18 @@
+# mordew 0.0.0.9033
+
+* `run_mcp_server(tool_calls = 10)` runs at most that many tool calls per
+  second, over stdio and HTTP, as the tools page of the MCP specification
+  asks; the others get an `isError` result asking to retry later.
+* A list request with a cursor gets -32602: the lists of a mordew server
+  come in one page, so a cursor is never one it gave.
+* Every text sent to clients loses its terminal colours (ANSI escape
+  sequences) and the control characters other than tab and line breaks,
+  as the specification asks servers to sanitize tool outputs.
+* `@mcpIcon <src> [mimeType=] [sizes=] [theme=]` gives a tool, a resource,
+  a resource template or a prompt its icons. The roclet stops on a source
+  that is not an http, https or data URI, and on sizes or a theme that the
+  specification does not allow.
+
 # mordew 0.0.0.9032
 
 * Structured output: `@mcpOutput <type_object()>` on a `json` tool declares
