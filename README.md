@@ -432,6 +432,16 @@ declares, gets a JSON-RPC error -32603 with the message; an unknown URI
 gets -32002. Over HTTP, the workers read the resources, as they run the
 tools.
 
+A URI with variables, such as `runlog://runs/{year}`, makes a resource
+template, which clients list with `resources/templates/list` instead of
+`resources/list`. Its variables are `{name}`, the simple ones of RFC
+6570, and they must be the arguments of the function, none for a URI
+without variables: the roclet stops otherwise. Reading
+`runlog://runs/2024` calls `runs(year = "2024")`: each variable takes
+one segment of the URI, without `/`, as a string kept as it is in the
+URI, percent-encoding included. A resource with that exact URI is read
+first. The value comes from the client: check it in the function.
+
 ### Return conventions
 
 | R value                   | Sent to the model as                                                         |
@@ -454,18 +464,19 @@ Each one comes back as an `isError` result.
 `{mordew}` speaks the **2025-11-25 revision** of the specification,
 which is what clients send today (see [Design
 decisions](#design-decisions)). It handles `initialize`, `ping`,
-`tools/list`, `tools/call`, `resources/list` and `resources/read`.
+`tools/list`, `tools/call`, `resources/list`, `resources/templates/list`
+and `resources/read`.
 
 | Feature                    | What it is                                                            | In `{mordew}`                                    |
 | -------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
 | Tools                      | Functions the model calls                                             | One R function per tool                          |
 | Tool title and annotations | Display name, read-only, destructive, idempotent, open-world hints    | roxygen title and annotation tags                |
-| Resources                  | Data the client reads by URI and adds to the context                  | One R function per resource, read as text        |
+| Resources                  | Data the client reads by URI and adds to the context                  | One R function per resource or URI template      |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
-The rest of the specification is not implemented: resource templates
-and subscriptions, prompts, structured output, elicitation, completion,
+The rest of the specification is not implemented: resource
+subscriptions, prompts, structured output, elicitation, completion,
 progress, cancellation, tasks, and the 2026-07-28 revision. They are on
 the [roadmap](#roadmap-and-task-list).
 
@@ -1277,7 +1288,8 @@ tried by others.
 ### Phase 4: specification coverage, conformance and SDK
 
 - [ ] `add_prompt()`: prompt file, prompt template in `inst/mordew/prompts/`, test file
-- [ ] Handlers for `resources/templates/list`, `prompts/list` and `prompts/get`
+- [x] Handler for `resources/templates/list`
+- [ ] Handlers for `prompts/list` and `prompts/get`
 - [x] Resources that return a table, JSON or an image, through `@mcpReturns`
 - [x] `read_resource()`, `expect_resource()`
 - [ ] `get_prompt()`, `expect_prompt()`

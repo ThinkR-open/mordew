@@ -10,6 +10,12 @@
 * A resource declares what it returns with `@mcpReturns`, `text` by
   default: a table is sent as `text/markdown` text, JSON as
   `application/json` text, and an image as an `image/png` blob in base64.
+* A resource whose URI has variables, such as `runlog://runs/{year}`, is a
+  resource template, listed by `resources/templates/list`: reading
+  `runlog://runs/2024` calls the function with `year = "2024"`, each
+  variable taking one segment of the URI. The roclet stops when the
+  arguments of a resource are not the variables of its URI, and on a
+  variable other than `{name}`.
 
 # mordew 0.0.0.9029
 

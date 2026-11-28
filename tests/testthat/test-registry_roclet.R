@@ -795,6 +795,82 @@ test_that("a function tagged @mcpResource becomes a resource keyed by its URI", 
   )
 })
 
+test_that("a URI template becomes a resource template keyed by it", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Runs of a year
+      #'
+      #' The runs of one year.
+      #' @mcpResource runlog://runs/{year}
+      runs <- function(year) NULL
+      "
+    )$resources,
+    list(
+      "runlog://runs/{year}" = list(
+        fun = "runs",
+        resource = list(
+          uriTemplate = "runlog://runs/{year}",
+          name = "runs",
+          title = "Runs of a year",
+          description = "The runs of one year.",
+          mimeType = "text/plain"
+        ),
+        returns = "text"
+      )
+    )
+  )
+})
+
+test_that("the arguments of a resource must be the variables of its URI", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Runs of a year
+      #'
+      #' The runs of one year.
+      #' @mcpResource runlog://runs/{year}
+      runs <- function() NULL
+      "
+    ),
+    "The arguments of `runs` must be the variables of `runlog://runs/{year}`.",
+    fixed = TRUE
+  )
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      surfaces <- function(type) NULL
+      "
+    ),
+    "The arguments of `surfaces` must be the variables of `runlog://surfaces`.",
+    fixed = TRUE
+  )
+})
+
+test_that("a URI template variable other than {name} is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Runs of a year
+      #'
+      #' The runs of one year.
+      #' @mcpResource runlog://runs{?year}
+      runs <- function(year) NULL
+      "
+    ),
+    "`runlog://runs{?year}`: `{?year}` is not supported, only `{name}` variables are.",
+    fixed = TRUE
+  )
+})
+
 test_that("@mcpReturns sets what a resource returns and its MIME type", {
   resource_kind <- function(
     returns

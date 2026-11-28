@@ -56,7 +56,23 @@ handle_message <- function(
       "resources/list" = list(
         result = list(
           resources = definitions(
-            resources,
+            Filter(
+              Negate(
+                is_template
+              ),
+              resources
+            ),
+            "resource"
+          )
+        )
+      ),
+      "resources/templates/list" = list(
+        result = list(
+          resourceTemplates = definitions(
+            Filter(
+              is_template,
+              resources
+            ),
             "resource"
           )
         )
@@ -163,8 +179,11 @@ resources_read <- function(
       )
     )
   }
-  entry <- resources[[params[["uri"]]]]
-  if (is.null(entry)) {
+  found <- find_resource(
+    params[["uri"]],
+    resources
+  )
+  if (is.null(found)) {
     return(
       rpc_error(
         -32002,
@@ -176,20 +195,98 @@ resources_read <- function(
     )
   }
   resource_result(
-    entry,
+    params[["uri"]],
+    found$entry,
+    found$args,
     envir
   )
 }
 
+find_resource <- function(
+  uri,
+  resources
+) {
+  entry <- resources[[uri]]
+  if (!is.null(entry$resource$uri)) {
+    return(
+      list(
+        entry = entry,
+        args = list()
+      )
+    )
+  }
+  for (entry in Filter(is_template, resources)) {
+    args <- template_arguments(
+      uri,
+      entry$resource$uriTemplate
+    )
+    if (!is.null(args)) {
+      return(
+        list(
+          entry = entry,
+          args = args
+        )
+      )
+    }
+  }
+  NULL
+}
+
+template_arguments <- function(
+  uri,
+  template
+) {
+  literals <- regmatches(
+    template,
+    gregexpr(
+      "\\{[^{}]*\\}",
+      template
+    ),
+    invert = TRUE
+  )[[1]]
+  values <- regmatches(
+    uri,
+    regexec(
+      paste0(
+        "^",
+        paste0(
+          "\\Q",
+          literals,
+          "\\E",
+          collapse = "([^/]+)"
+        ),
+        "$"
+      ),
+      uri,
+      perl = TRUE
+    )
+  )[[1]]
+  if (length(values) == 0) {
+    return(
+      NULL
+    )
+  }
+  stats::setNames(
+    as.list(
+      values[-1]
+    ),
+    uri_variables(
+      template
+    )
+  )
+}
+
 resource_result <- function(
+  uri,
   entry,
+  args,
   envir
 ) {
   tryCatch(
     {
       value <- do.call(
         entry$fun,
-        list(),
+        args,
         envir = envir
       )
       if (
@@ -214,10 +311,10 @@ resource_result <- function(
         result = list(
           contents = list(
             c(
-              entry$resource[c(
-                "uri",
-                "mimeType"
-              )],
+              list(
+                uri = uri,
+                mimeType = entry$resource$mimeType
+              ),
               if (entry$returns == "image") {
                 list(
                   blob = content$data
@@ -240,6 +337,14 @@ resource_result <- function(
         )
       )
     }
+  )
+}
+
+is_template <- function(
+  entry
+) {
+  !is.null(
+    entry$resource$uriTemplate
   )
 }
 

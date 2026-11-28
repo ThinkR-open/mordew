@@ -214,6 +214,153 @@ test_that("handle_message() lists the resources as an array", {
   )
 })
 
+test_that("handle_message() lists the resource templates apart from the resources", {
+  surfaces <- list(
+    uri = "runlog://surfaces",
+    name = "surfaces"
+  )
+  runs <- list(
+    uriTemplate = "runlog://runs/{year}",
+    name = "runs"
+  )
+  resources <- list(
+    "runlog://surfaces" = list(
+      fun = "surfaces",
+      resource = surfaces
+    ),
+    "runlog://runs/{year}" = list(
+      fun = "runs",
+      resource = runs
+    )
+  )
+  list_message <- function(
+    method
+  ) {
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = method
+      ),
+      resources = resources
+    )$result
+  }
+
+  expect_equal(
+    list_message(
+      "resources/list"
+    ),
+    list(
+      resources = list(
+        surfaces
+      )
+    )
+  )
+  expect_equal(
+    list_message(
+      "resources/templates/list"
+    ),
+    list(
+      resourceTemplates = list(
+        runs
+      )
+    )
+  )
+})
+
+read_runs <- function(
+  uri,
+  resources = list(
+    "runlog://runs/{year}" = list(
+      fun = "runs",
+      resource = list(
+        uriTemplate = "runlog://runs/{year}",
+        name = "runs",
+        mimeType = "text/plain"
+      ),
+      returns = "text"
+    )
+  )
+) {
+  runs <- function(year) {
+    paste(
+      "Runs of",
+      year
+    )
+  }
+  latest <- function() {
+    "Latest runs"
+  }
+  handle_message(
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      method = "resources/read",
+      params = list(
+        uri = uri
+      )
+    ),
+    envir = environment(),
+    resources = resources
+  )
+}
+
+test_that("handle_message() reads a resource template with the values of its URI", {
+  expect_equal(
+    read_runs(
+      "runlog://runs/2024"
+    )$result$contents,
+    list(
+      list(
+        uri = "runlog://runs/2024",
+        mimeType = "text/plain",
+        text = "Runs of 2024"
+      )
+    )
+  )
+})
+
+test_that("handle_message() matches a template variable to one segment of the URI", {
+  expect_equal(
+    read_runs(
+      "runlog://runs/2024/extra"
+    )$error,
+    list(
+      code = -32002,
+      message = "Resource not found: runlog://runs/2024/extra"
+    )
+  )
+})
+
+test_that("handle_message() reads a resource before a template that matches its URI", {
+  expect_equal(
+    read_runs(
+      "runlog://runs/latest",
+      list(
+        "runlog://runs/{year}" = list(
+          fun = "runs",
+          resource = list(
+            uriTemplate = "runlog://runs/{year}",
+            name = "runs",
+            mimeType = "text/plain"
+          ),
+          returns = "text"
+        ),
+        "runlog://runs/latest" = list(
+          fun = "latest",
+          resource = list(
+            uri = "runlog://runs/latest",
+            name = "latest",
+            mimeType = "text/plain"
+          ),
+          returns = "text"
+        )
+      )
+    )$result$contents[[1]]$text,
+    "Latest runs"
+  )
+})
+
 test_that("handle_message() answers an unknown resource with a JSON-RPC error", {
   expect_equal(
     handle_message(

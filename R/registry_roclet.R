@@ -167,35 +167,103 @@ resource_entry <- function(
     returns,
     fun
   )
+  uri <- roxygen2::block_get_tag_value(
+    block,
+    "mcpResource"
+  )
+  variables <- uri_variables(
+    uri
+  )
+  check_variables(
+    uri,
+    variables,
+    fun,
+    names(
+      formals(
+        block$object$value
+      )
+    )
+  )
+  resource <- list(
+    uri = uri,
+    name = fun,
+    title = required_tag(
+      block,
+      fun,
+      "title",
+      "clients show it to users."
+    ),
+    description = required_tag(
+      block,
+      fun,
+      "description",
+      "clients use it to tell the model what the resource holds."
+    ),
+    mimeType = c(
+      text = "text/plain",
+      table = "text/markdown",
+      image = "image/png",
+      json = "application/json"
+    )[[returns]]
+  )
+  if (length(variables) > 0) {
+    names(resource)[[1]] <- "uriTemplate"
+  }
   list(
     fun = fun,
-    resource = list(
-      uri = roxygen2::block_get_tag_value(
-        block,
-        "mcpResource"
-      ),
-      name = fun,
-      title = required_tag(
-        block,
-        fun,
-        "title",
-        "clients show it to users."
-      ),
-      description = required_tag(
-        block,
-        fun,
-        "description",
-        "clients use it to tell the model what the resource holds."
-      ),
-      mimeType = c(
-        text = "text/plain",
-        table = "text/markdown",
-        image = "image/png",
-        json = "application/json"
-      )[[returns]]
-    ),
+    resource = resource,
     returns = returns
   )
+}
+
+uri_variables <- function(
+  uri
+) {
+  regmatches(
+    uri,
+    gregexpr(
+      "(?<=\\{)[^{}]*(?=\\})",
+      uri,
+      perl = TRUE
+    )
+  )[[1]]
+}
+
+check_variables <- function(
+  uri,
+  variables,
+  fun,
+  args
+) {
+  wrong <- variables[
+    !grepl(
+      "^[A-Za-z][A-Za-z0-9_]*$",
+      variables
+    )
+  ]
+  if (length(wrong) > 0) {
+    stop(
+      "`",
+      uri,
+      "`: `{",
+      wrong[[1]],
+      "}` is not supported, only `{name}` variables are."
+    )
+  }
+  if (
+    !setequal(
+      variables,
+      args
+    )
+  ) {
+    stop(
+      "The arguments of `",
+      fun,
+      "` must be the variables of `",
+      uri,
+      "`."
+    )
+  }
 }
 
 check_returns <- function(
