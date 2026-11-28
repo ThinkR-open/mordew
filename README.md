@@ -833,7 +833,11 @@ leaks between tests: under `devtools::test()` the server loads the
 development version with `pkgload::load_all()`, under `R CMD check` it
 runs the installed package. A protocol error (an unknown tool) is an R
 error; a tool error is an `isError` result, which `expect_tool_error()`
-checks, with an optional pattern on its message.
+checks, with an optional pattern on its message. `read_resource()` reads
+a resource the same way, through `resources/read`, and returns the
+result, a list with `contents`; an unknown URI, or a resource that fails,
+is an R error. `expect_resource()` reads it and expects its text to match
+a pattern; `add_resource()` writes that test with the resource.
 
 With `client = "inspector"`, `call_tool()` makes the same call through the
 MCP Inspector, the reference client of the MCP project, run with `npx`
@@ -935,10 +939,10 @@ a default argument, or another way to run code (`pipe()`,
 `glue::glue()`, `rlang::eval_tidy()`, `processx::run()`) goes unnoticed,
 so a clean result is not a proof.
 
-The helpers: `call_tool()`, `expect_tool_error()`,
-`expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
-`partial()`, `run_evals()`, `assert_pass_rate()`, `check_tools()`,
-`expect_hostile_safe()`.
+The helpers: `call_tool()`, `expect_tool_error()`, `read_resource()`,
+`expect_resource()`, `expect_tool_schema()`, `use_evals()`,
+`eval_case()`, `tool_call()`, `partial()`, `run_evals()`,
+`assert_pass_rate()`, `check_tools()`, `expect_hostile_safe()`.
 
 ---
 
@@ -1264,7 +1268,8 @@ tried by others.
 - [ ] `add_prompt()`: prompt file, prompt template in `inst/mordew/prompts/`, test file
 - [ ] Handlers for `resources/templates/list`, `prompts/list` and `prompts/get`
 - [ ] Resources that return a table, JSON or an image, through `@mcpReturns`
-- [ ] `read_resource()`, `expect_resource()`, `get_prompt()`, `expect_prompt()`
+- [x] `read_resource()`, `expect_resource()`
+- [ ] `get_prompt()`, `expect_prompt()`
 - [ ] 2026-07-28 core: `server/discover`, `resultType`, `serverInfo` in `_meta`, deterministic tool order, per-request log levels
 - [ ] Cacheable results: `ttlMs` and `cacheScope` on lists and resource reads
 - [ ] `Mcp-Method` and `Mcp-Name` headers, with `HeaderMismatchError`

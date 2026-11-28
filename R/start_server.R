@@ -82,13 +82,25 @@ request_tool <- function(
   tool,
   args
 ) {
-  response <- client_request(
+  request_result(
     client,
     "tools/call",
     list(
       name = tool,
       arguments = if (length(args) == 0) empty_object() else args
     )
+  )
+}
+
+request_result <- function(
+  client,
+  method,
+  params
+) {
+  response <- client_request(
+    client,
+    method,
+    params
   )
   if (!is.null(response$error)) {
     stop(

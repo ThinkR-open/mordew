@@ -1,3 +1,13 @@
+# mordew 0.0.0.9030
+
+* `read_resource()` reads a resource through `{mordew}`'s MCP client over
+  stdio, as `call_tool()` calls a tool, and returns the result of
+  `resources/read`; an unknown URI, or a resource that fails, is an R
+  error.
+* `expect_resource()` reads a resource with `read_resource()` and expects
+  its text to match a pattern. The test file that `add_resource()` creates
+  reads the resource with it.
+
 # mordew 0.0.0.9029
 
 * `add_resource()` creates the file of a resource and its test file, with

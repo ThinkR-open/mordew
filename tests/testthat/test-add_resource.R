@@ -84,6 +84,36 @@ test_that("add_resource() creates the test file of the resource", {
   )
 })
 
+test_that("add_resource() reads the resource through an MCP client in its tests", {
+  path <- file.path(
+    tempfile(),
+    "runlog"
+  )
+  create_mordew(
+    path
+  )
+
+  add_resource(
+    "surfaces",
+    pkg = path
+  )
+
+  expect_match(
+    paste(
+      readLines(
+        file.path(
+          path,
+          "tests",
+          "testthat",
+          "test-resource_surfaces.R"
+        )
+      ),
+      collapse = "\n"
+    ),
+    'mordew::expect_resource\\(\\s*"runlog://surfaces"'
+  )
+})
+
 test_that("add_resource() refuses an existing resource", {
   path <- tempfile()
   create_mordew(
