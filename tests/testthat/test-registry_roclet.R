@@ -1169,3 +1169,79 @@ test_that("the written registry sources back the prompts", {
     prompts
   )
 })
+
+test_that("@mcpComplete links an argument of a prompt to its completion function", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @param run_id ID of the run.
+      #' @mcpPrompt
+      #' @mcpComplete run_id complete_run_ids
+      review_run <- function(run_id) NULL
+      "
+    )$prompts$review_run$complete,
+    list(
+      run_id = "complete_run_ids"
+    )
+  )
+})
+
+test_that("@mcpComplete links a variable of a resource template to its completion function", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Runs of a year
+      #'
+      #' The runs of one year.
+      #' @mcpResource runlog://runs/{year}
+      #' @mcpComplete year complete_years
+      runs <- function(year) NULL
+      "
+    )$resources[["runlog://runs/{year}"]]$complete,
+    list(
+      year = "complete_years"
+    )
+  )
+})
+
+test_that("an @mcpComplete naming no argument is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @param run_id ID of the run.
+      #' @mcpPrompt
+      #' @mcpComplete distance complete_distances
+      review_run <- function(run_id) NULL
+      "
+    ),
+    "`review_run`: `@mcpComplete distance` names no argument."
+  )
+})
+
+test_that("@mcpComplete needs an argument and a function", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @param run_id ID of the run.
+      #' @mcpPrompt
+      #' @mcpComplete run_id
+      review_run <- function(run_id) NULL
+      "
+    ),
+    "`review_run` needs `@mcpComplete <argument> <function>`."
+  )
+})
+

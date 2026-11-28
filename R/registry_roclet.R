@@ -75,6 +75,15 @@ roxy_tag_parse.roxy_tag_mcpLimit <- function(
 }
 
 #' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpComplete <- function(
+  x
+) {
+  roxygen2::tag_words(
+    x
+  )
+}
+
+#' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpType <- function(
   x
 ) {
@@ -231,11 +240,50 @@ resource_entry <- function(
   if (length(variables) > 0) {
     names(resource)[[1]] <- "uriTemplate"
   }
-  list(
+  entry <- list(
     fun = fun,
     resource = resource,
     returns = returns
   )
+  entry$complete <- completions(
+    block,
+    fun,
+    variables
+  )
+  entry
+}
+
+completions <- function(
+  block,
+  fun,
+  names
+) {
+  complete <- list()
+  for (tag in roxygen2::block_get_tags(
+    block,
+    "mcpComplete"
+  )) {
+    if (length(tag$val) != 2) {
+      stop(
+        "`",
+        fun,
+        "` needs `@mcpComplete <argument> <function>`."
+      )
+    }
+    if (!tag$val[[1]] %in% names) {
+      stop(
+        "`",
+        fun,
+        "`: `@mcpComplete ",
+        tag$val[[1]],
+        "` names no argument."
+      )
+    }
+    complete[[tag$val[[1]]]] <- tag$val[[2]]
+  }
+  if (length(complete) > 0) {
+    complete
+  }
 }
 
 uri_variables <- function(
@@ -321,7 +369,7 @@ prompt_entry <- function(
   params <- formals(
     block$object$value
   )
-  list(
+  entry <- list(
     fun = fun,
     prompt = list(
       name = fun,
@@ -360,6 +408,14 @@ prompt_entry <- function(
       )
     )
   )
+  entry$complete <- completions(
+    block,
+    fun,
+    names(
+      params
+    )
+  )
+  entry
 }
 
 missing_defaults <- function(

@@ -274,7 +274,8 @@ worker_message <- function(
         c(
           "tools/call",
           "resources/read",
-          "prompts/get"
+          "prompts/get",
+          "completion/complete"
         )
   ) {
     message

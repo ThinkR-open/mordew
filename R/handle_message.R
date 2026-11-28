@@ -35,7 +35,8 @@ handle_message <- function(
           capabilities = list(
             tools = empty_object(),
             resources = empty_object(),
-            prompts = empty_object()
+            prompts = empty_object(),
+            completions = empty_object()
           ),
           serverInfo = server[c(
             "name",
@@ -94,6 +95,12 @@ handle_message <- function(
       ),
       "prompts/get" = prompts_get(
         message[["params"]],
+        prompts,
+        envir
+      ),
+      "completion/complete" = completion_complete(
+        message[["params"]],
+        resources,
         prompts,
         envir
       ),
@@ -476,6 +483,139 @@ prompt_result <- function(
                 "text"
               )[[1]]
             )
+          )
+        )
+      )
+    },
+    error = function(
+      error
+    ) {
+      rpc_error(
+        -32603,
+        conditionMessage(
+          error
+        )
+      )
+    }
+  )
+}
+
+completion_complete <- function(
+  params,
+  resources,
+  prompts,
+  envir
+) {
+  argument <- params[["argument"]]
+  if (
+    !is.list(params) ||
+      !is.list(argument) ||
+      !is.character(argument[["name"]]) ||
+      !is.character(argument[["value"]])
+  ) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid params"
+      )
+    )
+  }
+  entry <- completion_entry(
+    params[["ref"]],
+    resources,
+    prompts
+  )
+  if (is.null(entry)) {
+    return(
+      rpc_error(
+        -32602,
+        "Unknown prompt or resource template."
+      )
+    )
+  }
+  completion_result(
+    entry$complete[[argument[["name"]]]],
+    argument[["value"]],
+    envir
+  )
+}
+
+completion_entry <- function(
+  ref,
+  resources,
+  prompts
+) {
+  if (identical(ref[["type"]], "ref/prompt")) {
+    return(
+      entry_of(
+        prompts,
+        ref[["name"]]
+      )
+    )
+  }
+  if (identical(ref[["type"]], "ref/resource")) {
+    entry_of(
+      Filter(
+        is_template,
+        resources
+      ),
+      ref[["uri"]]
+    )
+  }
+}
+
+entry_of <- function(
+  entries,
+  key
+) {
+  if (is.character(key) && length(key) == 1) {
+    entries[[key]]
+  }
+}
+
+completion_result <- function(
+  fun,
+  value,
+  envir
+) {
+  tryCatch(
+    {
+      values <- if (is.null(fun)) {
+        character()
+      } else {
+        do.call(
+          fun,
+          list(
+            value
+          ),
+          envir = envir
+        )
+      }
+      if (
+        !has_kind(
+          values,
+          "text"
+        )
+      ) {
+        stop(
+          "The completion returns text, but returned class ",
+          class(values)[[1]],
+          "."
+        )
+      }
+      list(
+        result = list(
+          completion = list(
+            values = as.list(
+              utils::head(
+                values,
+                100
+              )
+            ),
+            total = length(
+              values
+            ),
+            hasMore = length(values) > 100
           )
         )
       )

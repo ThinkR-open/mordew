@@ -482,6 +482,22 @@ as an unknown prompt does; a function that fails, or does not return a
 character vector, gets -32603. Over HTTP, the workers get the prompts,
 as they run the tools.
 
+`@mcpComplete run_id complete_run_ids` links an argument to
+`complete_run_ids()`, a function of the package that suggests its
+values: clients call it through `completion/complete` while the user
+types, with the text typed so far, and it returns the suggestions,
+sorted, as a character vector. The first 100 are sent, with their total;
+an argument without `@mcpComplete` gets none. The same tag completes a
+variable of a resource template, such as `@mcpComplete year
+complete_years` for `runlog://runs/{year}`. The roclet stops on an
+`@mcpComplete` that names no argument of the prompt or variable of the
+template.
+
+Claude Code lists each prompt as a slash command and passes its
+arguments separated by spaces, so an argument cannot hold a space there.
+Its documentation mentions neither completion nor resource templates
+(checked on 2026-11-28).
+
 ### Return conventions
 
 | R value                   | Sent to the model as                                                         |
@@ -505,7 +521,8 @@ Each one comes back as an `isError` result.
 which is what clients send today (see [Design
 decisions](#design-decisions)). It handles `initialize`, `ping`,
 `tools/list`, `tools/call`, `resources/list`, `resources/templates/list`,
-`resources/read`, `prompts/list` and `prompts/get`.
+`resources/read`, `prompts/list`, `prompts/get` and
+`completion/complete`.
 
 | Feature                    | What it is                                                            | In `{mordew}`                                    |
 | -------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
@@ -513,12 +530,12 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Tool title and annotations | Display name, read-only, destructive, idempotent, open-world hints    | roxygen title and annotation tags                |
 | Resources                  | Data the client reads by URI and adds to the context                  | One R function per resource or URI template      |
 | Prompts                    | Messages the user picks, which the client sends to the model          | One R function per prompt                        |
+| Completion                 | Suggestions for prompt arguments and URI template variables           | `@mcpComplete` and a function of the package     |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
 The rest of the specification is not implemented: resource
-subscriptions, structured output, elicitation, completion,
-progress, cancellation, tasks, and the 2026-07-28 revision. They are on
+subscriptions, structured output, elicitation, progress, cancellation, tasks, and the 2026-07-28 revision. They are on
 the [roadmap](#roadmap-and-task-list).
 
 ### Runtime and process model
@@ -1344,7 +1361,7 @@ tried by others.
 - [ ] Tool icons (`icons`)
 - [ ] Serve 2025-11-25 and 2026-07-28 clients side by side
 - [ ] Structured output: `@mcpOutput`, `structuredContent` validated against the schema, and `expect_structured_output()`
-- [ ] Completion: automatic for enums, `@mcpComplete` for dynamic values
+- [x] Completion: `@mcpComplete` for prompt arguments and URI template variables
 - [ ] OpenTelemetry trace context propagation from `_meta`
 - [ ] Conformance test suite for both revisions, with `expect_conformance()`
 - [ ] Export a public SDK API, kept stable from then on: a server built from a registry rather than a package, over stdio and HTTP (the HTTP workers read the registry from the package today)

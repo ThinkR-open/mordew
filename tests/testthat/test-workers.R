@@ -762,3 +762,38 @@ test_that("the worker pool reads the fields of a message by their exact names", 
     )$id
   )
 })
+
+test_that("worker_message() hands the calls that run package code to the workers", {
+  methods <- c(
+    "tools/call",
+    "resources/read",
+    "prompts/get",
+    "completion/complete"
+  )
+
+  expect_identical(
+    vapply(
+      methods,
+      function(method) {
+        worker_message(
+          paste0(
+            '{"jsonrpc":"2.0","id":1,"method":"',
+            method,
+            '"}'
+          )
+        )$method
+      },
+      ""
+    ),
+    stats::setNames(
+      methods,
+      methods
+    )
+  )
+  expect_null(
+    worker_message(
+      '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}'
+    )
+  )
+})
+

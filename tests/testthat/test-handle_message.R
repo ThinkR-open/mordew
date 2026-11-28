@@ -92,6 +92,10 @@ test_that("handle_message() answers initialize with 2025-11-25 and the server id
           prompts = structure(
             list(),
             names = character()
+          ),
+          completions = structure(
+            list(),
+            names = character()
           )
         ),
         serverInfo = list(
@@ -933,6 +937,228 @@ test_that("handle_message() answers a prompt that fails or does not return text 
     list(
       code = -32603,
       message = "The prompt returns text, but returned class numeric."
+    )
+  )
+})
+
+complete_message <- function(
+  params,
+  complete_run_ids = function(value) {
+    paste0(
+      value,
+      c(
+        "1",
+        "2"
+      )
+    )
+  }
+) {
+  handle_message(
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      method = "completion/complete",
+      params = params
+    ),
+    envir = environment(),
+    resources = list(
+      "runlog://runs/{year}" = list(
+        fun = "runs",
+        resource = list(
+          uriTemplate = "runlog://runs/{year}"
+        ),
+        complete = list(
+          year = "complete_run_ids"
+        )
+      )
+    ),
+    prompts = list(
+      review_run = list(
+        fun = "review_run",
+        prompt = list(
+          name = "review_run"
+        ),
+        complete = list(
+          run_id = "complete_run_ids"
+        )
+      )
+    )
+  )
+}
+
+prompt_completion <- function(
+  argument = "run_id"
+) {
+  list(
+    ref = list(
+      type = "ref/prompt",
+      name = "review_run"
+    ),
+    argument = list(
+      name = argument,
+      value = "4"
+    )
+  )
+}
+
+test_that("handle_message() completes a prompt argument with its completion function", {
+  expect_equal(
+    complete_message(
+      prompt_completion()
+    )$result,
+    list(
+      completion = list(
+        values = list(
+          "41",
+          "42"
+        ),
+        total = 2,
+        hasMore = FALSE
+      )
+    )
+  )
+})
+
+test_that("handle_message() completes a variable of a resource template", {
+  expect_equal(
+    complete_message(
+      list(
+        ref = list(
+          type = "ref/resource",
+          uri = "runlog://runs/{year}"
+        ),
+        argument = list(
+          name = "year",
+          value = "20"
+        )
+      )
+    )$result$completion$values,
+    list(
+      "201",
+      "202"
+    )
+  )
+})
+
+test_that("handle_message() sends at most 100 completion values, with their total", {
+  completion <- complete_message(
+    prompt_completion(),
+    function(value) {
+      as.character(
+        1:150
+      )
+    }
+  )$result$completion
+
+  expect_length(
+    completion$values,
+    100
+  )
+  expect_equal(
+    completion[c(
+      "total",
+      "hasMore"
+    )],
+    list(
+      total = 150,
+      hasMore = TRUE
+    )
+  )
+})
+
+test_that("handle_message() sends no completion value for an argument without completion function", {
+  expect_equal(
+    complete_message(
+      prompt_completion(
+        "tone"
+      )
+    )$result,
+    list(
+      completion = list(
+        values = list(),
+        total = 0,
+        hasMore = FALSE
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers a completion of an unknown prompt or template as invalid params", {
+  expect_equal(
+    complete_message(
+      list(
+        ref = list(
+          type = "ref/prompt",
+          name = "nope"
+        ),
+        argument = list(
+          name = "run_id",
+          value = "4"
+        )
+      )
+    )$error,
+    list(
+      code = -32602,
+      message = "Unknown prompt or resource template."
+    )
+  )
+  expect_equal(
+    complete_message(
+      list(
+        ref = list(
+          type = "ref/resource",
+          uri = "runlog://surfaces"
+        ),
+        argument = list(
+          name = "year",
+          value = "20"
+        )
+      )
+    )$error$code,
+    -32602
+  )
+})
+
+test_that("handle_message() answers a completion without argument as invalid params", {
+  expect_equal(
+    complete_message(
+      list(
+        ref = list(
+          type = "ref/prompt",
+          name = "review_run"
+        )
+      )
+    )$error,
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+})
+
+test_that("handle_message() answers a completion function that fails or does not return text with an internal error", {
+  expect_equal(
+    complete_message(
+      prompt_completion(),
+      function(value) {
+        stop("No runs today.")
+      }
+    )$error,
+    list(
+      code = -32603,
+      message = "No runs today."
+    )
+  )
+  expect_equal(
+    complete_message(
+      prompt_completion(),
+      function(value) {
+        42
+      }
+    )$error,
+    list(
+      code = -32603,
+      message = "The completion returns text, but returned class numeric."
     )
   )
 })
