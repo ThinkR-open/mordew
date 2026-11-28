@@ -225,7 +225,8 @@ write_registry <- function(
     registry_roclet(),
     list(
       tools = registry,
-      resources = list()
+      resources = list(),
+      prompts = list()
     ),
     base_path = path
   )
@@ -258,7 +259,9 @@ test_that("the registry is written one element per line", {
       "  )",
       ")",
       "",
-      "mordew_resources <- list()"
+      "mordew_resources <- list()",
+      "",
+      "mordew_prompts <- list()"
     )
   )
 })
@@ -1014,5 +1017,155 @@ test_that("two resources with the same URI are an error", {
       "
     ),
     "Two resources have the URI `runlog://surfaces`."
+  )
+})
+
+test_that("a function tagged @mcpPrompt becomes a prompt named after it", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @param run_id ID of the run.
+      #' @param tone Tone of the review.
+      #' @mcpPrompt
+      review_run <- function(run_id, tone = 'kind') NULL
+      "
+    )$prompts,
+    list(
+      review_run = list(
+        fun = "review_run",
+        prompt = list(
+          name = "review_run",
+          title = "Review a run",
+          description = "Asks for a review of one run.",
+          arguments = list(
+            list(
+              name = "run_id",
+              description = "ID of the run.",
+              required = TRUE
+            ),
+            list(
+              name = "tone",
+              description = "Tone of the review.",
+              required = FALSE
+            )
+          )
+        )
+      )
+    )
+  )
+})
+
+test_that("a prompt argument without @param is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @mcpPrompt
+      review_run <- function(run_id) NULL
+      "
+    ),
+    "`review_run`: parameter `run_id` has no `@param`."
+  )
+})
+
+test_that("a prompt without description is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #' @mcpPrompt
+      review_run <- function() NULL
+      "
+    ),
+    "`review_run` has no description: clients show it to users to pick the prompt."
+  )
+})
+
+test_that("a prompt tag on an object that is not a function is an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @mcpPrompt
+      review_run <- 'Review the run.'
+      "
+    ),
+    "`review_run` is not a function: only a function can be a prompt."
+  )
+})
+
+test_that("two prompts with the same name are an error", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Review a run
+      #'
+      #' Asks for a review of one run.
+      #' @mcpPrompt
+      review_run <- function() NULL
+
+      #' Review a run again
+      #'
+      #' Asks for a second review of one run.
+      #' @mcpPrompt
+      review_run <- function() NULL
+      "
+    ),
+    "Two prompts are named `review_run`."
+  )
+})
+
+test_that("the written registry sources back the prompts", {
+  prompts <- list(
+    review_run = list(
+      fun = "review_run",
+      prompt = list(
+        name = "review_run",
+        arguments = list()
+      )
+    )
+  )
+  path <- tempfile()
+  dir.create(
+    file.path(
+      path,
+      "R"
+    ),
+    recursive = TRUE
+  )
+  roxygen2::roclet_output(
+    registry_roclet(),
+    list(
+      tools = list(),
+      resources = list(),
+      prompts = prompts
+    ),
+    base_path = path
+  )
+  env <- new.env()
+  sys.source(
+    file.path(
+      path,
+      "R",
+      "mordew_registry.R"
+    ),
+    envir = env
+  )
+
+  expect_equal(
+    env$mordew_prompts,
+    prompts
   )
 })

@@ -65,19 +65,14 @@ mordew_call <- function(
   package,
   timeout
 ) {
-  client <- start_server(
+  request_server(
     package,
-    timeout = timeout
-  )
-  on.exit(
-    client_stop(
-      client
+    timeout,
+    "tools/call",
+    named_call(
+      tool,
+      args
     )
-  )
-  request_tool(
-    client,
-    tool,
-    args
   )
 }
 

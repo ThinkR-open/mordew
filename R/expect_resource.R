@@ -21,7 +21,25 @@ expect_resource <- function(
     uri,
     ...
   )
-  text <- result$contents[[1]]$text
+  expect_text(
+    result$contents[[1]]$text,
+    regexp,
+    paste0(
+      "resource `",
+      uri,
+      "`"
+    )
+  )
+  invisible(
+    result
+  )
+}
+
+expect_text <- function(
+  text,
+  regexp,
+  what
+) {
   testthat::expect(
     is.null(
       regexp
@@ -31,15 +49,12 @@ expect_resource <- function(
         text
       ),
     paste0(
-      "The text of resource `",
-      uri,
-      "` does not match `",
+      "The text of ",
+      what,
+      " does not match `",
       regexp,
       "`:\n",
       text
     )
-  )
-  invisible(
-    result
   )
 }

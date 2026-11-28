@@ -253,3 +253,61 @@ test_that("serve_http() serves the resources of the package", {
     '{"jsonrpc":"2.0","id":1,"result":{"resources":[]}}'
   )
 })
+
+test_that("http_app() passes the prompts to the request", {
+  expect_identical(
+    http_app(
+      prompts = list(
+        review_run = list(
+          fun = "review_run",
+          prompt = list(
+            name = "review_run"
+          )
+        )
+      )
+    )$call(
+      rook_request(
+        '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}'
+      )
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"result":{"prompts":[{"name":"review_run"}]}}'
+  )
+})
+
+test_that("serve_http() serves the prompts of the package", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request(
+          '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}'
+        )
+      )$body
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "mordew",
+      4,
+      60,
+      8,
+      NULL
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"prompts":[]}}'
+  )
+})

@@ -246,7 +246,8 @@ worker_respond <- function(
     server,
     namespace$mordew_registry,
     namespace,
-    namespace$mordew_resources
+    namespace$mordew_resources,
+    namespace$mordew_prompts
   )
 }
 
@@ -272,7 +273,8 @@ worker_message <- function(
       message[["method"]] %in%
         c(
           "tools/call",
-          "resources/read"
+          "resources/read",
+          "prompts/get"
         )
   ) {
     message

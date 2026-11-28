@@ -16,7 +16,8 @@ test_that("run_mcp_server() serves the tools of an installed package", {
   writeLines(
     c(
       'mordew_registry <- list(echo = list(fun = "echo"))',
-      'mordew_resources <- list("runlog://surfaces" = list(fun = "surfaces"))'
+      'mordew_resources <- list("runlog://surfaces" = list(fun = "surfaces"))',
+      'mordew_prompts <- list(review_run = list(fun = "review_run"))'
     ),
     file.path(
       path,
@@ -39,13 +40,15 @@ test_that("run_mcp_server() serves the tools of an installed package", {
       server,
       registry,
       envir,
-      resources
+      resources,
+      prompts
     ) {
       list(
         server = server,
         registry = registry,
         envir = envir,
-        resources = resources
+        resources = resources,
+        prompts = prompts
       )
     }
   )
@@ -79,6 +82,14 @@ test_that("run_mcp_server() serves the tools of an installed package", {
     list(
       "runlog://surfaces" = list(
         fun = "surfaces"
+      )
+    )
+  )
+  expect_equal(
+    served$prompts,
+    list(
+      review_run = list(
+        fun = "review_run"
       )
     )
   )

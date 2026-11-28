@@ -315,3 +315,38 @@ test_that("serve_stdio() passes the resources to each request", {
     '{"jsonrpc":"2.0","id":1,"result":{"resources":[{"uri":"runlog://surfaces","name":"surfaces"}]}}'
   )
 })
+
+test_that("serve_stdio() passes the prompts to each request", {
+  input <- withr::local_connection(
+    textConnection(
+      '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}'
+    )
+  )
+  path <- withr::local_tempfile()
+  output <- withr::local_connection(
+    file(
+      path,
+      "w"
+    )
+  )
+
+  serve_stdio(
+    input,
+    output,
+    prompts = list(
+      review_run = list(
+        fun = "review_run",
+        prompt = list(
+          name = "review_run"
+        )
+      )
+    )
+  )
+
+  expect_equal(
+    readLines(
+      path
+    ),
+    '{"jsonrpc":"2.0","id":1,"result":{"prompts":[{"name":"review_run"}]}}'
+  )
+})

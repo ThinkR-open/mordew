@@ -171,3 +171,5 @@ mordew_registry <- list(
 )
 
 mordew_resources <- list()
+
+mordew_prompts <- list()

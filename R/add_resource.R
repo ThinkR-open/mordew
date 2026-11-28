@@ -16,20 +16,17 @@ add_resource <- function(
     pkg,
     "resource"
   )
-  package <- read.dcf(
-    file.path(
-      pkg,
-      "DESCRIPTION"
-    ),
-    "Package"
-  )[[1]]
-  fill_resource(
+  package <- package_name(
+    pkg
+  )
+  fill_names(
     "resource.R",
     resource,
+    "mordewresource",
     name,
     package
   )
-  fill_resource(
+  fill_names(
     "test-resource.R",
     file.path(
       pkg,
@@ -41,14 +38,16 @@ add_resource <- function(
         ".R"
       )
     ),
+    "mordewresource",
     name,
     package
   )
 }
 
-fill_resource <- function(
+fill_names <- function(
   template,
   to,
+  placeholder,
   name,
   package
 ) {
@@ -59,7 +58,7 @@ fill_resource <- function(
       package = "mordew"
     ),
     to,
-    "mordewresource",
+    placeholder,
     name
   )
   fill_template(

@@ -230,6 +230,101 @@ test_that("http_app() reads a resource in a worker", {
   )
 })
 
+whoami_prompt_package <- function(
+  env = parent.frame()
+) {
+  local_tool_package(
+    env,
+    tools = c(
+      "#' Who am I",
+      "#'",
+      "#' Asks who runs the prompt, with the process ID of the R process.",
+      "#'",
+      "#' @mcpPrompt",
+      "whoami <- function() {",
+      "  as.character(Sys.getpid())",
+      "}"
+    )
+  )
+}
+
+prompt_get_body <- '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"whoami"}}'
+
+test_that("worker_respond() gets a prompt of the package", {
+  skip_if_not_installed(
+    "processx"
+  )
+  local_dev_package(
+    whoami_prompt_package()
+  )
+
+  expect_identical(
+    worker_respond(
+      prompt_get_body,
+      "runlog",
+      server_identity(
+        "runlog"
+      ),
+      .libPaths()
+    )$result$messages[[1]]$content$text,
+    as.character(
+      Sys.getpid()
+    )
+  )
+})
+
+test_that("http_app() gets a prompt in a worker", {
+  skip_if_not_installed(
+    "mirai"
+  )
+  local_dev_package(
+    whoami_prompt_package()
+  )
+  local_workers(
+    1,
+    "runlog"
+  )
+  namespace <- asNamespace(
+    "runlog"
+  )
+
+  response <- wait_for(
+    http_app(
+      server_identity(
+        "runlog"
+      ),
+      namespace$mordew_registry,
+      namespace,
+      new_pool(
+        "runlog",
+        1,
+        60,
+        0
+      ),
+      prompts = namespace$mordew_prompts
+    )$call(
+      rook_request(
+        prompt_get_body
+      )
+    )
+  )
+
+  expect_identical(
+    response$status,
+    200L
+  )
+  expect_false(
+    identical(
+      jsonlite::fromJSON(
+        response$body
+      )$result$messages$content$text,
+      as.character(
+        Sys.getpid()
+      )
+    )
+  )
+})
+
 test_that("start_workers() loads an installed package in the workers", {
   skip_if_not_installed(
     "mirai"

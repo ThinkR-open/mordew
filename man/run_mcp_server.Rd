@@ -16,8 +16,8 @@ run_mcp_server(
 )
 }
 \arguments{
-\item{package}{Name of the installed package whose tools and resources to
-serve.}
+\item{package}{Name of the installed package whose tools, resources and
+prompts to serve.}
 
 \item{transport}{\code{"stdio"} or \code{"http"}.}
 
@@ -44,12 +44,12 @@ without a token. Serving on another host
 than \verb{127.0.0.1}, \code{localhost} or \verb{::1} without one prints a warning.}
 }
 \description{
-Serves the tools and resources of an installed mordew package. It blocks
-the R process, so it is meant to be the main loop of a dedicated process.
-Over stdio, it serves the MCP client that started the R process: reads
-requests from stdin and writes responses to stdout until the client closes
-stdin. Over HTTP, it serves the Streamable HTTP transport of MCP on \code{host}
-and \code{port}: the HTTP front answers \code{initialize}, \code{ping}, \code{tools/list} and
-\code{resources/list} itself and hands each tool call and resource read to a
-pool of mirai workers, so that it keeps serving while tools run.
+Serves the tools, resources and prompts of an installed mordew package.
+It blocks the R process, so it is meant to be the main loop of a
+dedicated process. Over stdio, it serves the MCP client that started the
+R process: reads requests from stdin and writes responses to stdout until
+the client closes stdin. Over HTTP, it serves the Streamable HTTP transport of MCP on \code{host}
+and \code{port}: the HTTP front answers \code{initialize}, \code{ping} and the lists
+itself and hands each tool call, resource read and prompt get to a pool
+of mirai workers, so that it keeps serving while tools run.
 }

@@ -14,17 +14,9 @@ read_resource <- function(
   package = testthat::testing_package(),
   timeout = 30
 ) {
-  client <- start_server(
+  request_server(
     package,
-    timeout = timeout
-  )
-  on.exit(
-    client_stop(
-      client
-    )
-  )
-  request_result(
-    client,
+    timeout,
     "resources/read",
     list(
       uri = uri

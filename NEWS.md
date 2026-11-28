@@ -16,6 +16,17 @@
   variable taking one segment of the URI. The roclet stops when the
   arguments of a resource are not the variables of its URI, and on a
   variable other than `{name}`.
+* Prompts: a function tagged `@mcpPrompt` becomes a prompt that clients
+  list with `prompts/list` and get with `prompts/get`, over stdio and
+  HTTP. Its arguments, strings, are those of the function, each with an
+  `@param`, required when it has no default value; the function returns a
+  character vector, sent as one `user` text message. An unknown prompt or
+  invalid arguments get -32602, a prompt that fails -32603. The roclet
+  writes the prompts in `mordew_prompts`.
+* `add_prompt()` creates a prompt, its text in
+  `inst/mordew/prompts/<name>.md` and its test file, which gets the prompt
+  with `expect_prompt()`; `get_prompt()` gets a prompt through `{mordew}`'s
+  MCP client. The `dev/02_dev.R` of `create_mordew()` calls `add_prompt()`.
 
 # mordew 0.0.0.9029
 

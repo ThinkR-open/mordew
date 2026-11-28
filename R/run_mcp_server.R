@@ -1,16 +1,16 @@
 #' Run an MCP server
 #'
-#' Serves the tools and resources of an installed mordew package. It blocks
-#' the R process, so it is meant to be the main loop of a dedicated process.
-#' Over stdio, it serves the MCP client that started the R process: reads
-#' requests from stdin and writes responses to stdout until the client closes
-#' stdin. Over HTTP, it serves the Streamable HTTP transport of MCP on `host`
-#' and `port`: the HTTP front answers `initialize`, `ping`, `tools/list` and
-#' `resources/list` itself and hands each tool call and resource read to a
-#' pool of mirai workers, so that it keeps serving while tools run.
+#' Serves the tools, resources and prompts of an installed mordew package.
+#' It blocks the R process, so it is meant to be the main loop of a
+#' dedicated process. Over stdio, it serves the MCP client that started the
+#' R process: reads requests from stdin and writes responses to stdout until
+#' the client closes stdin. Over HTTP, it serves the Streamable HTTP transport of MCP on `host`
+#' and `port`: the HTTP front answers `initialize`, `ping` and the lists
+#' itself and hands each tool call, resource read and prompt get to a pool
+#' of mirai workers, so that it keeps serving while tools run.
 #'
-#' @param package Name of the installed package whose tools and resources to
-#'   serve.
+#' @param package Name of the installed package whose tools, resources and
+#'   prompts to serve.
 #' @param transport `"stdio"` or `"http"`.
 #' @param host Address to listen on over HTTP: `"127.0.0.1"` serves this
 #'   machine only, as the MCP specification recommends for a local server.
@@ -104,6 +104,7 @@ run_mcp_server <- function(
     ),
     namespace$mordew_registry,
     namespace,
-    namespace$mordew_resources
+    namespace$mordew_resources,
+    namespace$mordew_prompts
   )
 }

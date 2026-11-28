@@ -88,6 +88,10 @@ test_that("handle_message() answers initialize with 2025-11-25 and the server id
           resources = structure(
             list(),
             names = character()
+          ),
+          prompts = structure(
+            list(),
+            names = character()
           )
         ),
         serverInfo = list(
@@ -725,6 +729,210 @@ test_that("handle_message() sends an image resource as a base64 PNG blob", {
           }
         )
       )
+    )
+  )
+})
+
+get_review <- function(
+  params = list(
+    name = "review_run",
+    arguments = list(
+      run_id = "42"
+    )
+  ),
+  review_run = function(run_id, tone = "kind") {
+    paste(
+      "Review run",
+      run_id,
+      "in a",
+      tone,
+      "tone."
+    )
+  }
+) {
+  handle_message(
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      method = "prompts/get",
+      params = params
+    ),
+    envir = environment(),
+    prompts = list(
+      review_run = list(
+        fun = "review_run",
+        prompt = list(
+          name = "review_run",
+          arguments = list(
+            list(
+              name = "run_id",
+              required = TRUE
+            ),
+            list(
+              name = "tone",
+              required = FALSE
+            )
+          )
+        )
+      )
+    )
+  )
+}
+
+test_that("handle_message() lists the prompts", {
+  review_run <- list(
+    name = "review_run",
+    arguments = list()
+  )
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "prompts/list"
+      ),
+      prompts = list(
+        review_run = list(
+          fun = "review_run",
+          prompt = review_run
+        )
+      )
+    )$result,
+    list(
+      prompts = list(
+        review_run
+      )
+    )
+  )
+})
+
+test_that("handle_message() gets a prompt as a user message, with its arguments", {
+  expect_equal(
+    get_review()$result,
+    list(
+      messages = list(
+        list(
+          role = "user",
+          content = list(
+            type = "text",
+            text = "Review run 42 in a kind tone."
+          )
+        )
+      )
+    )
+  )
+})
+
+test_that("handle_message() answers an unknown prompt as invalid params", {
+  expect_equal(
+    get_review(
+      list(
+        name = "nope"
+      )
+    )$error,
+    list(
+      code = -32602,
+      message = "Unknown prompt: nope"
+    )
+  )
+})
+
+test_that("handle_message() answers invalid prompt arguments as invalid params", {
+  arguments_error <- function(
+    arguments
+  ) {
+    get_review(
+      list(
+        name = "review_run",
+        arguments = arguments
+      )
+    )$error
+  }
+
+  expect_equal(
+    arguments_error(
+      list()
+    ),
+    list(
+      code = -32602,
+      message = "Missing argument `run_id`."
+    )
+  )
+  expect_equal(
+    arguments_error(
+      list(
+        run_id = "42",
+        distance = "10"
+      )
+    ),
+    list(
+      code = -32602,
+      message = "Unknown argument `distance`."
+    )
+  )
+  expect_equal(
+    arguments_error(
+      list(
+        run_id = 42
+      )
+    ),
+    list(
+      code = -32602,
+      message = "Argument `run_id` must be of type string."
+    )
+  )
+})
+
+test_that("handle_message() answers a prompt get without a name as invalid params", {
+  expect_equal(
+    get_review(
+      list(
+        arguments = list()
+      )
+    )$error,
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+  expect_equal(
+    get_review(
+      list(
+        name = "review_run",
+        arguments = list(
+          "42"
+        )
+      )
+    )$error,
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+})
+
+test_that("handle_message() answers a prompt that fails or does not return text with an internal error", {
+  expect_equal(
+    get_review(
+      review_run = function(run_id) {
+        stop("No runs today.")
+      }
+    )$error,
+    list(
+      code = -32603,
+      message = "No runs today."
+    )
+  )
+  expect_equal(
+    get_review(
+      review_run = function(run_id) {
+        42
+      }
+    )$error,
+    list(
+      code = -32603,
+      message = "The prompt returns text, but returned class numeric."
     )
   )
 })

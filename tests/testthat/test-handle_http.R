@@ -294,3 +294,22 @@ test_that("handle_http() passes the resources to the request", {
     '{"jsonrpc":"2.0","id":1,"result":{"resources":[{"uri":"runlog://surfaces","name":"surfaces"}]}}'
   )
 })
+
+test_that("handle_http() passes the prompts to the request", {
+  expect_identical(
+    handle_http(
+      http_request(
+        '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}'
+      ),
+      prompts = list(
+        review_run = list(
+          fun = "review_run",
+          prompt = list(
+            name = "review_run"
+          )
+        )
+      )
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"result":{"prompts":[{"name":"review_run"}]}}'
+  )
+})

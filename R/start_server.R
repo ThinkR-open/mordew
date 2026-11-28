@@ -85,10 +85,42 @@ request_tool <- function(
   request_result(
     client,
     "tools/call",
-    list(
-      name = tool,
-      arguments = if (length(args) == 0) empty_object() else args
+    named_call(
+      tool,
+      args
     )
+  )
+}
+
+named_call <- function(
+  name,
+  args
+) {
+  list(
+    name = name,
+    arguments = if (length(args) == 0) empty_object() else args
+  )
+}
+
+request_server <- function(
+  package,
+  timeout,
+  method,
+  params
+) {
+  client <- start_server(
+    package,
+    timeout = timeout
+  )
+  on.exit(
+    client_stop(
+      client
+    )
+  )
+  request_result(
+    client,
+    method,
+    params
   )
 }
 

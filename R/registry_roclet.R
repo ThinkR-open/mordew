@@ -1,8 +1,9 @@
 #' Roclet generating the tool registry
 #'
 #' Turns the `@mcpTool` functions of a package into its tool registry,
-#' `mordew_registry`, and its `@mcpResource` functions into
-#' `mordew_resources`.
+#' `mordew_registry`, its `@mcpResource` functions into
+#' `mordew_resources`, and its `@mcpPrompt` functions into
+#' `mordew_prompts`.
 #' Enable it in the package's `DESCRIPTION` with
 #' `Roxygen: list(roclets = c("collate", "namespace", "rd", "mordew::registry_roclet"))`.
 #'
@@ -50,6 +51,9 @@ parse_toggle <- function(
 }
 
 #' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpPrompt <- parse_toggle
+
+#' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpReadOnly <- parse_toggle
 
 #' @exportS3Method roxygen2::roxy_tag_parse
@@ -91,6 +95,7 @@ roclet_process.roclet_registry <- function(
 ) {
   registry <- list()
   resources <- list()
+  prompts <- list()
   for (block in blocks) {
     if (
       roxygen2::block_has_tags(
@@ -124,10 +129,27 @@ roclet_process.roclet_registry <- function(
         "Two resources have the URI"
       )
     }
+    if (
+      roxygen2::block_has_tags(
+        block,
+        "mcpPrompt"
+      )
+    ) {
+      entry <- prompt_entry(
+        block
+      )
+      prompts <- add_entry(
+        prompts,
+        entry$prompt$name,
+        entry,
+        "Two prompts are named"
+      )
+    }
   }
   list(
     tools = registry,
-    resources = resources
+    resources = resources,
+    prompts = prompts
   )
 }
 
@@ -287,6 +309,70 @@ check_returns <- function(
       "` needs `@mcpReturns` text, table, image or json."
     )
   }
+}
+
+prompt_entry <- function(
+  block
+) {
+  fun <- block_fun(
+    block,
+    "prompt"
+  )
+  params <- formals(
+    block$object$value
+  )
+  list(
+    fun = fun,
+    prompt = list(
+      name = fun,
+      title = required_tag(
+        block,
+        fun,
+        "title",
+        "clients show it to users."
+      ),
+      description = required_tag(
+        block,
+        fun,
+        "description",
+        "clients show it to users to pick the prompt."
+      ),
+      arguments = unname(
+        Map(
+          function(param, required) {
+            list(
+              name = param,
+              description = param_description(
+                block,
+                fun,
+                param
+              ),
+              required = required
+            )
+          },
+          names(
+            params
+          ),
+          missing_defaults(
+            params
+          )
+        )
+      )
+    )
+  )
+}
+
+missing_defaults <- function(
+  params
+) {
+  vapply(
+    params,
+    identical,
+    logical(1),
+    quote(
+      expr =
+    )
+  )
 }
 
 required_tag <- function(
@@ -475,13 +561,8 @@ tool_input_schema <- function(
       fun
     )
   }
-  no_default <- vapply(
-    params,
-    identical,
-    logical(1),
-    quote(
-      expr =
-    )
+  no_default <- missing_defaults(
+    params
   )
   for (param in names(params)) {
     if (is.null(types[[param]])) {
@@ -626,6 +707,11 @@ roclet_output.roclet_registry <- function(
       assignment(
         "mordew_resources",
         results$resources
+      ),
+      "",
+      assignment(
+        "mordew_prompts",
+        results$prompts
       )
     ),
     file.path(

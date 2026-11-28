@@ -3,7 +3,8 @@ handle_message <- function(
   server,
   registry,
   envir,
-  resources
+  resources,
+  prompts
 ) {
   if (!is.list(message) || is.null(names(message))) {
     return(
@@ -33,7 +34,8 @@ handle_message <- function(
           protocolVersion = "2025-11-25",
           capabilities = list(
             tools = empty_object(),
-            resources = empty_object()
+            resources = empty_object(),
+            prompts = empty_object()
           ),
           serverInfo = server[c(
             "name",
@@ -80,6 +82,19 @@ handle_message <- function(
       "resources/read" = resources_read(
         message[["params"]],
         resources,
+        envir
+      ),
+      "prompts/list" = list(
+        result = list(
+          prompts = definitions(
+            prompts,
+            "prompt"
+          )
+        )
+      ),
+      "prompts/get" = prompts_get(
+        message[["params"]],
+        prompts,
         envir
       ),
       "tools/call" = tools_call(
@@ -322,6 +337,144 @@ resource_result <- function(
               } else {
                 content["text"]
               }
+            )
+          )
+        )
+      )
+    },
+    error = function(
+      error
+    ) {
+      rpc_error(
+        -32603,
+        conditionMessage(
+          error
+        )
+      )
+    }
+  )
+}
+
+prompts_get <- function(
+  params,
+  prompts,
+  envir
+) {
+  if (
+    !is.list(params) ||
+      !is.character(params[["name"]]) ||
+      (length(params[["arguments"]]) > 0 &&
+        is.null(names(params[["arguments"]])))
+  ) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid params"
+      )
+    )
+  }
+  entry <- prompts[[params[["name"]]]]
+  if (is.null(entry)) {
+    return(
+      rpc_error(
+        -32602,
+        paste0(
+          "Unknown prompt: ",
+          params[["name"]]
+        )
+      )
+    )
+  }
+  arguments <- as.list(
+    params[["arguments"]]
+  )
+  invalid <- tryCatch(
+    validate_arguments(
+      arguments,
+      prompt_schema(
+        entry$prompt$arguments
+      )
+    ),
+    error = conditionMessage
+  )
+  if (is.character(invalid)) {
+    return(
+      rpc_error(
+        -32602,
+        invalid
+      )
+    )
+  }
+  prompt_result(
+    entry,
+    arguments,
+    envir
+  )
+}
+
+prompt_schema <- function(
+  arguments
+) {
+  names <- vapply(
+    arguments,
+    `[[`,
+    "",
+    "name"
+  )
+  list(
+    properties = stats::setNames(
+      lapply(
+        names,
+        function(name) {
+          list(
+            type = "string"
+          )
+        }
+      ),
+      names
+    ),
+    required = names[vapply(
+      arguments,
+      `[[`,
+      TRUE,
+      "required"
+    )]
+  )
+}
+
+prompt_result <- function(
+  entry,
+  arguments,
+  envir
+) {
+  tryCatch(
+    {
+      value <- do.call(
+        entry$fun,
+        arguments,
+        envir = envir
+      )
+      if (
+        !has_kind(
+          value,
+          "text"
+        )
+      ) {
+        stop(
+          "The prompt returns text, but returned class ",
+          class(value)[[1]],
+          "."
+        )
+      }
+      list(
+        result = list(
+          messages = list(
+            list(
+              role = "user",
+              content = kind_content(
+                value,
+                "text"
+              )[[1]]
             )
           )
         )

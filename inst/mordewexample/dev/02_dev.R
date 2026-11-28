@@ -8,6 +8,10 @@ mordew::add_resource(
   name = "name_of_resource"
 )
 
+mordew::add_prompt(
+  name = "name_of_prompt"
+)
+
 mordew::add_mcp_client_config()
 
 mordew::use_evals()

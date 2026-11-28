@@ -4,7 +4,8 @@ http_app <- function(
   envir,
   pool = NULL,
   token = NULL,
-  resources
+  resources,
+  prompts
 ) {
   list(
     onHeaders = function(req) {
@@ -29,7 +30,8 @@ http_app <- function(
         envir,
         pool,
         token,
-        resources
+        resources,
+        prompts
       )
     }
   )
@@ -84,7 +86,8 @@ serve_http <- function(
         queue
       ),
       token,
-      namespace$mordew_resources
+      namespace$mordew_resources,
+      namespace$mordew_prompts
     )
   )
 }

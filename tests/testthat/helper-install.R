@@ -118,6 +118,16 @@ local_tool_package <- function(
     "#' @mcpResource runlog://surfaces",
     "surfaces <- function() {",
     "  \"road, trail, track\"",
+    "}",
+    "",
+    "#' Review a run",
+    "#'",
+    "#' Asks for a review of one run.",
+    "#'",
+    "#' @param run_id ID of the run.",
+    "#' @mcpPrompt",
+    "review_run <- function(run_id) {",
+    "  paste(\"Review run\", run_id)",
     "}"
   )
 ) {

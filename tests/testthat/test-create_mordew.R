@@ -376,3 +376,38 @@ test_that("create_mordew() adds a resource in the dev script", {
     )
   )
 })
+
+test_that("create_mordew() adds a prompt in the dev script", {
+  path <- tempfile()
+
+  create_mordew(
+    path
+  )
+
+  expect_identical(
+    Find(
+      function(call) {
+        identical(
+          call[[1]],
+          quote(
+            mordew::add_prompt
+          )
+        )
+      },
+      as.list(
+        parse(
+          file.path(
+            path,
+            "dev",
+            "02_dev.R"
+          )
+        )
+      )
+    ),
+    quote(
+      mordew::add_prompt(
+        name = "name_of_prompt"
+      )
+    )
+  )
+})

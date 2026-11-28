@@ -5,7 +5,8 @@ handle_http <- function(
   envir,
   pool = NULL,
   token = NULL,
-  resources
+  resources,
+  prompts
 ) {
   reply <- reply_from_headers(
     request,
@@ -41,7 +42,8 @@ handle_http <- function(
       server,
       registry,
       envir,
-      resources
+      resources,
+      prompts
     )
   )
 }
