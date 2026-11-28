@@ -566,6 +566,10 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
+The lists do not change while a server runs: the roclet writes the
+registries at build time, so the server declares no `listChanged` and
+sends no list change notification.
+
 The rest of the specification is not implemented: resource
 subscriptions, elicitation, progress, cancellation,
 tasks, and the 2026-07-28 revision. They are on the
