@@ -214,7 +214,13 @@ resource_entry <- function(
   }
   check_returns(
     returns,
-    fun
+    fun,
+    c(
+      "text",
+      "table",
+      "image",
+      "json"
+    )
   )
   uri <- roxygen2::block_get_tag_value(
     block,
@@ -360,23 +366,37 @@ check_variables <- function(
 
 check_returns <- function(
   returns,
-  fun
+  fun,
+  kinds = c(
+    "text",
+    "table",
+    "image",
+    "json",
+    "content"
+  )
 ) {
   if (
     !isTRUE(
-      returns %in%
-        c(
-          "text",
-          "table",
-          "image",
-          "json"
-        )
+      returns %in% kinds
     )
   ) {
     stop(
       "`",
       fun,
-      "` needs `@mcpReturns` text, table, image or json."
+      "` needs `@mcpReturns` ",
+      paste(
+        utils::head(
+          kinds,
+          -1
+        ),
+        collapse = ", "
+      ),
+      " or ",
+      utils::tail(
+        kinds,
+        1
+      ),
+      "."
     )
   }
 }

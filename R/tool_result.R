@@ -108,6 +108,12 @@ kind_content <- function(
     ),
     image = image_content(
       value
+    ),
+    content = lapply(
+      unname(
+        value
+      ),
+      unclass
     )
   )
 }
@@ -130,16 +136,24 @@ image_content <- function(
   list(
     list(
       type = "image",
-      data = jsonlite::base64_enc(
-        readBin(
-          file,
-          "raw",
-          file.size(
-            file
-          )
-        )
+      data = file_base64(
+        file
       ),
       mimeType = "image/png"
+    )
+  )
+}
+
+file_base64 <- function(
+  path
+) {
+  jsonlite::base64_enc(
+    readBin(
+      path,
+      "raw",
+      file.size(
+        path
+      )
     )
   )
 }
@@ -285,7 +299,21 @@ has_kind <- function(
         "ggplot",
         "recordedplot"
       )
-    )
+    ),
+    content = is.list(
+      value
+    ) &&
+      !is.data.frame(
+        value
+      ) &&
+      all(
+        vapply(
+          value,
+          inherits,
+          logical(1),
+          "mordew_content"
+        )
+      )
   )
 }
 

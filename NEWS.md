@@ -12,6 +12,11 @@
   a resource template or a prompt its icons. The roclet stops on a source
   that is not an http, https or data URI, and on sizes or a theme that the
   specification does not allow.
+* `@mcpReturns content`: a tool returns a list of content blocks, made by
+  `content_text()`, `content_image()`, `content_audio()`,
+  `content_resource_link()` and `content_resource()`, each with optional
+  `content_annotations()` (audience, priority, last change), as the tools
+  page of the specification defines them.
 
 # mordew 0.0.0.9032
 

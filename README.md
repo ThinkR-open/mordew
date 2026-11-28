@@ -321,7 +321,7 @@ Tag specification. Tag names are camelCase, as roxygen2's own
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@mcpTool [name]`                 | Exposes the function as a tool. The name defaults to the function's; it must be 1 to 128 characters among `A-Z a-z 0-9 _ - .`.                                             |
 | `@mcpType <param> <expression>`   | The parameter's type, as an R expression (see below). Required for every parameter; naming a parameter the function does not have is an error.                             |
-| `@mcpReturns <kind>`              | Required: `text`, `table`, `image` or `json`; drives serialisation.                                                                                                        |
+| `@mcpReturns <kind>`              | Required: `text`, `table`, `image`, `json` or `content`; drives serialisation.                                                                                             |
 | `@mcpOutput <expression>`         | A `type_object()` sent as the `outputSchema`; needs `@mcpReturns json`. The result, checked against it, is sent as `structuredContent` and as JSON text.                   |
 | `@mcpIcon <src> [options]`        | Icons for clients: an http, https or data URI, then `mimeType=`, `sizes=` (`48x48,96x96` or `any`) and `theme=` (`light` or `dark`). One tag per icon.                     |
 | `@mcpReadOnly`                    | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
@@ -516,10 +516,20 @@ Its documentation mentions neither completion nor resource templates
 | `data.frame`              | markdown table with dimensions, truncated to `@mcpLimit rows` (default 50)   |
 | `ggplot` or recorded plot | PNG image content, 800×600 at 96 dpi                                         |
 | `list`                    | JSON                                                                         |
+| list of `content_*()`     | the blocks as they are, with `@mcpReturns content`                           |
 | condition (error)         | an `isError` result with a message the model can act on                      |
 
 A value that does not match the tool's `@mcpReturns` comes back as an
 `isError` result naming the declared kind and the received one.
+
+With `@mcpReturns content`, a tool returns a list of blocks made by
+`content_text()`, `content_image()` (a plot or an image file),
+`content_audio()` (an audio file, base64), `content_resource_link()` (a
+link to a resource the client can read) and `content_resource()` (a
+resource embedded as text or as a blob), each with optional
+`content_annotations()`: its audience (`"user"`, `"assistant"` or both),
+its priority from 0 to 1 and its last change. A resource cannot return
+`content`.
 
 With `@mcpOutput type_object(runs = type_integer())`, a `json` tool
 declares the structure of its result: `tools/list` sends it as the
@@ -551,6 +561,7 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Completion                 | Suggestions for prompt arguments and URI template variables           | `@mcpComplete` and a function of the package     |
 | Structured output          | Tool results as JSON, checked against a schema the tool declares      | `@mcpOutput` and `structuredContent`             |
 | Icons                      | Images that clients show for tools, resources and prompts             | `@mcpIcon`                                       |
+| Result content             | Text, image, audio, resource links and embedded resources, annotated  | `@mcpReturns content` and `content_*()`          |
 | Pagination                 | Lists in pages, with a cursor                                         | One page; a cursor gets -32602                   |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |

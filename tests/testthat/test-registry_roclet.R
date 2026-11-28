@@ -189,7 +189,7 @@ test_that("a tool without @mcpReturns is an error", {
       summarise_runs <- function() NULL
       "
     ),
-    "`summarise_runs` needs `@mcpReturns` text, table, image or json."
+    "`summarise_runs` needs `@mcpReturns` text, table, image, json or content."
   )
 })
 
@@ -206,7 +206,7 @@ test_that("an unknown return kind is an error", {
       summarise_runs <- function() NULL
       "
     ),
-    "`summarise_runs` needs `@mcpReturns` text, table, image or json."
+    "`summarise_runs` needs `@mcpReturns` text, table, image, json or content."
   )
 })
 
@@ -1438,3 +1438,35 @@ test_that("an @mcpIcon that the specification does not allow is an error", {
     "`summarise_runs`: an icon theme is light or dark, not `blue`."
   )
 })
+
+test_that("@mcpReturns content is a kind of tools only", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Year summary
+      #'
+      #' Totals of one year.
+      #' @mcpTool
+      #' @mcpReturns content
+      summarise_runs <- function() NULL
+      "
+    )$tools$summarise_runs$returns,
+    "content"
+  )
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Surfaces
+      #'
+      #' The surfaces a run can be on.
+      #' @mcpResource runlog://surfaces
+      #' @mcpReturns content
+      surfaces <- function() NULL
+      "
+    ),
+    "`surfaces` needs `@mcpReturns` text, table, image or json."
+  )
+})
+
