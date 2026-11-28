@@ -23,6 +23,9 @@
 #' @param queue Number of tool calls that may wait for a free worker over
 #'   HTTP. A call that comes when the queue is full gets a "busy, retry
 #'   later" error at once.
+#' @param completions Completion requests answered per second, over stdio
+#'   and HTTP, as the MCP specification asks servers to limit them; the
+#'   others get an error asking to retry later. `Inf` answers them all.
 #' @param token Secret that every HTTP request but `GET /health` must send
 #'   as `Authorization: Bearer <token>`, or get a 401. Taken from the
 #'   `MORDEW_TOKEN` environment variable by default; `NULL` or `""` serves
@@ -43,7 +46,8 @@ run_mcp_server <- function(
   queue = 8,
   token = Sys.getenv(
     "MORDEW_TOKEN"
-  )
+  ),
+  completions = 10
 ) {
   namespace <- asNamespace(
     package
@@ -83,7 +87,8 @@ run_mcp_server <- function(
         workers,
         timeout,
         queue,
-        token
+        token,
+        completions
       )
     )
   }
@@ -105,6 +110,9 @@ run_mcp_server <- function(
     namespace$mordew_registry,
     namespace,
     namespace$mordew_resources,
-    namespace$mordew_prompts
+    namespace$mordew_prompts,
+    new_rate_limit(
+      completions
+    )
   )
 }

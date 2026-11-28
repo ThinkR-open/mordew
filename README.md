@@ -489,7 +489,10 @@ the user types. It gets `value`, the text typed so far, and `context`, a
 named list of the arguments already filled, empty when the client sends
 none, and returns the suggestions as a character vector. The first 100
 are sent, with their total; an argument without `@mcpComplete` gets
-none, and a context that is not strings by name gets -32602. The
+none, and a context that is not strings by name gets -32602. The server
+answers at most `run_mcp_server(completions = )` completion requests per
+second, 10 by default, as the specification asks: the others get a
+"retry later" error -32603 without calling the function. The
 specification leaves to this function sorting by relevance, fuzzy
 matching, and keeping sensitive values out of the suggestions. The same tag completes a
 variable of a resource template, such as `@mcpComplete year
@@ -539,9 +542,9 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
 The rest of the specification is not implemented: resource
-subscriptions, rate limiting of completion requests, structured output,
-elicitation, progress, cancellation, tasks, and the 2026-07-28 revision.
-They are on the [roadmap](#roadmap-and-task-list).
+subscriptions, structured output, elicitation, progress, cancellation,
+tasks, and the 2026-07-28 revision. They are on the
+[roadmap](#roadmap-and-task-list).
 
 ### Runtime and process model
 
@@ -1069,7 +1072,7 @@ kept away.
 | Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar direct calls in tool code: a lint, not a proof.                                                                         |
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
-| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue. |
+| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; over stdio and HTTP, at most `run_mcp_server(completions = )` completion requests per second (10 by default). |
 | Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation: a model can split its request to get around it. |
 | Unauthorised access to an HTTP server | A shared bearer token, or a proxy that authenticates in front, with a warning when the server is open beyond the machine; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |
 | Secrets exposed to the model          | Secrets come from environment variables or config, never from tool arguments or results.                                                                                                                                                     |
@@ -1202,15 +1205,17 @@ flowchart LR
 deployments.
 
 `run_mcp_server(transport = "http")` implements B with httpuv and
-mirai. The front answers `initialize`, `ping`, `tools/list` and
-`resources/list` itself, so that they never wait behind a tool, and
-hands each `tools/call` and `resources/read` to a worker,
+mirai. The front answers `initialize`, `ping` and the lists itself, so
+that they never wait behind a tool, and hands each `tools/call`,
+`resources/read`, `prompts/get` and `completion/complete` to a worker,
 answering with a promise. The workers load the package before the server
 serves. At most one call runs per worker; the others wait in a bounded
 queue held by the front, which hands a call to mirai only when a worker
 is free, so that mirai's timeout counts the run time and not the wait. A
 call that finds the queue full gets a "busy, retry later" error at once;
-a call that times out, or whose worker stops, gets an `isError` result.
+a call that times out, or whose worker stops, gets an error too: an
+`isError` result for a tool call, which the model reads, and a JSON-RPC
+error -32603 for the others.
 
 A worker that stops, killed or crashed during a call, is replaced at
 once: the replacement takes the front's library paths through `R_LIBS`
@@ -1367,7 +1372,7 @@ tried by others.
 - [ ] Serve 2025-11-25 and 2026-07-28 clients side by side
 - [ ] Structured output: `@mcpOutput`, `structuredContent` validated against the schema, and `expect_structured_output()`
 - [x] Completion: `@mcpComplete` for prompt arguments and URI template variables
-- [ ] Rate limiting of completion requests, which the specification asks for (SHOULD, and MUST in its security section)
+- [x] Rate limiting of completion requests, which the specification asks for (SHOULD, and MUST in its security section)
 - [ ] OpenTelemetry trace context propagation from `_meta`
 - [ ] Conformance test suite for both revisions, with `expect_conformance()`
 - [ ] Export a public SDK API, kept stable from then on: a server built from a registry rather than a package, over stdio and HTTP (the HTTP workers read the registry from the package today)

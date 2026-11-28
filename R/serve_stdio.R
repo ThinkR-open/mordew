@@ -5,7 +5,8 @@ serve_stdio <- function(
   registry,
   envir,
   resources,
-  prompts
+  prompts,
+  limit = NULL
 ) {
   repeat {
     line <- readLines(
@@ -22,7 +23,8 @@ serve_stdio <- function(
       registry,
       envir,
       resources,
-      prompts
+      prompts,
+      limit
     )
     if (is.null(response)) {
       next
@@ -46,7 +48,8 @@ respond <- function(
   registry,
   envir,
   resources,
-  prompts
+  prompts,
+  limit = NULL
 ) {
   message <- tryCatch(
     jsonlite::fromJSON(
@@ -69,6 +72,15 @@ respond <- function(
           "Parse error"
         )
       )
+    )
+  }
+  limited <- limited_response(
+    message,
+    limit
+  )
+  if (!is.null(limited)) {
+    return(
+      limited
     )
   }
   stdout_to_stderr(

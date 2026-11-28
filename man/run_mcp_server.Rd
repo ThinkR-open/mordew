@@ -12,7 +12,8 @@ run_mcp_server(
   workers = 4,
   timeout = 60,
   queue = 8,
-  token = Sys.getenv("MORDEW_TOKEN")
+  token = Sys.getenv("MORDEW_TOKEN"),
+  completions = 10
 )
 }
 \arguments{
@@ -42,6 +43,10 @@ as \verb{Authorization: Bearer <token>}, or get a 401. Taken from the
 \code{MORDEW_TOKEN} environment variable by default; \code{NULL} or \code{""} serves
 without a token. Serving on another host
 than \verb{127.0.0.1}, \code{localhost} or \verb{::1} without one prints a warning.}
+
+\item{completions}{Completion requests answered per second, over stdio
+and HTTP, as the MCP specification asks servers to limit them; the
+others get an error asking to retry later. \code{Inf} answers them all.}
 }
 \description{
 Serves the tools, resources and prompts of an installed mordew package.

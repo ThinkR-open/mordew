@@ -7,6 +7,12 @@
   the first 100, with their total. The
   roclet stops on an `@mcpComplete` that names no argument; an unknown
   prompt or template gets -32602, a completion function that fails -32603.
+* `run_mcp_server(completions = 10)` answers at most that many completion
+  requests per second, over stdio and HTTP, as the MCP specification asks;
+  the others get a "retry later" error -32603.
+* Over HTTP, a resource read, a prompt get or a completion that finds the
+  queue full, times out or loses its worker gets a JSON-RPC error -32603,
+  instead of a tool result that the client could not read.
 
 # mordew 0.0.0.9030
 

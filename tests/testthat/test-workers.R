@@ -422,6 +422,31 @@ test_that("handle_http() answers busy when every worker runs a call and the queu
   )
 })
 
+test_that("handle_http() answers busy with a JSON-RPC error to a call that is not a tool call", {
+  pool <- new_pool(
+    "runlog",
+    1,
+    60,
+    1
+  )
+  pool$in_flight <- 1
+  pool$waiting <- list(
+    function() {
+      NULL
+    }
+  )
+
+  expect_identical(
+    handle_http(
+      http_request(
+        resource_read_body
+      ),
+      pool = pool
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"The server is busy: retry later."}}'
+  )
+})
+
 test_that("handle_http() stops a tool call that runs too long", {
   skip_if_not_installed(
     "mirai"

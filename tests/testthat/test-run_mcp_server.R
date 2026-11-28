@@ -41,14 +41,16 @@ test_that("run_mcp_server() serves the tools of an installed package", {
       registry,
       envir,
       resources,
-      prompts
+      prompts,
+      limit
     ) {
       list(
         server = server,
         registry = registry,
         envir = envir,
         resources = resources,
-        prompts = prompts
+        prompts = prompts,
+        limit = limit
       )
     }
   )
@@ -93,6 +95,10 @@ test_that("run_mcp_server() serves the tools of an installed package", {
       )
     )
   )
+  expect_identical(
+    served$limit$per_second,
+    10
+  )
 })
 
 test_that("run_mcp_server() serves the tools over HTTP on a local port by default", {
@@ -104,7 +110,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       workers,
       timeout,
       queue,
-      token
+      token,
+      completions
     ) {
       list(
         host = host,
@@ -113,7 +120,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
         workers = workers,
         timeout = timeout,
         queue = queue,
-        token = token
+        token = token,
+        completions = completions
       )
     }
   )
@@ -133,7 +141,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       workers = 4,
       timeout = 60,
       queue = 8,
-      token = NULL
+      token = NULL,
+      completions = 10
     )
   )
 })
@@ -147,7 +156,8 @@ test_that("run_mcp_server() takes the token from MORDEW_TOKEN", {
       workers,
       timeout,
       queue,
-      token
+      token,
+      completions
     ) {
       token
     }
@@ -174,7 +184,8 @@ test_that("run_mcp_server() serves without a token when token is NULL", {
       workers,
       timeout,
       queue,
-      token
+      token,
+      completions
     ) {
       token
     }

@@ -82,7 +82,7 @@ pool_call <- function(
   ) {
     return(
       http_reply(
-        tool_failure(
+        failure_response(
           message,
           "The server is busy: retry later."
         )
@@ -138,7 +138,7 @@ run_in_pool <- function(
           )
         }
         http_reply(
-          tool_failure(
+          failure_response(
             message,
             worker_failure(
               error,
@@ -192,17 +192,24 @@ worker_failure <- function(
   )
 }
 
-tool_failure <- function(
+failure_response <- function(
   message,
   text
 ) {
   rpc_response(
     message[["id"]],
-    list(
-      result = error_result(
+    if (identical(message[["method"]], "tools/call")) {
+      list(
+        result = error_result(
+          text
+        )
+      )
+    } else {
+      rpc_error(
+        -32603,
         text
       )
-    )
+    }
   )
 }
 

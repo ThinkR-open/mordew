@@ -6,7 +6,8 @@ handle_http <- function(
   pool = NULL,
   token = NULL,
   resources,
-  prompts
+  prompts,
+  limit = NULL
 ) {
   reply <- reply_from_headers(
     request,
@@ -27,6 +28,17 @@ handle_http <- function(
     )
   }
   if (!is.null(message)) {
+    limited <- limited_response(
+      message,
+      limit
+    )
+    if (!is.null(limited)) {
+      return(
+        http_reply(
+          limited
+        )
+      )
+    }
     return(
       pool_call(
         pool,
@@ -43,7 +55,8 @@ handle_http <- function(
       registry,
       envir,
       resources,
-      prompts
+      prompts,
+      limit
     )
   )
 }

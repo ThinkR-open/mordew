@@ -313,3 +313,18 @@ test_that("handle_http() passes the prompts to the request", {
     '{"jsonrpc":"2.0","id":1,"result":{"prompts":[{"name":"review_run"}]}}'
   )
 })
+
+test_that("handle_http() answers the completion requests beyond its rate limit before the workers", {
+  expect_identical(
+    handle_http(
+      http_request(
+        '{"jsonrpc":"2.0","id":1,"method":"completion/complete"}'
+      ),
+      pool = list(),
+      limit = new_rate_limit(
+        0
+      )
+    )$body,
+    '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
+  )
+})

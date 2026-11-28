@@ -5,7 +5,8 @@ http_app <- function(
   pool = NULL,
   token = NULL,
   resources,
-  prompts
+  prompts,
+  limit = NULL
 ) {
   list(
     onHeaders = function(req) {
@@ -31,7 +32,8 @@ http_app <- function(
         pool,
         token,
         resources,
-        prompts
+        prompts,
+        limit
       )
     }
   )
@@ -56,7 +58,8 @@ serve_http <- function(
   workers,
   timeout,
   queue,
-  token
+  token,
+  completions = 10
 ) {
   start_workers(
     workers,
@@ -87,7 +90,10 @@ serve_http <- function(
       ),
       token,
       namespace$mordew_resources,
-      namespace$mordew_prompts
+      namespace$mordew_prompts,
+      new_rate_limit(
+        completions
+      )
     )
   )
 }

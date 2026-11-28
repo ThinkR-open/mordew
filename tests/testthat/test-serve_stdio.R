@@ -350,3 +350,33 @@ test_that("serve_stdio() passes the prompts to each request", {
     '{"jsonrpc":"2.0","id":1,"result":{"prompts":[{"name":"review_run"}]}}'
   )
 })
+
+test_that("serve_stdio() answers the completion requests beyond its rate limit with an error", {
+  input <- withr::local_connection(
+    textConnection(
+      '{"jsonrpc":"2.0","id":1,"method":"completion/complete"}'
+    )
+  )
+  path <- withr::local_tempfile()
+  output <- withr::local_connection(
+    file(
+      path,
+      "w"
+    )
+  )
+
+  serve_stdio(
+    input,
+    output,
+    limit = new_rate_limit(
+      0
+    )
+  )
+
+  expect_equal(
+    readLines(
+      path
+    ),
+    '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
+  )
+})
