@@ -36,7 +36,8 @@ test_that("rate limits refuse the completion requests beyond their rate per seco
       )
     )
   )
-  limits[["completion/complete"]]$times <- limits[["completion/complete"]]$times - 1
+  completions <- limits[["completion/complete"]]
+  completions$times <- completions$times - 1
   expect_null(
     limited_response(
       completion_request,

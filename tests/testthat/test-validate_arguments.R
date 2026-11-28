@@ -319,4 +319,3 @@ test_that("validate_arguments() names the fields of a result when asked", {
     fixed = TRUE
   )
 })
-

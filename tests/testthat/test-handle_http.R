@@ -352,15 +352,15 @@ test_that("handle_http() creates the task of a tool call before the workers", {
       registry = task_registry,
       pool = list(),
       tasks = new_task_store(
-      start = function(text) {
-        list(
-          data = NULL
-        )
-      },
-      wait = function(handle, then) {
-        then()
-      }
-    )
+        start = function(text) {
+          list(
+            data = NULL
+          )
+        },
+        wait = function(handle, then) {
+          then()
+        }
+      )
     )$body,
     '"status":"working"',
     fixed = TRUE

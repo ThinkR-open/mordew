@@ -55,7 +55,9 @@ task_response <- function(
       )
     )
   }
-  if (!message[["method"]] %in% c("tasks/get", "tasks/result", "tasks/cancel")) {
+  if (
+    !message[["method"]] %in% c("tasks/get", "tasks/result", "tasks/cancel")
+  ) {
     return(
       NULL
     )

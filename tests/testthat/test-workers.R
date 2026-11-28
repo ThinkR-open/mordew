@@ -799,4 +799,3 @@ test_that("worker_message() hands the calls that run package code to the workers
     )
   )
 })
-

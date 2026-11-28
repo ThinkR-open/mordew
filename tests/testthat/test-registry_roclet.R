@@ -1516,4 +1516,3 @@ test_that("@mcpTask lets a tool run as a task", {
     fixed = TRUE
   )
 })
-
