@@ -48,36 +48,36 @@ handle_message <- function(
       ping = list(
         result = empty_object()
       ),
-      "tools/list" = list(
-        result = list(
-          tools = definitions(
-            registry,
-            "tool"
-          )
+      "tools/list" = list_result(
+        message[["params"]],
+        "tools",
+        definitions(
+          registry,
+          "tool"
         )
       ),
-      "resources/list" = list(
-        result = list(
-          resources = definitions(
-            Filter(
-              Negate(
-                is_template
-              ),
-              resources
+      "resources/list" = list_result(
+        message[["params"]],
+        "resources",
+        definitions(
+          Filter(
+            Negate(
+              is_template
             ),
-            "resource"
-          )
+            resources
+          ),
+          "resource"
         )
       ),
-      "resources/templates/list" = list(
-        result = list(
-          resourceTemplates = definitions(
-            Filter(
-              is_template,
-              resources
-            ),
-            "resource"
-          )
+      "resources/templates/list" = list_result(
+        message[["params"]],
+        "resourceTemplates",
+        definitions(
+          Filter(
+            is_template,
+            resources
+          ),
+          "resource"
         )
       ),
       "resources/read" = resources_read(
@@ -85,12 +85,12 @@ handle_message <- function(
         resources,
         envir
       ),
-      "prompts/list" = list(
-        result = list(
-          prompts = definitions(
-            prompts,
-            "prompt"
-          )
+      "prompts/list" = list_result(
+        message[["params"]],
+        "prompts",
+        definitions(
+          prompts,
+          "prompt"
         )
       ),
       "prompts/get" = prompts_get(
@@ -679,6 +679,29 @@ is_template <- function(
 ) {
   !is.null(
     entry$resource$uriTemplate
+  )
+}
+
+list_result <- function(
+  params,
+  field,
+  items
+) {
+  if (is.list(params) && !is.null(params[["cursor"]])) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid cursor"
+      )
+    )
+  }
+  list(
+    result = stats::setNames(
+      list(
+        items
+      ),
+      field
+    )
   )
 }
 

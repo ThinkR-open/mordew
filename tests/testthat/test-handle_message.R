@@ -1289,6 +1289,45 @@ test_that("handle_message() sends the structured result of a tool with an output
   )
 })
 
+test_that("handle_message() answers a list request with a cursor as invalid params", {
+  methods <- c(
+    "tools/list",
+    "resources/list",
+    "resources/templates/list",
+    "prompts/list"
+  )
+
+  expect_equal(
+    lapply(
+      methods,
+      function(method) {
+        handle_message(
+          list(
+            jsonrpc = "2.0",
+            id = 1,
+            method = method,
+            params = list(
+              cursor = "page-2"
+            )
+          ),
+          registry = list(),
+          resources = list(),
+          prompts = list()
+        )$error
+      }
+    ),
+    rep(
+      list(
+        list(
+          code = -32602,
+          message = "Invalid cursor"
+        )
+      ),
+      4
+    )
+  )
+})
+
 test_that("handle_message() answers an unknown tool with a JSON-RPC error", {
   expect_equal(
     handle_message(
