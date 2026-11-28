@@ -462,8 +462,8 @@ test_that("serve_http() runs the tasks of the package in the background", {
       server
     ) {
       started <<- package
-      list(
-        data = NULL
+      mirai::mirai(
+        NULL
       )
     }
   )

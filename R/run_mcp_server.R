@@ -32,6 +32,10 @@
 #' @param tasks Tasks that may run at once: a tool tagged `@mcpTask` runs
 #'   as a task when the client asks, in a background R process, kept for
 #'   the time to live the client asks, at most an hour.
+#' @param task_requests Task requests (`tasks/get`, `tasks/result` and
+#'   `tasks/cancel`, together) answered per second, as the MCP specification
+#'   asks servers to limit them; the others get an error asking to retry
+#'   later. `Inf` answers them all.
 #' @param token Secret that every HTTP request but `GET /health` must send
 #'   as `Authorization: Bearer <token>`, or get a 401. Taken from the
 #'   `MORDEW_TOKEN` environment variable by default; `NULL` or `""` serves
@@ -55,7 +59,8 @@ run_mcp_server <- function(
   ),
   completions = 10,
   tool_calls = 10,
-  tasks = 8
+  tasks = 8,
+  task_requests = 20
 ) {
   namespace <- asNamespace(
     package
@@ -98,7 +103,8 @@ run_mcp_server <- function(
         token,
         completions,
         tool_calls,
-        tasks
+        tasks,
+        task_requests
       )
     )
   }
@@ -123,7 +129,8 @@ run_mcp_server <- function(
     namespace$mordew_prompts,
     rate_limits(
       completions,
-      tool_calls
+      tool_calls,
+      task_requests
     ),
     new_task_store(
       function(text) {

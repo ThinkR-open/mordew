@@ -162,19 +162,51 @@ run_in_pool <- function(
       }
     ),
     onFinally = function() {
-      pool$in_flight <- pool$in_flight - 1
-      if (
-        length(
-          pool$waiting
-        ) >
-          0
-      ) {
-        next_call <- pool$waiting[[1]]
-        pool$waiting <- pool$waiting[-1]
-        next_call()
-      }
+      release_worker(
+        pool
+      )
     }
   )
+}
+
+pool_task <- function(
+  pool,
+  text,
+  server
+) {
+  pool$in_flight <- pool$in_flight + 1
+  handle <- task_mirai(
+    text,
+    pool$package,
+    server
+  )
+  promises::finally(
+    promises::as.promise(
+      handle
+    ),
+    function() {
+      release_worker(
+        pool
+      )
+    }
+  )
+  handle
+}
+
+release_worker <- function(
+  pool
+) {
+  pool$in_flight <- pool$in_flight - 1
+  if (
+    length(
+      pool$waiting
+    ) >
+      0
+  ) {
+    next_call <- pool$waiting[[1]]
+    pool$waiting <- pool$waiting[-1]
+    next_call()
+  }
 }
 
 worker_failure <- function(

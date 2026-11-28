@@ -105,7 +105,10 @@ test_that("run_mcp_server() serves the tools of an installed package", {
     ),
     list(
       "completion/complete" = 10,
-      "tools/call" = 10
+      "tools/call" = 10,
+      "tasks/get" = 20,
+      "tasks/result" = 20,
+      "tasks/cancel" = 20
     )
   )
   expect_identical(
@@ -126,7 +129,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       token,
       completions,
       tool_calls,
-      tasks
+      tasks,
+      task_requests
     ) {
       list(
         host = host,
@@ -138,7 +142,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
         token = token,
         completions = completions,
         tool_calls = tool_calls,
-        tasks = tasks
+        tasks = tasks,
+        task_requests = task_requests
       )
     }
   )
@@ -161,7 +166,8 @@ test_that("run_mcp_server() serves the tools over HTTP on a local port by defaul
       token = NULL,
       completions = 10,
       tool_calls = 10,
-      tasks = 8
+      tasks = 8,
+      task_requests = 20
     )
   )
 })
@@ -178,7 +184,8 @@ test_that("run_mcp_server() takes the token from MORDEW_TOKEN", {
       token,
       completions,
       tool_calls,
-      tasks
+      tasks,
+      task_requests
     ) {
       token
     }
@@ -208,7 +215,8 @@ test_that("run_mcp_server() serves without a token when token is NULL", {
       token,
       completions,
       tool_calls,
-      tasks
+      tasks,
+      task_requests
     ) {
       token
     }

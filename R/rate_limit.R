@@ -1,7 +1,12 @@
 rate_limits <- function(
   completions,
-  tool_calls
+  tool_calls,
+  task_requests
 ) {
+  tasks <- new_rate_limit(
+    task_requests,
+    "Too many task requests: retry later."
+  )
   list(
     "completion/complete" = new_rate_limit(
       completions,
@@ -10,7 +15,10 @@ rate_limits <- function(
     "tools/call" = new_rate_limit(
       tool_calls,
       "Too many tool calls: retry later."
-    )
+    ),
+    "tasks/get" = tasks,
+    "tasks/result" = tasks,
+    "tasks/cancel" = tasks
   )
 }
 

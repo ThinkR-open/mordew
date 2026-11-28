@@ -799,3 +799,59 @@ test_that("worker_message() hands the calls that run package code to the workers
     )
   )
 })
+
+test_that("a task over HTTP holds a worker of the pool until it ends", {
+  local_mocked_bindings(
+    task_mirai = function(
+      text,
+      package,
+      server
+    ) {
+      mirai::mirai(
+        Sys.sleep(
+          0.5
+        )
+      )
+    }
+  )
+  pool <- new_pool(
+    "runlog",
+    1,
+    60,
+    8
+  )
+  next_call <- FALSE
+  handle <- pool_task(
+    pool,
+    "",
+    NULL
+  )
+  pool$waiting <- list(
+    function() {
+      next_call <<- TRUE
+    }
+  )
+
+  expect_identical(
+    pool$in_flight,
+    1
+  )
+  wait_for(
+    promises::as.promise(
+      handle
+    )
+  )
+  later::run_now(
+    0.5
+  )
+  expect_identical(
+    c(
+      pool$in_flight,
+      next_call
+    ),
+    c(
+      0,
+      1
+    )
+  )
+})

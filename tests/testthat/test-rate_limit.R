@@ -7,7 +7,8 @@ completion_request <- list(
 test_that("rate limits refuse the completion requests beyond their rate per second", {
   limits <- rate_limits(
     2,
-    10
+    10,
+    20
   )
 
   expect_null(
@@ -56,7 +57,8 @@ test_that("rate limits refuse the tool calls beyond their rate per second with a
       ),
       rate_limits(
         10,
-        0
+        0,
+        20
       )
     ),
     list(
@@ -78,7 +80,8 @@ test_that("rate limits refuse the tool calls beyond their rate per second with a
 test_that("rate limits let the other requests through", {
   limits <- rate_limits(
     0,
-    0
+    0,
+    20
   )
 
   expect_null(
@@ -101,6 +104,41 @@ test_that("rate limits let the other requests through", {
     limited_response(
       completion_request,
       NULL
+    )
+  )
+})
+
+test_that("rate limits share one limit between the task requests", {
+  limits <- rate_limits(
+    10,
+    10,
+    1
+  )
+  task_request <- function(
+    method
+  ) {
+    limited_response(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = method
+      ),
+      limits
+    )
+  }
+
+  expect_null(
+    task_request(
+      "tasks/get"
+    )
+  )
+  expect_equal(
+    task_request(
+      "tasks/cancel"
+    )$error,
+    list(
+      code = -32603,
+      message = "Too many task requests: retry later."
     )
   )
 })

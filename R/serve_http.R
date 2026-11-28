@@ -63,7 +63,8 @@ serve_http <- function(
   token,
   completions = 10,
   tool_calls = 10,
-  tasks = 8
+  tasks = 8,
+  task_requests = 20
 ) {
   start_workers(
     workers,
@@ -77,6 +78,12 @@ serve_http <- function(
   namespace <- asNamespace(
     package
   )
+  pool <- new_pool(
+    package,
+    workers,
+    timeout,
+    queue
+  )
   httpuv::runServer(
     host,
     port,
@@ -86,24 +93,20 @@ serve_http <- function(
       ),
       namespace$mordew_registry,
       namespace,
-      new_pool(
-        package,
-        workers,
-        timeout,
-        queue
-      ),
+      pool,
       token,
       namespace$mordew_resources,
       namespace$mordew_prompts,
       rate_limits(
         completions,
-        tool_calls
+        tool_calls,
+        task_requests
       ),
       new_task_store(
         function(text) {
-          task_mirai(
+          pool_task(
+            pool,
             text,
-            package,
             server_identity(
               package
             )

@@ -7,8 +7,10 @@
   `tasks/get`, `tasks/result`, which waits for the end of the task, and
   `tasks/cancel`. Task IDs come from a cryptographically secure generator;
   a task keeps its result for its time to live, at most an hour, and
-  `run_mcp_server(tasks = 8)` caps the tasks running at once. The server
-  declares the `tasks` capability, without `tasks/list`.
+  `run_mcp_server(tasks = 8)` caps the tasks running at once and
+  `task_requests = 20` the task requests per second. Over HTTP, a task
+  holds a worker of the pool until it ends. The server declares the
+  `tasks` capability, without `tasks/list`.
 * `call_tool()` runs as a task a tool that requires one, or any tool with
   `task = TRUE`.
 

@@ -538,11 +538,15 @@ it; with `@mcpTask required`, it must, and a call without task gets
 -32601. The server answers a call with a task at once, with the task's
 ID, drawn from a cryptographically secure generator since the server
 cannot tell clients apart, and runs the call in a background R process:
-a new one per task over stdio, a worker over HTTP. The client follows
+a new one per task over stdio, a worker over HTTP, which the task holds
+until it ends, so that the tool calls wait in the queue rather than
+behind it. The client follows
 it with `tasks/get`, gets its result with `tasks/result`, which waits
 for the end of the task, and stops it with `tasks/cancel`. A task keeps
 its result for the time to live the client asks, at most an hour; at
-most `run_mcp_server(tasks = )` tasks run at once, 8 by default. The
+most `run_mcp_server(tasks = )` tasks run at once, 8 by default, and
+the server answers at most `task_requests = ` task requests per second,
+20 by default. The
 server declares no `tasks/list`, which the specification reserves to
 servers that can tell clients apart, sends no status notification, and
 never asks for input (`input_required`). `call_tool()` runs as a task a
@@ -1122,7 +1126,7 @@ kept away.
 | Arbitrary code execution              | No free-form "run R code" tool. `check_tools()` statically flags `eval(parse())`, `system()`, `source()` and similar direct calls in tool code: a lint, not a proof.                                                                         |
 | Malformed or hostile arguments        | Validation generated from the schema, before the function runs.                                                                                                                                                                              |
 | R can still reach the system          | OS-level isolation in production: non-root container, read-only file system, restricted network egress. On Linux, per-call sandboxing with `unix::eval_safe()` or [RAppArmor](https://cran.r-project.org/web/packages/RAppArmor/index.html). |
-| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; over stdio and HTTP, at most `run_mcp_server(tool_calls = )` tool calls and `completions = ` completion requests per second (10 each by default). |
+| Runaway calls                         | Over HTTP, a timeout per call (60 seconds by default) and a bounded queue; over stdio and HTTP, at most `run_mcp_server(tool_calls = )` tool calls and `completions = ` completion requests per second (10 each by default), `task_requests = ` task requests (20), and `tasks = ` tasks running at once (8). |
 | Terminal codes in outputs             | Every text sent to clients loses its terminal colours (ANSI escape sequences) and the control characters other than tab and line breaks. |
 | Data leakage to the model provider    | Aggregated outputs by default, `@mcpLimit rows`, and, on the client side, the option of a self-hosted model. Known limit: `@mcpLimit rows` caps one call, not a conversation: a model can split its request to get around it. |
 | Unauthorised access to an HTTP server | A shared bearer token, or a proxy that authenticates in front, with a warning when the server is open beyond the machine; for OAuth 2.1 as in the MCP authorization specification, a gateway in front of the server. |

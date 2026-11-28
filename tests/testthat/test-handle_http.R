@@ -323,7 +323,8 @@ test_that("handle_http() answers the completion requests beyond its rate limit b
       pool = list(),
       limits = rate_limits(
         0,
-        0
+        0,
+        20
       )
     )$body,
     '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
