@@ -1245,3 +1245,76 @@ test_that("@mcpComplete needs an argument and a function", {
   )
 })
 
+test_that("@mcpOutput sets the output schema of a tool", {
+  expect_equal(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Year summary
+      #'
+      #' Totals of one year.
+      #' @mcpTool
+      #' @mcpReturns json
+      #' @mcpOutput type_object(runs = type_integer(), distance = type_number())
+      summarise_runs <- function() NULL
+      "
+    )$tools$summarise_runs$tool$outputSchema,
+    type_object(
+      runs = type_integer(),
+      distance = type_number()
+    )$schema
+  )
+})
+
+test_that("an @mcpOutput that is not an object type is an error", {
+  output_error <- function(
+    output
+  ) {
+    expect_error(
+      roxygen2::roc_proc_text(
+        registry_roclet(),
+        paste0(
+          "
+          #' Year summary
+          #'
+          #' Totals of one year.
+          #' @mcpTool
+          #' @mcpReturns json
+          #' @mcpOutput ",
+          output,
+          "
+          summarise_runs <- function() NULL
+          "
+        )
+      ),
+      "`summarise_runs`: `@mcpOutput` must be a type_object().",
+      fixed = TRUE
+    )
+  }
+
+  output_error(
+    "type_string()"
+  )
+  output_error(
+    "42"
+  )
+})
+
+test_that("@mcpOutput needs @mcpReturns json", {
+  expect_error(
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      "
+      #' Year summary
+      #'
+      #' Totals of one year.
+      #' @mcpTool
+      #' @mcpReturns table
+      #' @mcpOutput type_object(runs = type_integer())
+      summarise_runs <- function() NULL
+      "
+    ),
+    "`summarise_runs` has an `@mcpOutput`: it needs `@mcpReturns json`."
+  )
+})
+

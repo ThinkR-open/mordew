@@ -288,3 +288,35 @@ test_that("validate_arguments() rejects an integer beyond the R integer range", 
     "Argument `steps` must be of type integer."
   )
 })
+
+test_that("validate_arguments() names the fields of a result when asked", {
+  schema <- type_object(
+    runs = type_integer(),
+    distance = type_number()
+  )$schema
+
+  expect_error(
+    validate_arguments(
+      list(
+        runs = "twelve",
+        distance = 84.5
+      ),
+      schema,
+      "field"
+    ),
+    "Field `runs` must be of type integer.",
+    fixed = TRUE
+  )
+  expect_error(
+    validate_arguments(
+      list(
+        runs = 12
+      ),
+      schema,
+      "field"
+    ),
+    "Missing field `distance`.",
+    fixed = TRUE
+  )
+})
+

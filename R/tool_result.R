@@ -1,7 +1,8 @@
 tool_result <- function(
   value,
   returns,
-  rows = NULL
+  rows = NULL,
+  output = NULL
 ) {
   if (
     inherits(
@@ -35,12 +36,43 @@ tool_result <- function(
       )
     )
   }
-  list(
-    content = kind_content(
-      value,
-      returns,
-      rows
+  content <- kind_content(
+    value,
+    returns,
+    rows
+  )
+  if (is.null(output)) {
+    return(
+      list(
+        content = content
+      )
     )
+  }
+  structured <- jsonlite::fromJSON(
+    content[[1]]$text,
+    simplifyVector = FALSE
+  )
+  invalid <- tryCatch(
+    validate_arguments(
+      structured,
+      output,
+      "field"
+    ),
+    error = conditionMessage
+  )
+  if (is.character(invalid)) {
+    return(
+      error_result(
+        paste0(
+          "The tool returned a result that does not match its output schema: ",
+          invalid
+        )
+      )
+    )
+  }
+  list(
+    content = content,
+    structuredContent = structured
   )
 }
 

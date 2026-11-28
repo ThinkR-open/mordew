@@ -322,6 +322,7 @@ Tag specification. Tag names are camelCase, as roxygen2's own
 | `@mcpTool [name]`                 | Exposes the function as a tool. The name defaults to the function's; it must be 1 to 128 characters among `A-Z a-z 0-9 _ - .`.                                             |
 | `@mcpType <param> <expression>`   | The parameter's type, as an R expression (see below). Required for every parameter; naming a parameter the function does not have is an error.                             |
 | `@mcpReturns <kind>`              | Required: `text`, `table`, `image` or `json`; drives serialisation.                                                                                                        |
+| `@mcpOutput <expression>`         | A `type_object()` sent as the `outputSchema`; needs `@mcpReturns json`. The result, checked against it, is sent as `structuredContent` and as JSON text.                   |
 | `@mcpReadOnly`                    | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
 | `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
 | `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
@@ -518,6 +519,14 @@ Its documentation mentions neither completion nor resource templates
 A value that does not match the tool's `@mcpReturns` comes back as an
 `isError` result naming the declared kind and the received one.
 
+With `@mcpOutput type_object(runs = type_integer())`, a `json` tool
+declares the structure of its result: `tools/list` sends it as the
+tool's `outputSchema`, and each result goes out as `structuredContent`
+and, for the clients that do not read it, as the same JSON in a text
+block. A result that does not match the schema comes back as an
+`isError` result naming the field: the server never sends structured
+content that breaks its schema.
+
 The server catches errors along the whole call: argument validation, the
 tool itself, then serialisation, since a ggplot only fails when printed.
 Each one comes back as an `isError` result.
@@ -538,11 +547,12 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Resources                  | Data the client reads by URI and adds to the context                  | One R function per resource or URI template      |
 | Prompts                    | Messages the user picks, which the client sends to the model          | One R function per prompt                        |
 | Completion                 | Suggestions for prompt arguments and URI template variables           | `@mcpComplete` and a function of the package     |
+| Structured output          | Tool results as JSON, checked against a schema the tool declares      | `@mcpOutput` and `structuredContent`             |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
 The rest of the specification is not implemented: resource
-subscriptions, structured output, elicitation, progress, cancellation,
+subscriptions, elicitation, progress, cancellation,
 tasks, and the 2026-07-28 revision. They are on the
 [roadmap](#roadmap-and-task-list).
 
@@ -928,6 +938,9 @@ is an R error. `expect_resource()` reads it and expects its text to match
 a pattern; `add_resource()` writes that test with the resource.
 `get_prompt()` and `expect_prompt()` do the same for a prompt, through
 `prompts/get`, and `add_prompt()` writes that test with the prompt.
+`expect_structured_output()` calls a tool and checks its
+`structuredContent` against its `@mcpOutput`, as the specification asks
+clients to.
 
 With `client = "inspector"`, `call_tool()` makes the same call through the
 MCP Inspector, the reference client of the MCP project, run with `npx`
@@ -1031,7 +1044,7 @@ so a clean result is not a proof.
 
 The helpers: `call_tool()`, `expect_tool_error()`, `read_resource()`,
 `expect_resource()`, `get_prompt()`, `expect_prompt()`,
-`expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
+`expect_structured_output()`, `expect_tool_schema()`, `use_evals()`, `eval_case()`, `tool_call()`,
 `partial()`, `run_evals()`, `assert_pass_rate()`, `check_tools()`,
 `expect_hostile_safe()`.
 
@@ -1370,7 +1383,7 @@ tried by others.
 - [ ] `x-mcp-header` on tool parameters: mirrors a parameter into an HTTP header
 - [ ] Tool icons (`icons`)
 - [ ] Serve 2025-11-25 and 2026-07-28 clients side by side
-- [ ] Structured output: `@mcpOutput`, `structuredContent` validated against the schema, and `expect_structured_output()`
+- [x] Structured output: `@mcpOutput`, `structuredContent` validated against the schema, and `expect_structured_output()`
 - [x] Completion: `@mcpComplete` for prompt arguments and URI template variables
 - [x] Rate limiting of completion requests, which the specification asks for (SHOULD, and MUST in its security section)
 - [ ] OpenTelemetry trace context propagation from `_meta`

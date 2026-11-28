@@ -1,18 +1,21 @@
 validate_arguments <- function(
   arguments,
-  schema
+  schema,
+  label = "argument"
 ) {
   check_fields(
     arguments,
     schema,
-    NULL
+    NULL,
+    label
   )
 }
 
 check_fields <- function(
   value,
   schema,
-  path
+  path,
+  label
 ) {
   stop_on_first(
     setdiff(
@@ -20,7 +23,8 @@ check_fields <- function(
       names(schema$properties)
     ),
     "Unknown",
-    path
+    path,
+    label
   )
   stop_on_first(
     setdiff(
@@ -28,7 +32,8 @@ check_fields <- function(
       names(value)
     ),
     "Missing",
-    path
+    path,
+    label
   )
   for (name in names(value)) {
     check_value(
@@ -37,7 +42,8 @@ check_fields <- function(
       field_path(
         path,
         name
-      )
+      ),
+      label
     )
   }
 }
@@ -61,7 +67,8 @@ field_path <- function(
 check_value <- function(
   value,
   schema,
-  path
+  path,
+  label
 ) {
   problem <- argument_problem(
     value,
@@ -69,7 +76,18 @@ check_value <- function(
   )
   if (!is.null(problem)) {
     stop(
-      "Argument `",
+      toupper(
+        substring(
+          label,
+          1,
+          1
+        )
+      ),
+      substring(
+        label,
+        2
+      ),
+      " `",
       path,
       "` must ",
       problem,
@@ -86,7 +104,8 @@ check_value <- function(
           "[",
           i - 1,
           "]"
-        )
+        ),
+        label
       )
     }
   }
@@ -94,7 +113,8 @@ check_value <- function(
     check_fields(
       value,
       schema,
-      path
+      path,
+      label
     )
   }
 }
@@ -208,12 +228,15 @@ has_type <- function(
 stop_on_first <- function(
   offending,
   problem,
-  path
+  path,
+  label
 ) {
   if (length(offending) > 0) {
     stop(
       problem,
-      " argument `",
+      " ",
+      label,
+      " `",
       field_path(
         path,
         offending[[1]]

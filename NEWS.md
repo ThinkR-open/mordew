@@ -1,3 +1,14 @@
+# mordew 0.0.0.9032
+
+* Structured output: `@mcpOutput <type_object()>` on a `json` tool declares
+  the structure of its result, sent as the tool's `outputSchema`. Each
+  result goes out as `structuredContent` and as JSON text, after a check
+  against the schema; a result that does not match it is an `isError`
+  result naming the field. The roclet stops on an `@mcpOutput` that is not a
+  `type_object()` or on a tool that does not return `json`.
+  `expect_structured_output()` checks the structured content of a tool
+  against its schema, as a client does.
+
 # mordew 0.0.0.9031
 
 * Completion: `@mcpComplete <argument> <function>` on a prompt or a resource

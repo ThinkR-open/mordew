@@ -325,3 +325,56 @@ test_that("tool_result() closes the PNG device when a plot fails", {
     devices
   )
 })
+
+totals_schema <- type_object(
+  runs = type_integer(),
+  distance = type_number()
+)$schema
+
+test_that("tool_result() sends a structured result, with its JSON as text", {
+  expect_equal(
+    tool_result(
+      list(
+        runs = 12L,
+        distance = 84.5
+      ),
+      "json",
+      output = totals_schema
+    ),
+    list(
+      content = list(
+        list(
+          type = "text",
+          text = '{"runs":12,"distance":84.5}'
+        )
+      ),
+      structuredContent = list(
+        runs = 12L,
+        distance = 84.5
+      )
+    )
+  )
+})
+
+test_that("tool_result() answers a result that does not match the output schema with an error result", {
+  expect_equal(
+    tool_result(
+      list(
+        runs = "twelve",
+        distance = 84.5
+      ),
+      "json",
+      output = totals_schema
+    ),
+    list(
+      content = list(
+        list(
+          type = "text",
+          text = "The tool returned a result that does not match its output schema: Field `runs` must be of type integer."
+        )
+      ),
+      isError = TRUE
+    )
+  )
+})
+

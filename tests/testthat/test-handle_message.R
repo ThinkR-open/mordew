@@ -1250,6 +1250,45 @@ test_that("handle_message() answers a completion function that fails or does not
   )
 })
 
+test_that("handle_message() sends the structured result of a tool with an output schema", {
+  totals <- function() {
+    list(
+      runs = 12L
+    )
+  }
+
+  expect_equal(
+    handle_message(
+      list(
+        jsonrpc = "2.0",
+        id = 1,
+        method = "tools/call",
+        params = list(
+          name = "totals",
+          arguments = list()
+        )
+      ),
+      envir = environment(),
+      registry = list(
+        totals = list(
+          fun = "totals",
+          tool = list(
+            name = "totals",
+            inputSchema = type_object()$schema,
+            outputSchema = type_object(
+              runs = type_integer()
+            )$schema
+          ),
+          returns = "json"
+        )
+      )
+    )$result$structuredContent,
+    list(
+      runs = 12L
+    )
+  )
+})
+
 test_that("handle_message() answers an unknown tool with a JSON-RPC error", {
   expect_equal(
     handle_message(

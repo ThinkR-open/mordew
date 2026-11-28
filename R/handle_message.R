@@ -170,7 +170,8 @@ tools_call <- function(
             envir = envir
           ),
           entry$returns,
-          entry$limit$rows
+          entry$limit$rows,
+          entry$tool$outputSchema
         )
       },
       error = function(

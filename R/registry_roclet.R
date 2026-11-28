@@ -75,6 +75,15 @@ roxy_tag_parse.roxy_tag_mcpLimit <- function(
 }
 
 #' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpOutput <- function(
+  x
+) {
+  roxygen2::tag_value(
+    x
+  )
+}
+
+#' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpComplete <- function(
   x
 ) {
@@ -530,6 +539,11 @@ tool_entry <- function(
       fun
     )
   )
+  tool$outputSchema <- output_schema(
+    block,
+    fun,
+    returns
+  )
   tool$annotations <- tool_annotations(
     block
   )
@@ -544,6 +558,43 @@ tool_entry <- function(
     returns
   )
   entry
+}
+
+output_schema <- function(
+  block,
+  fun,
+  returns
+) {
+  output <- roxygen2::block_get_tag_value(
+    block,
+    "mcpOutput"
+  )
+  if (is.null(output)) {
+    return(
+      NULL
+    )
+  }
+  if (returns != "json") {
+    stop(
+      "`",
+      fun,
+      "` has an `@mcpOutput`: it needs `@mcpReturns json`."
+    )
+  }
+  type <- eval(
+    str2lang(
+      output
+    ),
+    topenv()
+  )
+  if (!is.list(type) || !identical(type$schema$type, "object")) {
+    stop(
+      "`",
+      fun,
+      "`: `@mcpOutput` must be a type_object()."
+    )
+  }
+  type$schema
 }
 
 tool_limit <- function(
