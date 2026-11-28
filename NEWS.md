@@ -2,8 +2,9 @@
 
 * Completion: `@mcpComplete <argument> <function>` on a prompt or a resource
   template links an argument, or a variable of the URI, to a function of the
-  package that returns suggestions for the text typed so far. Clients get
-  them with `completion/complete`: the first 100, with their total. The
+  package that returns suggestions for the text typed so far, given the
+  arguments already filled. Clients get them with `completion/complete`:
+  the first 100, with their total. The
   roclet stops on an `@mcpComplete` that names no argument; an unknown
   prompt or template gets -32602, a completion function that fails -32603.
 

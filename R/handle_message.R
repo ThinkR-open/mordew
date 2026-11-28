@@ -520,6 +520,17 @@ completion_complete <- function(
       )
     )
   }
+  context <- context_arguments(
+    params[["context"]]
+  )
+  if (is.null(context)) {
+    return(
+      rpc_error(
+        -32602,
+        "Invalid params"
+      )
+    )
+  }
   entry <- completion_entry(
     params[["ref"]],
     resources,
@@ -536,8 +547,35 @@ completion_complete <- function(
   completion_result(
     entry$complete[[argument[["name"]]]],
     argument[["value"]],
+    context,
     envir
   )
+}
+
+context_arguments <- function(
+  context
+) {
+  if (!is.null(context) && !is.list(context)) {
+    return(
+      NULL
+    )
+  }
+  arguments <- as.list(
+    context[["arguments"]]
+  )
+  strings <- vapply(
+    arguments,
+    function(argument) {
+      is.character(argument) && length(argument) == 1
+    },
+    logical(1)
+  )
+  if (length(arguments) > 0 && (is.null(names(arguments)) || !all(strings))) {
+    return(
+      NULL
+    )
+  }
+  arguments
 }
 
 completion_entry <- function(
@@ -576,6 +614,7 @@ entry_of <- function(
 completion_result <- function(
   fun,
   value,
+  context,
   envir
 ) {
   tryCatch(
@@ -586,7 +625,8 @@ completion_result <- function(
         do.call(
           fun,
           list(
-            value
+            value,
+            context
           ),
           envir = envir
         )

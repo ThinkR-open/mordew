@@ -943,7 +943,7 @@ test_that("handle_message() answers a prompt that fails or does not return text 
 
 complete_message <- function(
   params,
-  complete_run_ids = function(value) {
+  complete_run_ids = function(value, context) {
     paste0(
       value,
       c(
@@ -1040,10 +1040,97 @@ test_that("handle_message() completes a variable of a resource template", {
   )
 })
 
+test_that("handle_message() passes the arguments already filled to the completion function", {
+  params <- prompt_completion()
+  params$context <- list(
+    arguments = list(
+      year = "2024"
+    )
+  )
+
+  expect_equal(
+    complete_message(
+      params,
+      function(value, context) {
+        paste(
+          context$year,
+          value
+        )
+      }
+    )$result$completion$values,
+    list(
+      "2024 4"
+    )
+  )
+  expect_equal(
+    complete_message(
+      prompt_completion(),
+      function(value, context) {
+        as.character(
+          length(
+            context
+          )
+        )
+      }
+    )$result$completion$values,
+    list(
+      "0"
+    )
+  )
+})
+
+test_that("handle_message() answers a completion with an invalid context as invalid params", {
+  invalid <- function(
+    context
+  ) {
+    params <- prompt_completion()
+    params$context <- context
+    complete_message(
+      params
+    )$error
+  }
+
+  expect_equal(
+    invalid(
+      "2024"
+    ),
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+  expect_equal(
+    invalid(
+      list(
+        arguments = list(
+          year = 2024
+        )
+      )
+    ),
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+  expect_equal(
+    invalid(
+      list(
+        arguments = list(
+          "2024"
+        )
+      )
+    ),
+    list(
+      code = -32602,
+      message = "Invalid params"
+    )
+  )
+})
+
 test_that("handle_message() sends at most 100 completion values, with their total", {
   completion <- complete_message(
     prompt_completion(),
-    function(value) {
+    function(value, context) {
       as.character(
         1:150
       )
@@ -1140,7 +1227,7 @@ test_that("handle_message() answers a completion function that fails or does not
   expect_equal(
     complete_message(
       prompt_completion(),
-      function(value) {
+      function(value, context) {
         stop("No runs today.")
       }
     )$error,
@@ -1152,7 +1239,7 @@ test_that("handle_message() answers a completion function that fails or does not
   expect_equal(
     complete_message(
       prompt_completion(),
-      function(value) {
+      function(value, context) {
         42
       }
     )$error,
