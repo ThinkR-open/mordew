@@ -7,7 +7,8 @@ handle_http <- function(
   token = NULL,
   resources,
   prompts,
-  limits = NULL
+  limits = NULL,
+  tasks = NULL
 ) {
   reply <- reply_from_headers(
     request,
@@ -39,6 +40,19 @@ handle_http <- function(
         )
       )
     }
+    task <- task_response(
+      message,
+      request$body,
+      registry,
+      tasks
+    )
+    if (!is.null(task)) {
+      return(
+        reply_to(
+          task
+        )
+      )
+    }
     return(
       pool_call(
         pool,
@@ -48,7 +62,7 @@ handle_http <- function(
       )
     )
   }
-  http_reply(
+  reply_to(
     respond(
       request$body,
       server,
@@ -56,8 +70,25 @@ handle_http <- function(
       envir,
       resources,
       prompts,
-      limits
+      limits,
+      tasks
     )
+  )
+}
+
+reply_to <- function(
+  response
+) {
+  if (promises::is.promise(response)) {
+    return(
+      promises::then(
+        response,
+        http_reply
+      )
+    )
+  }
+  http_reply(
+    response
   )
 }
 

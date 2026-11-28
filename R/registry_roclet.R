@@ -75,6 +75,15 @@ roxy_tag_parse.roxy_tag_mcpLimit <- function(
 }
 
 #' @exportS3Method roxygen2::roxy_tag_parse
+roxy_tag_parse.roxy_tag_mcpTask <- function(
+  x
+) {
+  roxygen2::tag_value(
+    x
+  )
+}
+
+#' @exportS3Method roxygen2::roxy_tag_parse
 roxy_tag_parse.roxy_tag_mcpIcon <- function(
   x
 ) {
@@ -580,6 +589,10 @@ tool_entry <- function(
     block,
     fun
   )
+  tool$execution <- tool_execution(
+    block,
+    fun
+  )
   tool$outputSchema <- output_schema(
     block,
     fun,
@@ -599,6 +612,31 @@ tool_entry <- function(
     returns
   )
   entry
+}
+
+tool_execution <- function(
+  block,
+  fun
+) {
+  support <- roxygen2::block_get_tag_value(
+    block,
+    "mcpTask"
+  )
+  if (is.null(support)) {
+    return(
+      NULL
+    )
+  }
+  if (!support %in% c("optional", "required")) {
+    stop(
+      "`",
+      fun,
+      "` needs `@mcpTask optional` or `@mcpTask required`."
+    )
+  }
+  list(
+    taskSupport = support
+  )
 }
 
 icons <- function(

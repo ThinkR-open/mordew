@@ -392,3 +392,110 @@ test_that("serve_http() limits the tool calls to their rate per second", {
   )
 })
 
+
+test_that("serve_http() keeps the tasks of the server", {
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request(
+          '{"jsonrpc":"2.0","id":1,"method":"tasks/get","params":{"taskId":"nope"}}'
+        )
+      )$body
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "mordew",
+      4,
+      60,
+      8,
+      NULL
+    ),
+    '{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Failed to retrieve task: Task not found"}}'
+  )
+})
+
+test_that("serve_http() runs the tasks of the package in the background", {
+  local_dev_package(
+    local_tool_package(
+      tools = c(
+        "#' Totals",
+        "#'",
+        "#' Totals of the log.",
+        "#'",
+        "#' @mcpTool",
+        "#' @mcpReturns text",
+        "#' @mcpTask optional",
+        "totals <- function() {",
+        "  \"12 runs\"",
+        "}"
+      )
+    )
+  )
+  started <- NULL
+  local_mocked_bindings(
+    start_workers = function(
+      workers,
+      package
+    ) {
+      NULL
+    },
+    task_mirai = function(
+      text,
+      package,
+      server
+    ) {
+      started <<- package
+      list(
+        data = NULL
+      )
+    }
+  )
+  local_mocked_bindings(
+    runServer = function(
+      host,
+      port,
+      app
+    ) {
+      app$call(
+        rook_request(
+          '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"totals","task":{}}}'
+        )
+      )$status
+    },
+    .package = "httpuv"
+  )
+
+  expect_identical(
+    serve_http(
+      "127.0.0.1",
+      8000,
+      "runlog",
+      4,
+      60,
+      8,
+      NULL
+    ),
+    200L
+  )
+  expect_identical(
+    started,
+    "runlog"
+  )
+})

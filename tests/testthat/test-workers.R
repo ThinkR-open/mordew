@@ -56,28 +56,6 @@ tool_call_body <- function(
   )
 }
 
-wait_for <- function(
-  promise
-) {
-  value <- NULL
-  promises::then(
-    promise,
-    onFulfilled = function(result) {
-      value <<- result
-    },
-    onRejected = function(error) {
-      value <<- error
-    }
-  )
-  deadline <- Sys.time() + 30
-  while (is.null(value) && Sys.time() < deadline) {
-    later::run_now(
-      0.1
-    )
-  }
-  value
-}
-
 test_that("worker_respond() answers a message with the tools of the package", {
   skip_if_not_installed(
     "processx"

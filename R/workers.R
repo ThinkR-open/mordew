@@ -2,32 +2,9 @@ start_workers <- function(
   workers,
   package
 ) {
-  path <- find.package(
+  share_libpaths()
+  load <- package_load(
     package
-  )
-  load <- if (
-    from_source(
-      path
-    )
-  ) {
-    bquote(
-      pkgload::load_all(
-        .(path),
-        quiet = TRUE
-      )
-    )
-  } else {
-    bquote(
-      loadNamespace(
-        .(package)
-      )
-    )
-  }
-  Sys.setenv(
-    R_LIBS = paste(
-      .libPaths(),
-      collapse = .Platform$path.sep
-    )
   )
   mirai::daemons(
     workers,
@@ -37,6 +14,42 @@ start_workers <- function(
     mirai::everywhere(
       load
     )[]
+  )
+}
+
+package_load <- function(
+  package
+) {
+  path <- find.package(
+    package
+  )
+  if (
+    from_source(
+      path
+    )
+  ) {
+    return(
+      bquote(
+        pkgload::load_all(
+          .(path),
+          quiet = TRUE
+        )
+      )
+    )
+  }
+  bquote(
+    loadNamespace(
+      .(package)
+    )
+  )
+}
+
+share_libpaths <- function() {
+  Sys.setenv(
+    R_LIBS = paste(
+      .libPaths(),
+      collapse = .Platform$path.sep
+    )
   )
 }
 

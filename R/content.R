@@ -198,10 +198,8 @@ content_annotations <- function(
     )
   }
   if (inherits(last_modified, "POSIXt")) {
-    last_modified <- format(
-      last_modified,
-      "%Y-%m-%dT%H:%M:%SZ",
-      tz = "UTC"
+    last_modified <- iso_time(
+      last_modified
     )
   }
   Filter(

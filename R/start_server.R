@@ -80,16 +80,66 @@ on_windows <- function() {
 request_tool <- function(
   client,
   tool,
-  args
+  args,
+  task = FALSE
 ) {
-  request_result(
+  params <- named_call(
+    tool,
+    args
+  )
+  if (
+    !task &&
+      !identical(
+        tool_task_support(
+          client,
+          tool
+        ),
+        "required"
+      )
+  ) {
+    return(
+      request_result(
+        client,
+        "tools/call",
+        params
+      )
+    )
+  }
+  params$task <- empty_object()
+  task <- request_result(
     client,
     "tools/call",
-    named_call(
-      tool,
-      args
+    params
+  )$task
+  request_result(
+    client,
+    "tasks/result",
+    list(
+      taskId = task$taskId
     )
   )
+}
+
+tool_task_support <- function(
+  client,
+  tool
+) {
+  if (is.null(client$tools)) {
+    client$tools <- request_result(
+      client,
+      "tools/list",
+      NULL
+    )$tools
+  }
+  Find(
+    function(definition) {
+      identical(
+        definition$name,
+        tool
+      )
+    },
+    client$tools
+  )$execution$taskSupport
 }
 
 named_call <- function(

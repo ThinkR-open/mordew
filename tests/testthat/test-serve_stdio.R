@@ -381,3 +381,40 @@ test_that("serve_stdio() answers the completion requests beyond its rate limit w
     '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
   )
 })
+
+test_that("serve_stdio() passes the task store to each request", {
+  input <- withr::local_connection(
+    textConnection(
+      '{"jsonrpc":"2.0","id":1,"method":"tasks/get","params":{"taskId":"nope"}}'
+    )
+  )
+  path <- withr::local_tempfile()
+  output <- withr::local_connection(
+    file(
+      path,
+      "w"
+    )
+  )
+
+  serve_stdio(
+    input,
+    output,
+    tasks = new_task_store(
+      start = function(text) {
+        list(
+          data = NULL
+        )
+      },
+      wait = function(handle, then) {
+        then()
+      }
+    )
+  )
+
+  expect_equal(
+    readLines(
+      path
+    ),
+    '{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Failed to retrieve task: Task not found"}}'
+  )
+})

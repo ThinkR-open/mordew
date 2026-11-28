@@ -324,6 +324,7 @@ Tag specification. Tag names are camelCase, as roxygen2's own
 | `@mcpReturns <kind>`              | Required: `text`, `table`, `image`, `json` or `content`; drives serialisation.                                                                                             |
 | `@mcpOutput <expression>`         | A `type_object()` sent as the `outputSchema`; needs `@mcpReturns json`. The result, checked against it, is sent as `structuredContent` and as JSON text.                   |
 | `@mcpIcon <src> [options]`        | Icons for clients: an http, https or data URI, then `mimeType=`, `sizes=` (`48x48,96x96` or `any`) and `theme=` (`light` or `dark`). One tag per icon.                     |
+| `@mcpTask <optional\|required>`   | `optional` or `required`: the tool runs as a task when the client asks, or only as one, in a background R process (see below).                                             |
 | `@mcpReadOnly`                    | `readOnlyHint: true`: the tool does not modify its environment.                                                                                                            |
 | `@mcpNonDestructive`              | `destructiveHint: false`. Redundant next to `@mcpReadOnly`, which already implies it.                                                                                      |
 | `@mcpIdempotent`                  | `idempotentHint: true`: a second call with the same arguments has no further effect. Redundant next to `@mcpReadOnly`, which already implies it.                           |
@@ -531,6 +532,22 @@ resource embedded as text or as a blob), each with optional
 its priority from 0 to 1 and its last change. A resource cannot return
 `content`.
 
+With `@mcpTask optional`, a client may run the tool as a task, as the
+specification's tasks utility, still experimental in 2025-11-25, defines
+it; with `@mcpTask required`, it must, and a call without task gets
+-32601. The server answers a call with a task at once, with the task's
+ID, drawn from a cryptographically secure generator since the server
+cannot tell clients apart, and runs the call in a background R process:
+a new one per task over stdio, a worker over HTTP. The client follows
+it with `tasks/get`, gets its result with `tasks/result`, which waits
+for the end of the task, and stops it with `tasks/cancel`. A task keeps
+its result for the time to live the client asks, at most an hour; at
+most `run_mcp_server(tasks = )` tasks run at once, 8 by default. The
+server declares no `tasks/list`, which the specification reserves to
+servers that can tell clients apart, sends no status notification, and
+never asks for input (`input_required`). `call_tool()` runs as a task a
+tool that requires one, or any tool with `task = TRUE`.
+
 With `@mcpOutput type_object(runs = type_integer())`, a `json` tool
 declares the structure of its result: `tools/list` sends it as the
 tool's `outputSchema`, and each result goes out as `structuredContent`
@@ -563,6 +580,7 @@ decisions](#design-decisions)). It handles `initialize`, `ping`,
 | Icons                      | Images that clients show for tools, resources and prompts             | `@mcpIcon`                                       |
 | Result content             | Text, image, audio, resource links and embedded resources, annotated  | `@mcpReturns content` and `content_*()`          |
 | Pagination                 | Lists in pages, with a cursor                                         | One page; a cursor gets -32602                   |
+| Tasks                      | Tool calls run in the background, followed, cancelled                 | `@mcpTask`; no `tasks/list`                      |
 | Error reporting            | Tool errors as `isError` results, protocol errors with standard codes | Built in                                         |
 | Transports                 | stdio, and Streamable HTTP                                            | Both; over HTTP, without sessions or SSE streams |
 
@@ -571,8 +589,8 @@ registries at build time, so the server declares no `listChanged` and
 sends no list change notification.
 
 The rest of the specification is not implemented: resource
-subscriptions, elicitation, progress, cancellation,
-tasks, and the 2026-07-28 revision. They are on the
+subscriptions, elicitation, progress, cancellation of requests, and
+the 2026-07-28 revision. They are on the
 [roadmap](#roadmap-and-task-list).
 
 ### Runtime and process model
@@ -1373,7 +1391,8 @@ tried by others.
 - [ ] A timeout per tool (`@mcpLimit seconds`), stopping a worker that ignores the interrupt at its timeout (compiled code), and resource limits
 - [ ] Rows per session on top of rows per call: `@mcpLimit rows` caps one call, and a model can split its request to get around it
 - [ ] `mordew::report_progress()` and cancellation that stops and recycles the worker
-- [ ] Tasks extension: `@mcpTask`, `tasks/get`, `tasks/update`, shared task store, handle checks, time-to-live, and `expect_task()`
+- [x] Tasks of the 2025-11-25 utility: `@mcpTask`, `tasks/get`, `tasks/result`, `tasks/cancel`, time to live
+- [ ] Tasks, the rest: `tasks/update`, a task store shared by replicas, handle checks, and `expect_task()`
 - [ ] `@mcpConfirm` and `@mcpElicit`, resolved before the tool runs; `mordew::elicit()` under Multi Round-Trip Requests for dynamic cases; `simulate_elicitation()` to test them
 - [ ] Deployment guide for replicas behind a load balancer (architecture A), with nginx and Kubernetes examples
 - [ ] Load tests: concurrent users, slow tools, timeouts, queue saturation

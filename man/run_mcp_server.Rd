@@ -14,7 +14,8 @@ run_mcp_server(
   queue = 8,
   token = Sys.getenv("MORDEW_TOKEN"),
   completions = 10,
-  tool_calls = 10
+  tool_calls = 10,
+  tasks = 8
 )
 }
 \arguments{
@@ -52,6 +53,10 @@ others get an error asking to retry later. \code{Inf} answers them all.}
 \item{tool_calls}{Tool calls run per second, over stdio and HTTP, as the
 MCP specification asks servers to limit them; the others get an error
 result asking to retry later. \code{Inf} runs them all.}
+
+\item{tasks}{Tasks that may run at once: a tool tagged \verb{@mcpTask} runs
+as a task when the client asks, in a background R process, kept for
+the time to live the client asks, at most an hour.}
 }
 \description{
 Serves the tools, resources and prompts of an installed mordew package.

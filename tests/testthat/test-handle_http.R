@@ -329,3 +329,97 @@ test_that("handle_http() answers the completion requests beyond its rate limit b
     '{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Too many completion requests: retry later."}}'
   )
 })
+
+task_registry <- list(
+  totals = list(
+    fun = "totals",
+    tool = list(
+      name = "totals",
+      execution = list(
+        taskSupport = "optional"
+      )
+    ),
+    returns = "text"
+  )
+)
+
+test_that("handle_http() creates the task of a tool call before the workers", {
+  expect_match(
+    handle_http(
+      http_request(
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"totals","task":{}}}'
+      ),
+      registry = task_registry,
+      pool = list(),
+      tasks = new_task_store(
+      start = function(text) {
+        list(
+          data = NULL
+        )
+      },
+      wait = function(handle, then) {
+        then()
+      }
+    )
+    )$body,
+    '"status":"working"',
+    fixed = TRUE
+  )
+})
+
+test_that("handle_http() answers a task result it waits for with a promise", {
+  tasks <- new_task_store(
+    start = function(text) {
+      list(
+        data = list(
+          jsonrpc = "2.0",
+          id = 1,
+          result = list(
+            content = list(),
+            isError = FALSE
+          )
+        )
+      )
+    },
+    wait = wait_promise
+  )
+  tasks$tasks$abc <- list2env(
+    list(
+      id = "abc",
+      status = "working",
+      created = Sys.time(),
+      updated = Sys.time(),
+      ttl = 60000,
+      handle = mirai::mirai(
+        {
+          Sys.sleep(
+            1
+          )
+          list(
+            jsonrpc = "2.0",
+            id = 1,
+            result = list(
+              content = list(),
+              isError = FALSE
+            )
+          )
+        }
+      )
+    )
+  )
+
+  response <- wait_for(
+    handle_http(
+      http_request(
+        '{"jsonrpc":"2.0","id":2,"method":"tasks/result","params":{"taskId":"abc"}}'
+      ),
+      tasks = tasks
+    )
+  )
+
+  expect_match(
+    response$body,
+    '"isError":false',
+    fixed = TRUE
+  )
+})

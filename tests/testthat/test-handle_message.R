@@ -96,6 +96,20 @@ test_that("handle_message() answers initialize with 2025-11-25 and the server id
           completions = structure(
             list(),
             names = character()
+          ),
+          tasks = list(
+            cancel = structure(
+              list(),
+              names = character()
+            ),
+            requests = list(
+              tools = list(
+                call = structure(
+                  list(),
+                  names = character()
+                )
+              )
+            )
           )
         ),
         serverInfo = list(
@@ -1325,6 +1339,64 @@ test_that("handle_message() answers a list request with a cursor as invalid para
       ),
       4
     )
+  )
+})
+
+call_task_tool <- function(
+  params
+) {
+  totals <- function() {
+    "12 runs"
+  }
+  handle_message(
+    list(
+      jsonrpc = "2.0",
+      id = 1,
+      method = "tools/call",
+      params = params
+    ),
+    envir = environment(),
+    registry = list(
+      totals = list(
+        fun = "totals",
+        tool = list(
+          name = "totals",
+          inputSchema = type_object()$schema,
+          execution = list(
+            taskSupport = "required"
+          )
+        ),
+        returns = "text"
+      )
+    )
+  )
+}
+
+test_that("handle_message() answers a call without task to a tool that requires one as method not found", {
+  expect_equal(
+    call_task_tool(
+      list(
+        name = "totals"
+      )
+    )$error,
+    list(
+      code = -32601,
+      message = "Tool `totals` must run as a task."
+    )
+  )
+})
+
+test_that("handle_message() runs a call with a task itself, as a worker does", {
+  expect_equal(
+    call_task_tool(
+      list(
+        name = "totals",
+        task = list(
+          ttl = 60000
+        )
+      )
+    )$result$content[[1]]$text,
+    "12 runs"
   )
 })
 

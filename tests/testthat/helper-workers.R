@@ -21,3 +21,25 @@ local_workers <- function(
     envir = env
   )
 }
+
+wait_for <- function(
+  promise
+) {
+  value <- NULL
+  promises::then(
+    promise,
+    onFulfilled = function(result) {
+      value <<- result
+    },
+    onRejected = function(error) {
+      value <<- error
+    }
+  )
+  deadline <- Sys.time() + 30
+  while (is.null(value) && Sys.time() < deadline) {
+    later::run_now(
+      0.1
+    )
+  }
+  value
+}

@@ -1470,3 +1470,50 @@ test_that("@mcpReturns content is a kind of tools only", {
   )
 })
 
+test_that("@mcpTask lets a tool run as a task", {
+  task_tool <- function(
+    support
+  ) {
+    roxygen2::roc_proc_text(
+      registry_roclet(),
+      paste0(
+        "
+        #' Year summary
+        #'
+        #' Totals of one year.
+        #' @mcpTool
+        #' @mcpReturns text
+        #' @mcpTask ",
+        support,
+        "
+        summarise_runs <- function() NULL
+        "
+      )
+    )$tools$summarise_runs$tool$execution
+  }
+
+  expect_equal(
+    task_tool(
+      "optional"
+    ),
+    list(
+      taskSupport = "optional"
+    )
+  )
+  expect_equal(
+    task_tool(
+      "required"
+    ),
+    list(
+      taskSupport = "required"
+    )
+  )
+  expect_error(
+    task_tool(
+      "sometimes"
+    ),
+    "`summarise_runs` needs `@mcpTask optional` or `@mcpTask required`.",
+    fixed = TRUE
+  )
+})
+

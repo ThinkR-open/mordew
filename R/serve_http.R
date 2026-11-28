@@ -6,7 +6,8 @@ http_app <- function(
   token = NULL,
   resources,
   prompts,
-  limits = NULL
+  limits = NULL,
+  tasks = NULL
 ) {
   list(
     onHeaders = function(req) {
@@ -33,7 +34,8 @@ http_app <- function(
         token,
         resources,
         prompts,
-        limits
+        limits,
+        tasks
       )
     }
   )
@@ -60,7 +62,8 @@ serve_http <- function(
   queue,
   token,
   completions = 10,
-  tool_calls = 10
+  tool_calls = 10,
+  tasks = 8
 ) {
   start_workers(
     workers,
@@ -95,6 +98,19 @@ serve_http <- function(
       rate_limits(
         completions,
         tool_calls
+      ),
+      new_task_store(
+        function(text) {
+          task_mirai(
+            text,
+            package,
+            server_identity(
+              package
+            )
+          )
+        },
+        wait_promise,
+        tasks
       )
     )
   )

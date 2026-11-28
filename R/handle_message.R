@@ -36,7 +36,15 @@ handle_message <- function(
             tools = empty_object(),
             resources = empty_object(),
             prompts = empty_object(),
-            completions = empty_object()
+            completions = empty_object(),
+            tasks = list(
+              cancel = empty_object(),
+              requests = list(
+                tools = list(
+                  call = empty_object()
+                )
+              )
+            )
           ),
           serverInfo = server[c(
             "name",
@@ -146,6 +154,24 @@ tools_call <- function(
         paste0(
           "Unknown tool: ",
           params[["name"]]
+        )
+      )
+    )
+  }
+  if (
+    is.null(params[["task"]]) &&
+      identical(
+        entry$tool$execution$taskSupport,
+        "required"
+      )
+  ) {
+    return(
+      rpc_error(
+        -32601,
+        paste0(
+          "Tool `",
+          params[["name"]],
+          "` must run as a task."
         )
       )
     )

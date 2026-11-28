@@ -10,7 +10,8 @@ call_tool(
   transport = "stdio",
   package = testthat::testing_package(),
   timeout = 30,
-  client = c("mordew", "inspector")
+  client = c("mordew", "inspector"),
+  task = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ tested.}
 client written by others checks that the server is understood beyond
 \code{{mordew}}'s own reading of the protocol. \code{"inspector"} is not supported
 on Windows yet.}
+
+\item{task}{\code{TRUE} runs the tool as a task, through \code{tasks/result}, with
+the \code{"mordew"} client. A tool tagged \verb{@mcpTask required} always runs as
+one.}
 }
 \value{
 The tool result: a list with \code{content} and \code{isError}.

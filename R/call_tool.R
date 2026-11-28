@@ -18,6 +18,9 @@
 #'   client written by others checks that the server is understood beyond
 #'   `{mordew}`'s own reading of the protocol. `"inspector"` is not supported
 #'   on Windows yet.
+#' @param task `TRUE` runs the tool as a task, through `tasks/result`, with
+#'   the `"mordew"` client. A tool tagged `@mcpTask required` always runs as
+#'   one.
 #'
 #' @return The tool result: a list with `content` and `isError`.
 #'
@@ -31,7 +34,8 @@ call_tool <- function(
   client = c(
     "mordew",
     "inspector"
-  )
+  ),
+  task = FALSE
 ) {
   match.arg(
     transport,
@@ -45,7 +49,8 @@ call_tool <- function(
       tool,
       args,
       package,
-      timeout
+      timeout,
+      task
     ),
     inspector = inspector_call(
       tool,
@@ -63,16 +68,23 @@ mordew_call <- function(
   tool,
   args,
   package,
-  timeout
+  timeout,
+  task
 ) {
-  request_server(
+  client <- start_server(
     package,
-    timeout,
-    "tools/call",
-    named_call(
-      tool,
-      args
+    timeout = timeout
+  )
+  on.exit(
+    client_stop(
+      client
     )
+  )
+  request_tool(
+    client,
+    tool,
+    args,
+    task
   )
 }
 

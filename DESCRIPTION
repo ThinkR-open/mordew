@@ -1,6 +1,6 @@
 Package: mordew
 Title: Build, Test and Ship 'MCP' Servers as R Packages
-Version: 0.0.0.9033
+Version: 0.0.0.9034
 Authors@R: c(
     person("Colin", "Fay", , "contact@colinfay.me", role = c("cre", "aut"),
            comment = c(ORCID = "0000-0001-7343-1846")),
@@ -17,6 +17,7 @@ Imports:
     httpuv (>= 1.6.16),
     jsonlite (>= 2.0.0),
     mirai (>= 2.7.4),
+    nanonext,
     promises (>= 1.5.0),
     utils
 Encoding: UTF-8

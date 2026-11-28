@@ -1,3 +1,17 @@
+# mordew 0.0.0.9034
+
+* Tasks, as the experimental tasks utility of the 2025-11-25 specification:
+  `@mcpTask optional` lets a client run a tool as a task, `@mcpTask required`
+  makes it run only as one (-32601 otherwise). The server answers at once
+  with the task, runs the call in a background R process, and answers
+  `tasks/get`, `tasks/result`, which waits for the end of the task, and
+  `tasks/cancel`. Task IDs come from a cryptographically secure generator;
+  a task keeps its result for its time to live, at most an hour, and
+  `run_mcp_server(tasks = 8)` caps the tasks running at once. The server
+  declares the `tasks` capability, without `tasks/list`.
+* `call_tool()` runs as a task a tool that requires one, or any tool with
+  `task = TRUE`.
+
 # mordew 0.0.0.9033
 
 * `run_mcp_server(tool_calls = 10)` runs at most that many tool calls per
