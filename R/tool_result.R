@@ -306,7 +306,25 @@ text_content <- function(
   list(
     list(
       type = "text",
-      text = text
+      text = sanitize_text(
+        text
+      )
     )
+  )
+}
+
+sanitize_text <- function(
+  text
+) {
+  gsub(
+    "[\\x01-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]",
+    "",
+    gsub(
+      "\\x1B\\[[0-9;?]*[ -/]*[@-~]",
+      "",
+      text,
+      perl = TRUE
+    ),
+    perl = TRUE
   )
 }

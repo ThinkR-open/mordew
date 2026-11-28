@@ -378,3 +378,13 @@ test_that("tool_result() answers a result that does not match the output schema 
   )
 })
 
+
+test_that("tool_result() strips terminal colours and control characters from text", {
+  expect_identical(
+    tool_result(
+      "\033[31mNo runs\033[39m today\a.\n\tTry tomorrow.",
+      "text"
+    )$content[[1]]$text,
+    "No runs today.\n\tTry tomorrow."
+  )
+})
